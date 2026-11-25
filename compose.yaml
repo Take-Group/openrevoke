@@ -183,7 +183,7 @@ services:
   # public domain. Skip it when another reverse proxy, Cloudflare Tunnel or Tailscale serves
   # the panel (docs/self-hosting.md).
   caddy:
-    image: caddy:2.10
+    image: caddy:2.11
     profiles: ["https"]
     restart: unless-stopped
     environment:
