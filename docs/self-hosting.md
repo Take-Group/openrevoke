@@ -1,7 +1,7 @@
 # Self-hosting on your own domain
 
 This guide puts Open Revoke on a server under an address like `https://revoke.example.com`.
-For a first look on your own computer, the quick start in the README is enough.
+For a first look on your own computer, "Get started" in the README is enough.
 
 Open Revoke holds signed-in admin sessions of your SaaS tools (in the shared browser) and
 connector secrets (in the database). Treat the server like a password manager: few people
@@ -24,7 +24,7 @@ outbound connection (Socket Mode). So the panel can stay inside a VPN.
 
 ## 1. Configure
 
-With the installer (README, "Quick start"), answer its question about the address, or pass
+With the installer (README, "Get started"), answer its question about the address, or pass
 `--url https://revoke.example.com --proxy caddy`: it writes `.env` for you, with generated
 secrets and the server's time zone. By hand:
 

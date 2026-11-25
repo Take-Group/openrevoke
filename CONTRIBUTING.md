@@ -8,7 +8,7 @@ Found a security problem? Do not open an issue: follow [SECURITY.md](SECURITY.md
 ## Run it from source
 
 For development use the dev stack: hot reload, fictional people and test connectors
-(README, "Development"):
+(README, "Contributing"):
 
 ```bash
 cp .env.example .env   # set OPEN_REVOKE_SECRET_KEY (the command is in the file)
@@ -16,7 +16,7 @@ docker compose -f compose.dev.yaml up -d --build
 ```
 
 Panel http://localhost:18410, sign in as `admin@example.com` / `open-revoke-dev-password`. To try
-the production image instead, follow "From this source" in [README.md](README.md#from-this-source).
+the production image instead, follow "From source" in [README.md](README.md#from-source).
 
 For the checks below you also need, on the host:
 

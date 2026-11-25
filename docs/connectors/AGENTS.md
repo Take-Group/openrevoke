@@ -2,6 +2,7 @@
 
 One page per connector: key, method (API or browser), how to connect, endpoints, limits and what is still unverified. Code of each connector is `backend/app/connectors/<key>/`. Browser connectors (`chatgpt`, `claude`, `slack`) have all addresses as constants at the top of their `connector.py` and are marked as not verified on a real account.
 
+- `README.md`: overview linked from the repo README: methods, table with verification state, safety rules, browser login, adding a connector. Update the table when a connector is added or verified.
 - `chatgpt.md`: key `chatgpt`, browser session; Cloudflare anti-bot risk; Enterprise should use `scim`.
 - `claude-team.md`: key `claude`, browser session of an Owner or Admin; optional `org_uuid` for several organizations; Enterprise should use `scim`.
 - `github.md`: key `github`, REST API with a fine-grained or classic token; reads org members and pending invites, invites by e-mail, removes members.

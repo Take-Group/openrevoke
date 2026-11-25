@@ -44,7 +44,7 @@ Connectors are checked on the test connectors, not yet on real accounts.
 - `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`: contributing (MIT, no CLA), Contributor Covenant, private vulnerability reports.
 - `LICENSE`: MIT outside `ee/`; `ee/LICENSE` (commercial, no code yet) for paid features.
 - `NOTICE`: copyright; third-party app names and logos in the catalog are their owners' trademarks.
-- `README.md`: public overview, quick start, development.
+- `README.md`: short public overview and get started; details go to `docs/`.
 - `TELEMETRY.md`: what telemetry sends, how to turn it off.
 - `Dockerfile`: targets `app` (API, worker and panel under supervisor), `backend-dev` (dev stack), `browser`.
 - `compose.yaml`: self-hosting on release images, one port, Caddy profile `https`.
