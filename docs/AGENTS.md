@@ -6,3 +6,4 @@ Product docs, public with the repo: no plans and no business data (market, compe
 - `self-hosting.md`: install under your own domain: `PUBLIC_URL`, HTTPS with Caddy, own proxy or VPN, Google redirect rules.
 - `openapi.json`: API contract, source of the frontend types (`frontend/src/lib/api/types.ts`).
 - `connectors/`: own AGENTS.md. How to connect each app, endpoints, limits.
+- `assets/`, no map: images of the repo README: `logo-light.svg`, `logo-dark.svg` (full logo, `<picture>` picks by GitHub theme), `panel.png` (dashboard on seed data only, never a real organization: take it from a stack without `SEED_GOOGLE_*`).

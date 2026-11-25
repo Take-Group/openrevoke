@@ -1,12 +1,37 @@
-# Open Revoke
+<h1 align="center">
+  <a href="https://openrevoke.com">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
+      <img src="docs/assets/logo-light.svg" alt="Open Revoke" width="360">
+    </picture>
+  </a>
+</h1>
 
-**Self-hosted SaaS access management: who has an account where, what it costs, and offboarding
-that removes a leaver's accounts, also in apps without an API.**
+<h3 align="center">Who has an account where, what it costs, and offboarding that removes it.</h3>
 
-[Website](https://openrevoke.com) · [Docs](https://openrevoke.com/docs) ·
-[Connectors](docs/connectors/README.md) · [Self-hosting](docs/self-hosting.md) ·
-[Implementation and support](https://openrevoke.com/implementation) ·
-[Contributing](CONTRIBUTING.md)
+<p align="center">
+  Self-hosted SaaS access management. Offboarding removes a leaver's accounts through the app's
+  API, SCIM, or a logged-in browser session for apps without an API.
+</p>
+
+<p align="center">
+  <a href="https://openrevoke.com">Website</a> ·
+  <a href="https://openrevoke.com/docs">Docs</a> ·
+  <a href="docs/connectors/README.md">Connectors</a> ·
+  <a href="docs/self-hosting.md">Self-hosting</a> ·
+  <a href="https://openrevoke.com/implementation">Implementation and support</a> ·
+  <a href="CONTRIBUTING.md">Contributing</a>
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-7c5cff" alt="License: MIT"></a>
+  <img src="https://img.shields.io/badge/self--hosted-Docker-0b0b0c" alt="Self-hosted with Docker">
+  <img src="https://img.shields.io/badge/MCP-server-0b0b0c" alt="MCP server">
+</p>
+
+<p align="center">
+  <img src="docs/assets/panel.png" alt="Open Revoke dashboard: people, accounts, monthly cost per app and alerts about people who left" width="100%">
+</p>
 
 ## What is Open Revoke
 
