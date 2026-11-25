@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { AppWindowIcon, HistoryIcon, RefreshCwIcon, SquareArrowOutUpRightIcon, UserSearchIcon } from "lucide-react";
-import type { ColumnDef } from "@tanstack/react-table";
+import type { DataColumn } from "@/components/data-table/features";
 
 import { AppAvatar } from "@/components/common/avatars";
 import { EmptyState } from "@/components/common/empty-state";
@@ -63,7 +63,7 @@ function AppRowActions({ app }: { app: AppListItem }) {
   );
 }
 
-const columns: ColumnDef<AppListItem>[] = [
+const columns: DataColumn<AppListItem>[] = [
   {
     accessorKey: "name",
     header: ({ column }) => <SortHeader column={column} title="App" />,

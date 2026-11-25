@@ -13,7 +13,7 @@ import {
   UserIcon,
   type LucideIcon,
 } from "lucide-react";
-import type { ColumnDef } from "@tanstack/react-table";
+import type { DataColumn } from "@/components/data-table/features";
 
 import { EmptyState } from "@/components/common/empty-state";
 import { Hint } from "@/components/common/info-tip";
@@ -71,7 +71,7 @@ function Data({ data }: { data: AuditEventOut["data"] }) {
   );
 }
 
-const columns: ColumnDef<AuditEventOut>[] = [
+const columns: DataColumn<AuditEventOut>[] = [
   {
     accessorKey: "at",
     header: "When",

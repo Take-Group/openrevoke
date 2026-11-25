@@ -2,37 +2,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  flexRender,
-  getCoreRowModel,
-  getSortedRowModel,
-  useReactTable,
-  type ColumnDef,
-  type RowData,
-  type SortingState,
-} from "@tanstack/react-table";
+import { flexRender, useTable, type RowData, type SortingState } from "@tanstack/react-table";
 
 import { EmptyState } from "@/components/common/empty-state";
+import { dataTableFeatures, type DataColumn } from "@/components/data-table/features";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-
-declare module "@tanstack/react-table" {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  interface ColumnMeta<TData extends RowData, TValue> {
-    /** Right-aligned column (money, counts). */
-    align?: "right";
-    /** Extra classes of the column's cells and header. */
-    className?: string;
-  }
-}
 
 /** Clicks on these do their own thing and never open the row. */
 const INTERACTIVE = "a,button,input,select,textarea,label,[role=menuitem],[role=option],[data-row-ignore]";
 
-interface DataTableProps<TData> {
-  // TanStack needs `any` for the value type: every column has its own.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  columns: ColumnDef<TData, any>[];
+interface DataTableProps<TData extends RowData> {
+  columns: DataColumn<TData>[];
   data: TData[];
   getRowId: (row: TData) => string;
   /** Row click opens this address (Ctrl or Cmd click: a new tab). */
@@ -49,7 +30,7 @@ interface DataTableProps<TData> {
  * header under the top bar, row click to the detail page. Search, filters and
  * paging stay on the server (hooks), sorting works on the loaded page.
  */
-export function DataTable<TData>({
+export function DataTable<TData extends RowData>({
   columns,
   data,
   getRowId,
@@ -61,15 +42,13 @@ export function DataTable<TData>({
 }: DataTableProps<TData>) {
   const router = useRouter();
   const [sorting, setSorting] = useState<SortingState>(initialSorting);
-  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table returns new functions each render by design.
-  const table = useReactTable({
+  const table = useTable({
+    features: dataTableFeatures,
     data,
     columns,
     state: { sorting },
     onSortingChange: setSorting,
     getRowId: (row) => getRowId(row),
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
   });
 
   const open = (event: React.MouseEvent<HTMLTableRowElement>, href: string | null) => {
@@ -93,7 +72,6 @@ export function DataTable<TData>({
                 return (
                   <TableHead
                     key={header.id}
-                    style={header.column.columnDef.size ? { width: header.getSize() } : undefined}
                     className={cn(
                       "sticky top-0 z-10 h-9 bg-subtle px-3 text-xs font-medium text-muted-foreground first:rounded-tl-[6px] first:pl-4 last:rounded-tr-[6px] last:pr-4",
                       meta?.align === "right" && "text-right",
@@ -123,7 +101,7 @@ export function DataTable<TData>({
                   onClick={href ? (event) => open(event, href) : undefined}
                   className={cn(href && "cursor-pointer", rowClassName?.(row.original))}
                 >
-                  {row.getVisibleCells().map((cell) => {
+                  {row.getAllCells().map((cell) => {
                     const meta = cell.column.columnDef.meta;
                     return (
                       <TableCell

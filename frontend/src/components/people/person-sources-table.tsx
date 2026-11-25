@@ -1,7 +1,7 @@
 "use client";
 
 import { DatabaseIcon } from "lucide-react";
-import type { ColumnDef } from "@tanstack/react-table";
+import type { DataColumn } from "@/components/data-table/features";
 
 import { EmptyState } from "@/components/common/empty-state";
 import { RelativeTime } from "@/components/common/relative-time";
@@ -11,7 +11,7 @@ import type { PersonLinkSource, PersonSourceOut } from "@/lib/api/types";
 
 const SOURCE_LABEL: Record<PersonLinkSource, string> = { manual: "Manual", csv: "CSV", connection: "Connection" };
 
-const columns: ColumnDef<PersonSourceOut>[] = [
+const columns: DataColumn<PersonSourceOut>[] = [
   {
     accessorKey: "source_name",
     header: "Source",

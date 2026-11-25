@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { CopyIcon, HistoryIcon, SquareArrowOutUpRightIcon, UsersIcon } from "lucide-react";
-import type { ColumnDef } from "@tanstack/react-table";
+import type { DataColumn } from "@/components/data-table/features";
 import { toast } from "sonner";
 
 import { AppAvatar, PersonAvatar } from "@/components/common/avatars";
@@ -55,7 +55,7 @@ function PersonRowActions({ person }: { person: PersonListItem }) {
   );
 }
 
-const columns: ColumnDef<PersonListItem>[] = [
+const columns: DataColumn<PersonListItem>[] = [
   {
     id: "name",
     accessorFn: (person) => fullName(person),

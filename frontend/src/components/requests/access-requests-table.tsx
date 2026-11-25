@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { InboxIcon } from "lucide-react";
-import type { ColumnDef } from "@tanstack/react-table";
+import type { DataColumn } from "@/components/data-table/features";
 
 import { EmptyState } from "@/components/common/empty-state";
 import { RecordLink } from "@/components/common/links";
@@ -17,7 +17,7 @@ import type { AccessRequestOut } from "@/lib/api/access-request-types";
 
 const LIMIT = 20;
 
-const columns: ColumnDef<AccessRequestOut>[] = [
+const columns: DataColumn<AccessRequestOut>[] = [
   {
     id: "person",
     header: "Person",
