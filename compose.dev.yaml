@@ -177,7 +177,7 @@ services:
 
   # Panel: next dev. /api goes to the api container (API_PROXY_TARGET).
   web:
-    image: oven/bun:1.4.4
+    image: oven/bun:1.4.5
     working_dir: /app
     environment:
       TZ: ${TZ:-UTC}
