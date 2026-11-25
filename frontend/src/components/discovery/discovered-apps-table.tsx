@@ -1,7 +1,7 @@
 "use client";
 
 import { ScanSearchIcon } from "lucide-react";
-import type { ColumnDef } from "@tanstack/react-table";
+import type { DataColumn } from "@/components/data-table/features";
 
 import { AppAvatar } from "@/components/common/avatars";
 import { EmptyState } from "@/components/common/empty-state";
@@ -16,7 +16,7 @@ import type { DiscoveredAppOut } from "@/lib/api/discovery-types";
 const STATUS_LABEL = { new: "New", tracked: "Tracked", ignored: "Ignored" } as const;
 const STATUS_TONE = { new: "info", tracked: "success", ignored: "neutral" } as const;
 
-const columns: ColumnDef<DiscoveredAppOut>[] = [
+const columns: DataColumn<DiscoveredAppOut>[] = [
   {
     id: "name",
     // Sorts by the name people see: the catalog's full name when the app is known.

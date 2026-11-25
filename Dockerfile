@@ -15,14 +15,14 @@
 
 
 # --- Source of the Bun binary (copied into the final image) -----------------
-FROM oven/bun:1.4.4 AS bun-binary
+FROM oven/bun:1.4.5 AS bun-binary
 
 
 # --- Frontend build: Next.js in standalone mode ------------------------------
 # IMPORTANT: the work directories of the build stages must match the paths in
 # the final image. The uv virtual environment writes absolute paths into
 # shebangs, so moving it to another directory breaks it.
-FROM oven/bun:1.4.4 AS frontend-build
+FROM oven/bun:1.4.5 AS frontend-build
 
 USER root
 WORKDIR /app/frontend
@@ -38,7 +38,7 @@ RUN bun run build
 
 
 # --- Backend build: Python dependencies and the app code --------------------
-FROM ghcr.io/astral-sh/uv:0.13.7-python3.14-trixie-slim AS backend-build
+FROM ghcr.io/astral-sh/uv:0.13.10-python3.14-trixie-slim AS backend-build
 
 WORKDIR /app/backend
 
@@ -59,7 +59,7 @@ RUN uv sync --frozen --no-dev
 # it. The services run `uv sync --frozen` at start, so a new dependency needs
 # only a restart of the service, not a rebuild.
 # libatomic1: the Node.js driver bundled with playwright (connect_over_cdp).
-FROM ghcr.io/astral-sh/uv:0.13.7-python3.14-trixie-slim AS backend-dev
+FROM ghcr.io/astral-sh/uv:0.13.10-python3.14-trixie-slim AS backend-dev
 
 ENV TZ=UTC \
     PYTHONUNBUFFERED=1 \
@@ -79,7 +79,7 @@ RUN uv sync --frozen --no-install-project
 
 
 # --- Final image: backend and frontend under one supervisor ----------------
-FROM ghcr.io/astral-sh/uv:0.13.7-python3.14-trixie-slim AS app
+FROM ghcr.io/astral-sh/uv:0.13.10-python3.14-trixie-slim AS app
 
 ENV TZ=UTC \
     PYTHONUNBUFFERED=1 \

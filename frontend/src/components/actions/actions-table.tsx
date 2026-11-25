@@ -1,7 +1,7 @@
 "use client";
 
 import { HandIcon, ImageIcon, ListChecksIcon, SparklesIcon, UserMinusIcon, UserPlusIcon, UserXIcon } from "lucide-react";
-import type { ColumnDef } from "@tanstack/react-table";
+import type { DataColumn } from "@/components/data-table/features";
 
 import { ActionButtons } from "@/components/actions/action-buttons";
 import { AppAvatar, PersonAvatar } from "@/components/common/avatars";
@@ -115,7 +115,7 @@ function RecipeFixes({ action }: { action: ActionOut }) {
   ));
 }
 
-const columns: ColumnDef<ActionOut>[] = [
+const columns: DataColumn<ActionOut>[] = [
   {
     id: "app",
     accessorFn: (action) => action.app.name,

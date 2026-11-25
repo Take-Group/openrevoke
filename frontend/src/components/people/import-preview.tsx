@@ -1,4 +1,4 @@
-import type { ColumnDef } from "@tanstack/react-table";
+import type { DataColumn } from "@/components/data-table/features";
 
 import { StatusBadge } from "@/components/common/status-badge";
 import { DataTable } from "@/components/data-table/data-table";
@@ -43,7 +43,7 @@ function RowDetails({ row }: { row: ImportRowResult }) {
   );
 }
 
-const columns: ColumnDef<ImportRowResult>[] = [
+const columns: DataColumn<ImportRowResult>[] = [
   {
     accessorKey: "line",
     header: "Line",

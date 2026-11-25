@@ -1,6 +1,6 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
+import type { DataColumn } from "@/components/data-table/features";
 
 import { RecordLink } from "@/components/common/links";
 import { RelativeTime } from "@/components/common/relative-time";
@@ -23,7 +23,7 @@ const RISK: Record<GrantRisk, string> = {
   deleted: "Deleted from Google",
 };
 
-const columns: ColumnDef<DiscoveredGrantOut>[] = [
+const columns: DataColumn<DiscoveredGrantOut>[] = [
   {
     accessorKey: "email",
     header: ({ column }) => <SortHeader column={column} title="Person" />,
