@@ -5,6 +5,7 @@ that removes a leaver's accounts, also in apps without an API.**
 
 [Website](https://openrevoke.com) · [Docs](https://openrevoke.com/docs) ·
 [Connectors](docs/connectors/README.md) · [Self-hosting](docs/self-hosting.md) ·
+[Implementation and support](https://openrevoke.com/implementation) ·
 [Contributing](CONTRIBUTING.md)
 
 ## What is Open Revoke
@@ -108,6 +109,34 @@ claude mcp add --transport http open-revoke https://open-revoke.example.com/api/
 Then ask in plain words: "add Anna to Notion", "offboard Bob", "which apps does Carol use?". The
 assistant acts with your role, a read-only token cannot change anything, every change is in the
 audit log with the token's name, and removing accounts still waits for an approval.
+
+## Make it your own
+
+Open Revoke is a core you build on: people, apps, accounts, costs, approved actions and connectors.
+A feature your company needs and the core does not have, you can add yourself, also with an AI
+coding agent such as Claude Code, Codex or Cursor. The repository is written for that:
+
+- The main folders have an `AGENTS.md` map of their files, so an agent finds the right place without
+  reading the whole tree.
+- `skills/` describes each larger feature (data flow, files, how to extend it) and the usual tasks:
+  a new connector, endpoint, model, workflow or page.
+- New behaviour goes into new modules: one Python package per connector, one route per panel page.
+  Keep your changes there and updates of the core stay easy to merge.
+
+Start your agent in this folder and describe the feature, for example "add a connector for our
+HR system" or "add a monthly cost report per team". It is MIT licensed: you may change it and keep
+your changes private.
+
+## Implementation and support
+
+Want Open Revoke running in your company without spending your own team's time on it? The Open
+Revoke team installs it on your server or cloud account, connects your apps, writes browser
+connectors for your apps without an API, builds the features you need and keeps the connectors
+working when the apps' admin panels change. Before you rely on it, we review the installation and
+give you a written report.
+
+Details: [openrevoke.com/implementation](https://openrevoke.com/implementation). Book a call:
+[openrevoke.com/contact](https://openrevoke.com/contact).
 
 ## Security
 
