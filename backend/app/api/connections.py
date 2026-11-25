@@ -70,6 +70,7 @@ async def sync_connection(
 async def list_sync_runs(
     app_id: uuid.UUID, session: SessionDep, limit: Limit = DEFAULT_LIMIT, offset: Offset = 0
 ) -> SyncRunPage:
+    """Account syncs of the app's connection, newest first: status, counts, error."""
     if await session.get(App, app_id) is None:
         raise NotFoundError("App not found")
     query = select(SyncRun).join(Connection, Connection.id == SyncRun.connection_id).where(Connection.app_id == app_id)

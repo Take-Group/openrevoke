@@ -6,4 +6,5 @@ Settings routes; the sidebar lists them under Settings (`NAV_SETTINGS` in `compo
 - `users/`: `/settings/users` renders `UsersView` (admins only).
 - `two-factor/`: `/settings/two-factor` renders `TwoFactorView` (form page, not in the sidebar).
 - `ai/`: `/settings/ai` renders `AiSettingsView`: the one language model for every AI feature.
+- `api/`: `/settings/api` renders `ApiTokensView` (MCP server and API tokens, every role); `new/` is `/settings/api/new` (`NewApiTokenView`).
 - `slack/`: `/settings/slack` renders `SlackView`; `?installed=` and `?error=` come back from Slack's OAuth.

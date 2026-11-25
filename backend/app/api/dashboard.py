@@ -9,4 +9,5 @@ router = APIRouter()
 
 @router.get("/dashboard", response_model=Dashboard)
 async def read_dashboard(session: SessionDep) -> Dashboard:
+    """Overview: counts, monthly cost and alerts (failed syncs, leavers with accounts, pending actions)."""
     return await get_dashboard(session)

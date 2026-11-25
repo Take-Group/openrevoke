@@ -4,6 +4,7 @@ from app.models.account import Account
 from app.models.action import Action
 from app.models.action_screenshot import ActionScreenshot
 from app.models.ai_settings import AiSettings
+from app.models.api_token import ApiToken
 from app.models.app import App
 from app.models.app_billing import AppBilling
 from app.models.audit_event import AuditEvent
@@ -30,6 +31,7 @@ __all__ = [
     "Action",
     "ActionScreenshot",
     "AiSettings",
+    "ApiToken",
     "App",
     "AppBilling",
     "AuditEvent",

@@ -16,11 +16,13 @@ router = APIRouter()
 
 @router.get("/users", response_model=list[UserOut])
 async def list_users(session: SessionDep, _: AdminDep) -> list[UserOut]:
+    """Panel users (people who sign in to Open Revoke), with role and status. Not the managed people."""
     return [UserOut.model_validate(user) for user in await users.list_users(session)]
 
 
 @router.patch("/users/{user_id}", response_model=UserOut)
 async def update_user(user_id: uuid.UUID, data: UserUpdate, session: SessionDep, admin: AdminDep) -> UserOut:
+    """Changes a panel user's role (admin or user). The last admin cannot lose the role."""
     return UserOut.model_validate(await users.set_role(session, user_id, data.role, admin=admin))
 
 
@@ -45,11 +47,13 @@ async def reset_user_totp(user_id: uuid.UUID, session: SessionDep, admin: AdminD
 
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_user(user_id: uuid.UUID, session: SessionDep, admin: AdminDep) -> None:
+    """Removes a panel user, or rejects a pending sign-up. Their sessions and API tokens stop working."""
     await users.remove(session, user_id, admin=admin)
 
 
 @router.get("/invites", response_model=InviteList)
 async def list_invites(session: SessionDep, _: AdminDep) -> InviteList:
+    """Open invite links that are not used or expired yet."""
     return InviteList(items=[InviteOut.model_validate(row) for row in await invites.list_open(session)])
 
 
@@ -67,10 +71,12 @@ async def revoke_invite(invite_id: uuid.UUID, session: SessionDep, _: AdminDep) 
 
 @router.get("/organization", response_model=OrganizationSettingsOut)
 async def get_organization(session: SessionDep, _: AdminDep) -> OrganizationSettingsOut:
+    """Organization settings: name, currency, time zone, password manager, sign-up rules."""
     return OrganizationSettingsOut.model_validate(await organization.get(session))
 
 
 @router.patch("/organization", response_model=OrganizationSettingsOut)
 async def update_organization(data: OrganizationUpdate, session: SessionDep, _: AdminDep) -> OrganizationSettingsOut:
+    """Changes organization settings. Only the fields present change."""
     updated = await organization.update(session, data.model_dump(exclude_none=True))
     return OrganizationSettingsOut.model_validate(updated)

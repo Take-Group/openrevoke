@@ -16,8 +16,8 @@ export function safeNext(value: string | null | undefined): string {
   return isRoute(value, PUBLIC_ROUTES) ? "/" : value;
 }
 
-/** A user (not admin) may open only My access and their own account settings (not users or the agent). */
-const USER_PAGES = ["/settings", "/settings/two-factor"];
+/** A user (not admin) may open only My access, their own account settings and API tokens (not users or the agent). */
+const USER_PAGES = ["/settings", "/settings/two-factor", "/settings/api", "/settings/api/new"];
 export function userRedirect(pathname: string): string | null {
   return USER_PAGES.includes(pathname) || isRoute(pathname, [USER_HOME]) ? null : USER_HOME;
 }

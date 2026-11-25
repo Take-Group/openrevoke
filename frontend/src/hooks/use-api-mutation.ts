@@ -28,7 +28,8 @@ export type ResourceKey =
   | "access-requests"
   | "onboarding"
   | "organization"
-  | "me";
+  | "me"
+  | "api-tokens";
 
 interface ApiMutationOptions<TData, TVariables> {
   mutationFn: MutationFunction<TData, TVariables>;

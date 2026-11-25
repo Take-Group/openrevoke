@@ -12,6 +12,7 @@ router = APIRouter(prefix="/me")
 
 @router.get("/access", response_model=MyAccess)
 async def get_my_access(session: SessionDep, user: CurrentUserDep) -> MyAccess:
+    """The signed-in user's own accounts, open requests and the apps they can ask for."""
     return await my_access.overview(session, user)
 
 

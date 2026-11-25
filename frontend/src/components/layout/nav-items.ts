@@ -6,6 +6,7 @@ import {
   KeyRoundIcon,
   LayoutDashboardIcon,
   ListChecksIcon,
+  PlugIcon,
   ScanSearchIcon,
   SettingsIcon,
   UsersIcon,
@@ -46,6 +47,7 @@ export const NAV_SETTINGS: NavItem[] = [
       { title: "Users", href: "/settings/users" },
       { title: "AI model", href: "/settings/ai" },
       { title: "Slack", href: "/settings/slack" },
+      { title: "API and MCP", href: "/settings/api" },
     ],
   },
 ];
@@ -64,6 +66,7 @@ export const NAV_PAGES: NavItem[] = NAV_ALL.flatMap((item) => [
 export const NAV_USER: NavItem[] = [
   { title: "My access", href: "/me", icon: KeyRoundIcon },
   { title: "Settings", href: "/settings", icon: SettingsIcon },
+  { title: "API and MCP", href: "/settings/api", icon: PlugIcon },
 ];
 
 export function isActive(pathname: string, href: string): boolean {

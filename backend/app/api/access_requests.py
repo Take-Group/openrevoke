@@ -22,4 +22,5 @@ async def list_access_requests(
     limit: Limit = 50,
     offset: Offset = 0,
 ) -> AccessRequestPage:
+    """Requests for app accounts from Slack and My access, newest first; ``status`` filters."""
     return await access_requests.list_requests(session, status=status_filter, limit=limit, offset=offset)

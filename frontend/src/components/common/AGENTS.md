@@ -4,6 +4,7 @@ Shared screen-level components of the panel: forms, messages, states, headers, b
 
 - `avatars.tsx`: `AppAvatar` (name, slug, connectorKey, catalogSlug, size; simple-icons mark, then the app catalog logo from `useAppCatalog`, then initials), `PersonAvatar` (firstName, lastName, email), `GlyphAvatar` (icon). `size`: xs, sm, md, lg.
 - `choice-cards.tsx`: `ChoiceCards` radio-like cards; `ChoiceOption` has value, label, hint, icon.
+- `code-block.tsx`: `CodeBlock` (code, label): a multi-line command or config snippet, kept as written, with a copy button.
 - `confirm-dialog.tsx`: `ConfirmDialog` (open, title, description, confirmLabel, `destructive`, `pending`, onConfirm, children). The short-question dialog.
 - `converted-money.tsx`: `ConvertedMoney` (amount), `ConvertedPrice` (price with period), `ConvertedTotal` (sum of currencies), all in the organization currency; `showOriginal` adds the app's own amount under it (app detail only).
 - `copy-button.tsx`: `CopyButton` (value, label), `CopyField` (read-only value with copy).

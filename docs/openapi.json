@@ -1418,6 +1418,7 @@
           "currencies"
         ],
         "summary": "List Currencies",
+        "description": "Currencies the organization can use, with the date of the latest exchange rates.",
         "operationId": "list_currencies",
         "responses": {
           "200": {
@@ -1601,6 +1602,7 @@
           "me"
         ],
         "summary": "Get My Access",
+        "description": "The signed-in user's own accounts, open requests and the apps they can ask for.",
         "operationId": "get_my_access",
         "responses": {
           "200": {
@@ -1768,12 +1770,272 @@
         }
       }
     },
+    "/api/api-tokens": {
+      "get": {
+        "tags": [
+          "api-tokens"
+        ],
+        "summary": "List Api Tokens",
+        "description": "The signed-in user's tokens, newest first, and the MCP server address.",
+        "operationId": "list_api_tokens",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiTokenList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "api-tokens"
+        ],
+        "summary": "Create Api Token",
+        "description": "A new token acting as the signed-in user. ``secret`` is returned only here.",
+        "operationId": "create_api_token",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiTokenCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiTokenCreated"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/api-tokens/{token_id}": {
+      "delete": {
+        "tags": [
+          "api-tokens"
+        ],
+        "summary": "Revoke Api Token",
+        "description": "Deletes the token; clients using it get 401 from the next request.",
+        "operationId": "revoke_api_token",
+        "parameters": [
+          {
+            "name": "token_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Token Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/dashboard": {
       "get": {
         "tags": [
           "dashboard"
         ],
         "summary": "Read Dashboard",
+        "description": "Overview: counts, monthly cost and alerts (failed syncs, leavers with accounts, pending actions).",
         "operationId": "read_dashboard",
         "responses": {
           "200": {
@@ -2267,6 +2529,7 @@
           "people"
         ],
         "summary": "Create Person",
+        "description": "Adds a person by hand. Accounts with their e-mail or aliases are matched to them.",
         "operationId": "create_person",
         "requestBody": {
           "required": true,
@@ -2358,6 +2621,7 @@
           "people"
         ],
         "summary": "Import People",
+        "description": "Adds or updates people from a CSV (header: email,first_name,last_name,employee_code,aliases).\n\nTry ``dry_run=true`` first.",
         "operationId": "import_people",
         "parameters": [
           {
@@ -2463,6 +2727,7 @@
           "people"
         ],
         "summary": "Get Person",
+        "description": "One person with their e-mails, sources, accounts in every app and monthly cost.",
         "operationId": "get_person",
         "parameters": [
           {
@@ -2554,6 +2819,7 @@
           "people"
         ],
         "summary": "Update Person",
+        "description": "Changes a person's name, e-mails, code, kind or notes. Only the fields present change.",
         "operationId": "update_person",
         "parameters": [
           {
@@ -2742,6 +3008,7 @@
           "people"
         ],
         "summary": "Offboard Person",
+        "description": "Marks the person as left and creates a batch of delete actions, one per account, waiting for approval.\n\nNothing is removed yet: approve the batch (approve_action_batch with ``batch_id``) to run the writes.\nService accounts and accounts with an open action are skipped and listed.",
         "operationId": "offboard_person",
         "parameters": [
           {
@@ -3216,6 +3483,7 @@
           "discovery"
         ],
         "summary": "List Scans",
+        "description": "Discovery scans, newest first, with status and counts.",
         "operationId": "list_scans",
         "parameters": [
           {
@@ -3476,6 +3744,7 @@
           "discovery"
         ],
         "summary": "Get Discovered App",
+        "description": "One discovered app with the people who signed in to it and their risk.",
         "operationId": "get_discovered_app",
         "parameters": [
           {
@@ -4303,6 +4572,7 @@
           "apps"
         ],
         "summary": "Create App",
+        "description": "Adds a SaaS app with its price. Accounts come from a connection (put_connection) or are added by hand.",
         "operationId": "create_app",
         "requestBody": {
           "required": true,
@@ -4394,6 +4664,7 @@
           "apps"
         ],
         "summary": "Get App",
+        "description": "One app: price, seats, monthly cost, connection and its last sync.",
         "operationId": "get_app",
         "parameters": [
           {
@@ -4485,6 +4756,7 @@
           "apps"
         ],
         "summary": "Update App",
+        "description": "Changes an app's name, price or settings. Only the fields present change.",
         "operationId": "update_app",
         "parameters": [
           {
@@ -4849,6 +5121,7 @@
           "apps"
         ],
         "summary": "Create App Account",
+        "description": "Adds an account by hand in an app without a connection (or a seat the connector does not list).",
         "operationId": "create_app_account",
         "parameters": [
           {
@@ -4952,6 +5225,7 @@
           "accounts"
         ],
         "summary": "Update Account",
+        "description": "Assigns an account to a person (``person_id``, manual: sync keeps it) or changes its kind.\n\nOnly the fields present change; ``role``, ``status`` and ``display_name`` only without a connection.",
         "operationId": "update_account",
         "parameters": [
           {
@@ -5442,6 +5716,7 @@
           "connections"
         ],
         "summary": "List Sync Runs",
+        "description": "Account syncs of the app's connection, newest first: status, counts, error.",
         "operationId": "list_sync_runs",
         "parameters": [
           {
@@ -6034,6 +6309,7 @@
           "actions"
         ],
         "summary": "Cancel Action",
+        "description": "Cancels an action that has not run yet (pending approval or approved).",
         "operationId": "cancel_action",
         "parameters": [
           {
@@ -7274,6 +7550,7 @@
           "users"
         ],
         "summary": "List Users",
+        "description": "Panel users (people who sign in to Open Revoke), with role and status. Not the managed people.",
         "operationId": "list_users",
         "responses": {
           "200": {
@@ -7359,6 +7636,7 @@
           "users"
         ],
         "summary": "Update User",
+        "description": "Changes a panel user's role (admin or user). The last admin cannot lose the role.",
         "operationId": "update_user",
         "parameters": [
           {
@@ -7460,6 +7738,7 @@
           "users"
         ],
         "summary": "Remove User",
+        "description": "Removes a panel user, or rejects a pending sign-up. Their sessions and API tokens stop working.",
         "operationId": "remove_user",
         "parameters": [
           {
@@ -7828,6 +8107,7 @@
           "users"
         ],
         "summary": "List Invites",
+        "description": "Open invite links that are not used or expired yet.",
         "operationId": "list_invites",
         "responses": {
           "200": {
@@ -8085,6 +8365,7 @@
           "users"
         ],
         "summary": "Get Organization",
+        "description": "Organization settings: name, currency, time zone, password manager, sign-up rules.",
         "operationId": "get_organization",
         "responses": {
           "200": {
@@ -8164,6 +8445,7 @@
           "users"
         ],
         "summary": "Update Organization",
+        "description": "Changes organization settings. Only the fields present change.",
         "operationId": "update_organization",
         "requestBody": {
           "content": {
@@ -8255,6 +8537,7 @@
           "ai"
         ],
         "summary": "Get Ai Settings",
+        "description": "The language model settings for AI features (provider, model, whether a key is saved; never the key).",
         "operationId": "get_ai_settings",
         "responses": {
           "200": {
@@ -8334,6 +8617,7 @@
           "ai"
         ],
         "summary": "Save Ai Settings",
+        "description": "Saves the language model provider, model and key. ``api_key`` null keeps the saved key of the same provider.",
         "operationId": "save_ai_settings",
         "requestBody": {
           "content": {
@@ -8599,6 +8883,7 @@
           "slack"
         ],
         "summary": "Get Slack Agent",
+        "description": "State of the Slack agent: app created, tokens saved, enabled, workspace.",
         "operationId": "get_slack_agent",
         "responses": {
           "200": {
@@ -8751,6 +9036,7 @@
           "slack"
         ],
         "summary": "Update Slack Agent",
+        "description": "Turns the Slack agent on or off (``enabled``).",
         "operationId": "update_slack_agent",
         "requestBody": {
           "content": {
@@ -9317,6 +9603,7 @@
           "access-requests"
         ],
         "summary": "List Access Requests",
+        "description": "Requests for app accounts from Slack and My access, newest first; ``status`` filters.",
         "operationId": "list_access_requests",
         "parameters": [
           {
@@ -10978,6 +11265,128 @@
           "email"
         ],
         "title": "AliasOut"
+      },
+      "ApiTokenCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "description": "Where the token is used, e.g. 'Claude Code'"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ApiTokenScope",
+            "description": "read: GET requests only; write: everything the owner's role allows"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "scope"
+        ],
+        "title": "ApiTokenCreate"
+      },
+      "ApiTokenCreated": {
+        "properties": {
+          "token": {
+            "$ref": "#/components/schemas/ApiTokenOut"
+          },
+          "secret": {
+            "type": "string",
+            "title": "Secret",
+            "description": "The token itself. Shown once: copy it now"
+          },
+          "mcp_url": {
+            "type": "string",
+            "title": "Mcp Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token",
+          "secret",
+          "mcp_url"
+        ],
+        "title": "ApiTokenCreated"
+      },
+      "ApiTokenList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ApiTokenOut"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "mcp_url": {
+            "type": "string",
+            "title": "Mcp Url",
+            "description": "Address of the MCP server for AI assistants (Claude Code, Codex, Cursor)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "mcp_url"
+        ],
+        "title": "ApiTokenList"
+      },
+      "ApiTokenOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "prefix": {
+            "type": "string",
+            "title": "Prefix",
+            "description": "First characters of the token, to tell tokens apart"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ApiTokenScope"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "last_used_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Used At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "prefix",
+          "scope",
+          "created_at",
+          "last_used_at"
+        ],
+        "title": "ApiTokenOut"
+      },
+      "ApiTokenScope": {
+        "type": "string",
+        "enum": [
+          "read",
+          "write"
+        ],
+        "title": "ApiTokenScope"
       },
       "AppBillingOut": {
         "properties": {

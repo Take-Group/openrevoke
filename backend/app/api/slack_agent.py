@@ -23,6 +23,7 @@ SETTINGS_PAGE = "/settings/slack"
 
 @router.get("/slack-agent", response_model=SlackAgentOut)
 async def get_slack_agent(session: SessionDep, _: CurrentUserDep) -> SlackAgentOut:
+    """State of the Slack agent: app created, tokens saved, enabled, workspace."""
     return await slack_agent_setup.state(session)
 
 
@@ -40,6 +41,7 @@ async def save_slack_tokens(data: SlackTokensUpdate, session: SessionDep, _: Adm
 
 @router.patch("/slack-agent", response_model=SlackAgentOut)
 async def update_slack_agent(data: SlackAgentUpdate, session: SessionDep, _: AdminDep) -> SlackAgentOut:
+    """Turns the Slack agent on or off (``enabled``)."""
     return await slack_agent_setup.update(session, data)
 
 

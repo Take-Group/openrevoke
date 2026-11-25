@@ -2,7 +2,7 @@
 
 The FastAPI app and the Temporal worker. Layers: `api/` (endpoints) calls `services/` (logic) which uses `models/`, `connectors/`, `browser/`, `ai/`; `schemas/` are request and response types; `temporal/` workflows call services.
 
-- `main.py`: `app` (FastAPI, CORS, `AllowedHostsMiddleware`, error handlers, `api_router`), `lifespan` (prints the setup link while no user exists), `run()`; operation id = endpoint function name.
+- `main.py`: `app` (FastAPI, CORS, `AllowedHostsMiddleware`, error handlers, `api_router`, the MCP endpoint at `/api/mcp`), `lifespan` (prints the setup link while no user exists, runs the MCP session manager), `run()`; operation id = endpoint function name.
 - `config.py`: `settings` (pydantic-settings, all env variables; `version` from `OPEN_REVOKE_VERSION`, `update_check`, `update_check_url`), `trusted_hosts`, `trusted_origins`, `public_origin`, `cookie_secure`, `google_oauth_redirect_uri`.
 - `database.py`: async `engine`, `async_session`, `Base` (naming convention), `get_session` dependency.
 - `redis.py`: `redis_client`.
@@ -17,6 +17,7 @@ The FastAPI app and the Temporal worker. Layers: `api/` (endpoints) calls `servi
 - `connectors/`: own AGENTS.md. One folder per SaaS app plus the `Connector` interface.
 - `temporal/`: own AGENTS.md. Workflows, activities, schedules, worker.
 - `slack_agent/`: own AGENTS.md. Slack bot for access requests (runs in the worker).
+- `mcp/`: own AGENTS.md. MCP server for AI assistants at `/api/mcp`, tools built from the API routes.
 - `ai/`: own AGENTS.md. Language model providers.
 - `browser/`: own AGENTS.md. Shared Chromium over CDP.
 - `catalog/`, no map: `apps.json` (known SaaS apps: name, website, aliases, Google OAuth client ids, optional `login_url`), `logos/` (own AGENTS.md: `<slug>.png`, 128 px), `lookup.py` (`app_catalog()`, `AppCatalog.match`, `by_name`, `logo_path`, `normalize`, `MatchedBy`). Skill `skills/backend/app-catalog.md`.

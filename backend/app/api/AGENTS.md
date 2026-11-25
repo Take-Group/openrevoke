@@ -3,15 +3,16 @@
 FastAPI routers of the panel API: thin handlers that validate input with `app/schemas/`, call one `app/services/` module and return a schema. No business logic here. `router.py` mounts everything under `/api`; paths below are relative to `/api` unless noted.
 
 - `__init__.py`: empty.
-- `router.py`: builds `api_router`. `domain_router` (prefix `/api`, every route needs `require_admin`) includes the panel routers; `self_router` (`/api/me`, any signed-in user); `health`, `auth`, public currencies and app catalog, the Google OAuth callback and `browser_live` sit outside it; `dev_router` is the fake panel.
+- `router.py`: builds `api_router`. `domain_router` (prefix `/api`, every route needs `require_admin`) includes the panel routers; `self_router` (`/api/me`, any signed-in user, cookie or token); `session_router` (`/api/api-tokens`, the panel cookie only); `health`, `auth`, public currencies and app catalog, the Google OAuth callback and `browser_live` sit outside it; `dev_router` is the fake panel.
 - `deps.py`: `SessionDep` (AsyncSession), `DispatcherDep`, `ActionDispatcherDep`, `ScanDispatcherDep` (Temporal starters from `app/temporal/`).
-- `auth_deps.py`: `get_current_session`, `get_current_user`, `require_admin`, `require_client_header` (CSRF header `X-Open-Revoke-Client` on unsafe methods); aliases `CurrentUserDep`, `AdminDep`, `OptionalSessionDep`. Use `AdminDep` for admin-only routes.
+- `auth_deps.py`: `get_current_session` (cookie only), `get_current_user` (API token `Authorization: Bearer`, else the cookie; a read token gets only safe methods), `require_admin`, `require_client_header` (CSRF header `X-Open-Revoke-Client` on unsafe methods with the cookie), `bearer_token`; aliases `CurrentUserDep`, `CurrentSessionDep`, `AdminDep`, `OptionalSessionDep`. Use `AdminDep` for admin-only routes.
 - `params.py`: shared list query params `SearchQuery`, `Limit`, `Offset`, `DEFAULT_LIMIT`.
 - `errors.py`: `register_error_handlers` maps `app.services.errors` exceptions to HTTP codes (`{"detail": ...}`); `ERROR_RESPONSES`, `UNAVAILABLE_RESPONSE`, `RATE_LIMITED_RESPONSE` for OpenAPI.
 - `host_check.py`: `AllowedHostsMiddleware` refuses unknown `Host`/`X-Forwarded-Host` (DNS rebinding); `host_name`.
 - `health.py`: GET `/health` (with `version`), GET `/health/ready` (public, no `/api` prefix of domain_router).
 - `auth.py`: prefix `/api/auth`, public. GET `/state`, POST `/setup` (needs the setup token), `/setup/check`, `/login`, `/totp`, `/totp/skip`, `/register`, `/signup`, `/2fa/setup`, `/2fa/enable`, `/2fa/disable`, `/password/reset`, `/password/change`, `/logout`, GET `/invites/{token}`. Services: `services.auth.sign_in`, `passwords_flow`, `sessions`. Sets the session cookie.
 - `users.py`: admins only. GET/PATCH/DELETE `/users`, POST `/users/{id}/approve`, `/reset-link` and `/reset-totp`, GET/POST/DELETE `/invites`, GET/PATCH `/organization` (with sign-up rules). Services: `services.auth.users`, `invites`, `services.organization`.
+- `api_tokens.py`: GET/POST `/api-tokens`, DELETE `/api-tokens/{id}`: the signed-in user's API tokens and the MCP URL; cookie only (`services.auth.api_tokens`).
 - `me.py`: GET `/me/access`, POST `/me/access-requests`: the signed-in user's own accounts and requests; the only API a `user` reaches. Service `my_access`.
 - `dashboard.py`: GET `/dashboard` (`services.dashboard.get_dashboard`).
 - `setup_checklist.py`: GET `/onboarding`, PUT `/onboarding/choices`, POST `/onboarding/dismiss` (`services.setup_checklist`).

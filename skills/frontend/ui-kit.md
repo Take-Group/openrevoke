@@ -100,6 +100,7 @@ picker uses the same three constants.
 | Button that opens a panel page (Add, Edit, Onboard) | `common/links.tsx` `LinkButton` (`disabled` draws a disabled button) |
 | Active filter with an x | `common/links.tsx` `FilterChip` |
 | Copy a value | `common/copy-button.tsx` `CopyButton`, `CopyField` |
+| Command or config snippet (several lines) | `common/code-block.tsx` `CodeBlock` |
 | Row menu "..." | `data-table/row-actions.tsx` |
 | Confirm a risky action | `common/confirm-dialog.tsx` |
 

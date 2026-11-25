@@ -21,6 +21,9 @@ that shows people, costs and access. Three features:
    Chromium (`browser` container) where an admin is signed in. Each write is
    verified by reading the account list again.
 
+An MCP server (`skills/backend/mcp.md`) lets AI assistants such as Claude Code
+or Codex do everything a panel user can, with a personal API token.
+
 A Slack agent (`skills/backend/slack-agent.md`) takes access requests in
 direct messages: a language model (Anthropic, OpenAI, OpenRouter or any
 OpenAI-compatible endpoint) turns "I need Notion" into an onboarding action
@@ -137,6 +140,7 @@ Backend (`skills/backend/`):
 - [new-workflow.md](skills/backend/new-workflow.md): Temporal workflow and activities
 - [temporal-local-stack.md](skills/backend/temporal-local-stack.md): local Temporal server without Web UI
 - [timezone.md](skills/backend/timezone.md): time zone in backend services
+- [mcp.md](skills/backend/mcp.md): MCP server for AI assistants at `/api/mcp` (every API operation a token reaches is a tool), personal API tokens (Bearer, read or write), `/settings/api`
 - [slack-agent.md](skills/backend/slack-agent.md): Slack bot for access requests, AI model settings (providers, keys), Socket Mode runner in the worker
 
 Frontend (`skills/frontend/`):

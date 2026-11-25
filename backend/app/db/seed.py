@@ -6,6 +6,9 @@ SEED_GOOGLE_* in `.env` (``seed_google``), otherwise a fictional directory at ex
 the DEV_PREFILL_* settings (default admin@example.com / open-revoke-dev-password); the admin has
 no 2FA yet, so the first sign-in offers to set it up or skip it.
 
+With OPEN_REVOKE_DEV_PREFILL on, the users also get fixed API tokens (``DEV_API_TOKENS``) for the
+MCP server, so a local AI assistant keeps working after a reset.
+
 Add what a new feature needs to see in the panel here, so that
 ``python -m app.db reset`` brings it back after every schema change.
 """
@@ -18,6 +21,7 @@ from app.db.seed_demo import seed_demo_directory
 from app.db.seed_google import seed_google_workspace
 from app.models import Organization, User
 from app.models.enums import (
+    ApiTokenScope,
     BillingPeriod,
     Integration,
     PasswordManager,
@@ -27,8 +31,14 @@ from app.models.enums import (
 )
 from app.schemas.apps import AppCreate, PriceIn
 from app.services import apps
-from app.services.auth import passwords
+from app.services.auth import api_tokens, passwords
 from app.services.auth.actor import current_actor
+
+# Local development only (fictional data on 127.0.0.1): (user, token name, scope, token).
+DEV_API_TOKENS = [
+    (settings.dev_prefill_email, "Local AI assistant", ApiTokenScope.WRITE, "orv_dev_admin_local_only"),
+    ("member@example.com", "Local AI assistant", ApiTokenScope.WRITE, "orv_dev_member_local_only"),
+]
 
 A = SelfServicePolicy.AUTOMATIC
 R = SelfServicePolicy.APPROVAL
@@ -54,13 +64,16 @@ async def seed() -> None:
                 password_manager=PasswordManager.ONE_PASSWORD,
             )
         )
-        session.add_all(
-            [
-                _user(settings.dev_prefill_email, settings.dev_prefill_name, UserRole.ADMIN),
-                _user("member@example.com", "Dev Member", UserRole.USER),
-            ]
-        )
+        users = [
+            _user(settings.dev_prefill_email, settings.dev_prefill_name, UserRole.ADMIN),
+            _user("member@example.com", "Dev Member", UserRole.USER),
+        ]
+        session.add_all(users)
         await session.flush()
+        if settings.dev_prefill:
+            by_email = {user.email: user for user in users}
+            for email, name, scope, token in DEV_API_TOKENS:
+                await api_tokens.create(session, by_email[email], name=name, scope=scope, token=token)
 
         for name, model, amount, currency, self_service in APPS:
             price = None

@@ -22,6 +22,10 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
 - Database migrations: the `app` container migrates the database when it starts and refuses a
   database that a newer version already migrated.
 - `compose.dev.yaml`: development stack with hot reload and fictional people.
+- MCP server at `/api/mcp`: Claude Code, Codex, Cursor and other AI assistants can do everything a
+  panel user can (people, apps, connections, offboarding), with a personal API token.
+- Personal API tokens (Settings, API and MCP), read-only or read and write, also for the REST API
+  (`Authorization: Bearer`).
 
 ### Changed
 

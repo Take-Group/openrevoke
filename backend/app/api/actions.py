@@ -74,6 +74,7 @@ async def approve_action(action_id: uuid.UUID, session: SessionDep, dispatcher: 
 
 @router.post("/{action_id}/cancel", response_model=ActionOut)
 async def cancel_action(action_id: uuid.UUID, session: SessionDep) -> ActionOut:
+    """Cancels an action that has not run yet (pending approval or approved)."""
     await actions.cancel(session, action_id)
     return await action_queries.get_action_out(session, action_id)
 

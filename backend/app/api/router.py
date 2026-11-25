@@ -4,10 +4,11 @@ from app.api.access_requests import router as access_requests_router
 from app.api.accounts import router as accounts_router
 from app.api.actions import router as actions_router
 from app.api.ai import router as ai_router
+from app.api.api_tokens import router as api_tokens_router
 from app.api.apps import router as apps_router
 from app.api.audit import router as audit_router
 from app.api.auth import router as auth_router
-from app.api.auth_deps import get_current_session, require_admin
+from app.api.auth_deps import get_current_session, get_current_user, require_admin
 from app.api.browser import public_router as browser_policy_router
 from app.api.browser import router as browser_router
 from app.api.browser_live import router as browser_live_router
@@ -54,9 +55,13 @@ domain_router.include_router(access_requests_router, tags=["access-requests"])
 domain_router.include_router(currencies_router)
 domain_router.include_router(system_router)
 
-# The signed-in user's own access: every role.
-self_router = APIRouter(prefix="/api", responses=ERROR_RESPONSES, dependencies=[Depends(get_current_session)])
+# The signed-in user's own access: every role, with the cookie or an API token.
+self_router = APIRouter(prefix="/api", responses=ERROR_RESPONSES, dependencies=[Depends(get_current_user)])
 self_router.include_router(me_router, tags=["me"])
+
+# The signed-in user's API tokens: every role, the panel session only (a token cannot manage tokens).
+session_router = APIRouter(prefix="/api", responses=ERROR_RESPONSES, dependencies=[Depends(get_current_session)])
+session_router.include_router(api_tokens_router, tags=["api-tokens"])
 
 # Fake admin panel for the browser_fake connector; 404 unless the fake connectors are enabled.
 # No sign-in: the shared browser opens it, without the panel's session.
@@ -74,5 +79,6 @@ api_router.include_router(google_oauth_callback_router)
 # Live view of the shared browser: checks the session itself (also for the WebSocket), admins only.
 api_router.include_router(browser_live_router)
 api_router.include_router(self_router)
+api_router.include_router(session_router)
 api_router.include_router(domain_router)
 api_router.include_router(dev_router)

@@ -98,6 +98,21 @@ you out, the next sync ends with the status `needs_login` (not with removed acco
 dashboard asks you to log in again. The live view (noVNC in the browser container) has no
 port of its own: the API passes it to the panel after it checks the admin's session.
 
+## AI assistants (MCP)
+
+Open Revoke is also an MCP server: Claude Code, Codex, Cursor and other AI assistants can do
+everything you can do in the panel ("add Anna to Notion", "offboard Bob", "which apps does
+Carol use?"). Create a personal API token in **Settings, API and MCP**; the page shows the
+command for your assistant, for example:
+
+```bash
+claude mcp add --transport http open-revoke https://open-revoke.example.com/api/mcp \
+  --header "Authorization: Bearer orv_..."
+```
+
+The assistant acts with your role, a read-only token cannot change anything, and every change is
+in the audit log with the token's name. Removing accounts still waits for an approval.
+
 ## Connectors
 
 | Connector | Method | Reads | Creates | Removes | Verified on a real account |

@@ -158,6 +158,11 @@ class UserTokenKind(StrEnum):
     PASSWORD_RESET = "password_reset"
 
 
+class ApiTokenScope(StrEnum):
+    READ = "read"  # GET requests only: reads, no changes
+    WRITE = "write"  # everything the owner's role allows
+
+
 class SelfServicePolicy(StrEnum):
     """What the Slack agent does when a person asks for an account in the app."""
 

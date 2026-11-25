@@ -15,6 +15,7 @@ router = APIRouter(tags=["currencies"])
 
 @public_router.get("/currencies", response_model=CurrencyList)
 async def list_currencies(session: SessionDep) -> CurrencyList:
+    """Currencies the organization can use, with the date of the latest exchange rates."""
     _, rates = await exchange_rates.latest_rates(session)
     info = await exchange_rates.latest_info(session)
     return CurrencyList(

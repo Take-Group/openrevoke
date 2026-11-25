@@ -53,6 +53,12 @@ async def read_user(user_id: int, session: SessionDep):
     return await get_user(session, user_id)
 ```
 
+## MCP
+
+Every endpoint is also an MCP tool (`skills/backend/mcp.md`): its docstring is the tool
+description an AI assistant reads, so say what it changes and what to call next. Keep it out of
+MCP only through `app/mcp/policy.py`.
+
 ## How to extend
 - Add more endpoints to the same route module
 - If the module grows past 600 lines — split into sub-routers

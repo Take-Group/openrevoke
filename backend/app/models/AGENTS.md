@@ -4,7 +4,7 @@ SQLAlchemy models. A change needs an Alembic revision in `../../migrations/versi
 
 - `__init__.py`: re-exports every model (`__all__`); import a new model here so the tables get created.
 - `columns.py`: shared column helpers (UUID key, timestamps, enum column, `MONEY` = Numeric(12,2)).
-- `enums.py`: all `StrEnum`s (`PersonStatus`, `Integration`, `ConnectionStatus`, `AccountStatus`, `ActionKind`, `ActionStatus`, `ActionReason`, `UserRole`, `UserStatus`, `UserTokenKind`, `AccessRequestChannel`, `SelfServicePolicy`, `AiProvider`, `AiReasoningEffort`, ...), also used by schemas and services.
+- `enums.py`: all `StrEnum`s (`PersonStatus`, `Integration`, `ConnectionStatus`, `AccountStatus`, `ActionKind`, `ActionStatus`, `ActionReason`, `UserRole`, `UserStatus`, `UserTokenKind`, `ApiTokenScope`, `AccessRequestChannel`, `SelfServicePolicy`, `AiProvider`, `AiReasoningEffort`, ...), also used by schemas and services.
 - `person.py`: `Person` (`person`): employee or service account (`kind`); parent of `PersonEmail`, `PersonLink`, `Account`.
 - `person_email.py`: `PersonEmail` (`person_email`): alias e-mail, FK `person`.
 - `person_link.py`: `PersonLink` (`person_link`): where a person is known from; `source_id` points to `people_source` or `connection` (no FK); unique per source and external id.
@@ -23,6 +23,7 @@ SQLAlchemy models. A change needs an Alembic revision in `../../migrations/versi
 - `discovered_grant.py`: `DiscoveredGrant` (`discovered_grant`): a user who signed in to a discovered app, matched to people by e-mail at read time; FK `discovered_app`.
 - `user.py`: `User` (`panel_user`): panel sign-in user, separate from `Person`; `role` admin or user, `status` (pending after self sign-up, else active).
 - `user_session.py`: `UserSession` (`user_session`): cookie session (stores token SHA-256); FK `panel_user`, joined-loaded `user`.
+- `api_token.py`: `ApiToken` (`api_token`): personal API token (SHA-256, `prefix`, `scope` read or write, `last_used_at`); FK `panel_user` (CASCADE), joined-loaded `user`.
 - `user_token.py`: `UserToken` (`user_token`): invite or password-reset link (SHA-256 only); FK `panel_user`.
 - `audit_event.py`: `AuditEvent` (`audit_event`): append-only change log; never update or delete rows.
 - `organization.py`, `ai_settings.py`, `slack_agent.py`: singleton rows (`id = 1`): `Organization` (`organization`, first-run setup and sign-up rules), `AiSettings` (`ai_settings`, provider, key, model, reasoning effort), `SlackAgent` (`slack_agent`, Fernet-encrypted tokens).

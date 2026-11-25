@@ -32,6 +32,7 @@ async def list_people(
 
 @router.post("", response_model=PersonDetail, status_code=status.HTTP_201_CREATED)
 async def create_person(data: PersonCreate, session: SessionDep) -> PersonDetail:
+    """Adds a person by hand. Accounts with their e-mail or aliases are matched to them."""
     return await people.create_person(session, data)
 
 
@@ -41,6 +42,10 @@ async def import_people(
     file: Annotated[UploadFile, File(description="CSV: email,first_name,last_name,employee_code,aliases")],
     dry_run: Annotated[bool, Query(description="Preview the changes without saving")] = False,
 ) -> ImportResult:
+    """Adds or updates people from a CSV (header: email,first_name,last_name,employee_code,aliases).
+
+    Try ``dry_run=true`` first.
+    """
     # Read one byte past the limit: enough to refuse a too large file without loading all of it.
     content = await file.read(people_import.MAX_BYTES + 1)
     return await people_import.import_people(session, content, dry_run=dry_run)
@@ -48,11 +53,13 @@ async def import_people(
 
 @router.get("/{person_id}", response_model=PersonDetail)
 async def get_person(person_id: uuid.UUID, session: SessionDep) -> PersonDetail:
+    """One person with their e-mails, sources, accounts in every app and monthly cost."""
     return await people.get_person(session, person_id)
 
 
 @router.patch("/{person_id}", response_model=PersonDetail)
 async def update_person(person_id: uuid.UUID, data: PersonUpdate, session: SessionDep) -> PersonDetail:
+    """Changes a person's name, e-mails, code, kind or notes. Only the fields present change."""
     return await people.update_person(session, person_id, data, data.model_fields_set)
 
 
@@ -65,6 +72,11 @@ async def delete_person(person_id: uuid.UUID, session: SessionDep) -> Response:
 
 @router.post("/{person_id}/offboard", response_model=OffboardResult, status_code=status.HTTP_201_CREATED)
 async def offboard_person(person_id: uuid.UUID, session: SessionDep) -> OffboardResult:
+    """Marks the person as left and creates a batch of delete actions, one per account, waiting for approval.
+
+    Nothing is removed yet: approve the batch (approve_action_batch with ``batch_id``) to run the writes.
+    Service accounts and accounts with an open action are skipped and listed.
+    """
     return await offboarding.offboard_person(session, person_id)
 
 

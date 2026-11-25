@@ -60,6 +60,7 @@ async def scan_now(
 
 @router.get("/discovery/scans", response_model=ScanRunPage)
 async def list_scans(session: SessionDep, limit: Limit = DEFAULT_LIMIT, offset: Offset = 0) -> ScanRunPage:
+    """Discovery scans, newest first, with status and counts."""
     total = await session.scalar(select(func.count()).select_from(ScanRun))
     runs = await session.scalars(select(ScanRun).order_by(ScanRun.started_at.desc()).limit(limit).offset(offset))
     return ScanRunPage(items=[ScanRunOut.model_validate(run) for run in runs], total=total or 0)
@@ -83,6 +84,7 @@ async def list_discovered_apps(
 
 @router.get("/discovery/apps/{discovered_app_id}", response_model=DiscoveredAppDetail)
 async def get_discovered_app(discovered_app_id: uuid.UUID, session: SessionDep) -> DiscoveredAppDetail:
+    """One discovered app with the people who signed in to it and their risk."""
     return await discovery.get_discovered_app(session, discovered_app_id)
 
 

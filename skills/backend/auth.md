@@ -84,7 +84,8 @@ Authenticator and any other TOTP app).
 | `backend/app/services/auth/passwords_flow.py` | forgotten password, reset, change |
 | `backend/app/services/auth/invites.py`, `users.py` | invites, account approval, roles, 2FA reset, deletion |
 | `backend/app/services/auth/actor.py` | `current_actor` (ContextVar): the signed-in user's e-mail goes to `audit_event.actor` |
-| `backend/app/api/auth_deps.py` | `get_current_session`, `require_admin`, header `X-Open-Revoke-Client` |
+| `backend/app/api/auth_deps.py` | `get_current_session` (cookie only), `get_current_user` (API token or cookie), `require_admin`, header `X-Open-Revoke-Client` (cookie requests) |
+| `backend/app/services/auth/api_tokens.py` | personal API tokens (Bearer) for the REST API and MCP: skill `mcp.md` |
 | `backend/app/api/auth.py` | `/api/auth/*`, public |
 | `backend/app/api/users.py` | `/api/users`, `/api/invites`, `/api/organization` |
 | `backend/app/cli.py` | `list-users`, `reset-2fa`, `reset-link`, `set-password` |

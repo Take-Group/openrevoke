@@ -12,11 +12,13 @@ router = APIRouter()
 
 @router.get("/ai-settings", response_model=AiSettingsOut)
 async def get_ai_settings(session: SessionDep, _: CurrentUserDep) -> AiSettingsOut:
+    """The language model settings for AI features (provider, model, whether a key is saved; never the key)."""
     return ai_settings.settings_out(await ai_settings.get_row(session))
 
 
 @router.put("/ai-settings", response_model=AiSettingsOut)
 async def save_ai_settings(data: AiSettingsUpdate, session: SessionDep, _: AdminDep) -> AiSettingsOut:
+    """Saves the language model provider, model and key. ``api_key`` null keeps the saved key of the same provider."""
     return await ai_settings.save(session, data)
 
 

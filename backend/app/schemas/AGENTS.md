@@ -6,6 +6,7 @@ Pydantic request/response models of the panel API, one file per router in `app/a
 - `common.py`: `ApiModel` (base), `MoneyAmount`, refs `AppRef`, `PersonRef`, `AccountRef`, `ErrorResponse` (used by `api/errors.py`).
 - `auth.py`: `api/auth.py` and `api/users.py` organization: `UserOut`, `OrganizationOut`/`OrganizationSettingsOut`/`OrganizationUpdate` (`EmailDomains`), `AuthState`, `SetupRequest` (with `token`), `SetupTokenCheck`, `LoginRequest`, `RegisterRequest`, `SignupRequest`/`SignupResult`, `AuthStep` (+ `AuthStepKind`, `TotpEnrollment`), `TotpRequest`, `TotpSkipRequest`, `InviteInfo`, `ResetPasswordRequest`, `ChangePasswordRequest`, `DevPrefill`.
 - `users.py`: `api/users.py`: `InviteCreate`, `InviteOut`, `InviteCreated`, `InviteList`, `UserUpdate`, `ResetLinkOut`.
+- `api_tokens.py`: `api/api_tokens.py`: `ApiTokenOut`, `ApiTokenList` (with `mcp_url`), `ApiTokenCreate`, `ApiTokenCreated` (the token once).
 - `me.py`: `api/me.py`: `MyAccess` (`MyAccount`, `MyRequest`, `RequestableApp`, `RequestState`), `MyAccessRequestCreate`, `MyAccessRequestResult`.
 - `people.py`: `api/people.py`: `PersonCreate`, `PersonUpdate`, `PersonListItem`, `PersonPage`, `PersonDetail` (with `AliasOut`, `PersonSourceOut`, `PersonAccountOut`).
 - `people_import.py`: POST `/people/import`: `ImportResult`, `ImportRowResult`, `ImportRowAction`, `FieldChange`.
