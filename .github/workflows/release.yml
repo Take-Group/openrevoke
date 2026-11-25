@@ -430,7 +430,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
-      - uses: sigstore/cosign-installer@v4
+      - uses: sigstore/cosign-installer@v4.1.4
 
       # GitHub only: pushes tags to ghcr.io and signs with the workflow's OIDC identity
       # (keyless, the signature goes to the public Sigstore transparency log).
@@ -482,7 +482,7 @@ jobs:
           name: release-notes
           path: ${{ runner.temp }}/notes
 
-      - uses: sigstore/cosign-installer@v4
+      - uses: sigstore/cosign-installer@v4.1.4
 
       # GitHub only: keyless signature with the workflow's OIDC identity.
       - name: Check and sign SHA256SUMS
