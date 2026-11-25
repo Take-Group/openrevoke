@@ -16,6 +16,11 @@ updates:
     directory: /frontend
     schedule:
       interval: weekly
+    ignore:
+      # typescript-eslint supports TypeScript below 6.1 only (peer range checked 25.11.2026); a
+      # TypeScript major breaks `bun run lint`. Remove this when typescript-eslint supports it.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
     groups:
       frontend-minor-patch:
         update-types: [minor, patch]
