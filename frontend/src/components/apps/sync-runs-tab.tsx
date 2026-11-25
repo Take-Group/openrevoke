@@ -1,7 +1,7 @@
 "use client";
 
 import { RefreshCwIcon } from "lucide-react";
-import type { ColumnDef } from "@tanstack/react-table";
+import type { DataColumn } from "@/components/data-table/features";
 
 import { EmptyState } from "@/components/common/empty-state";
 import { Hint } from "@/components/common/info-tip";
@@ -29,7 +29,7 @@ function Count({ value, sign }: { value: number; sign?: "+" | "−" }) {
   );
 }
 
-const columns: ColumnDef<SyncRunOut>[] = [
+const columns: DataColumn<SyncRunOut>[] = [
   { accessorKey: "started_at", header: "Started", cell: ({ row }) => <RelativeTime value={row.original.started_at} /> },
   { accessorKey: "status", header: "Status", cell: ({ row }) => <StatusBadge status={row.original.status} /> },
   {

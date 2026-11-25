@@ -1,7 +1,7 @@
 "use client";
 
 import { ScanSearchIcon } from "lucide-react";
-import type { ColumnDef } from "@tanstack/react-table";
+import type { DataColumn } from "@/components/data-table/features";
 
 import { AppAvatar } from "@/components/common/avatars";
 import { EmptyState } from "@/components/common/empty-state";
@@ -15,7 +15,7 @@ import { TableSkeleton } from "@/components/common/page-skeletons";
 import { usePersonDiscoveredApps } from "@/hooks/use-discovery";
 import type { PersonDiscoveredApp } from "@/lib/api/discovery-types";
 
-const columns: ColumnDef<PersonDiscoveredApp>[] = [
+const columns: DataColumn<PersonDiscoveredApp>[] = [
   {
     id: "name",
     accessorFn: (item) => item.catalog?.name ?? item.name,

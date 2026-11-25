@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { KeyRoundIcon, SquareArrowOutUpRightIcon } from "lucide-react";
-import type { ColumnDef } from "@tanstack/react-table";
+import type { DataColumn } from "@/components/data-table/features";
 
 import { EmptyState } from "@/components/common/empty-state";
 import { ConvertedMoney } from "@/components/common/converted-money";
@@ -85,7 +85,7 @@ function AccountMenu({ account }: { account: AccountOut }) {
   );
 }
 
-const columns: ColumnDef<AccountOut>[] = [
+const columns: DataColumn<AccountOut>[] = [
   {
     id: "account",
     accessorFn: (account) => accountLabel(account),

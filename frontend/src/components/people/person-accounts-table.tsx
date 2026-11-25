@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { KeyRoundIcon, SquareArrowOutUpRightIcon, UserMinusIcon } from "lucide-react";
-import type { ColumnDef } from "@tanstack/react-table";
+import type { DataColumn } from "@/components/data-table/features";
 
 import { AppAvatar } from "@/components/common/avatars";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
@@ -25,7 +25,7 @@ import type { AppListItem, PersonAccountOut, PersonDetail } from "@/lib/api/type
 function columns(
   appOf: (account: PersonAccountOut) => AppListItem | undefined,
   onRemove: (account: PersonAccountOut) => void,
-): ColumnDef<PersonAccountOut>[] {
+): DataColumn<PersonAccountOut>[] {
   return [
     {
       id: "app",
