@@ -1,0 +1,42 @@
+# open-revoke/frontend/src/components/common/
+
+Shared screen-level components of the panel: forms, messages, states, headers, badges, pickers. Build pages from these; the rules and the full catalogue are in `open-revoke/skills/frontend/ui-kit.md` (read it first). Primitives they sit on are in `ui/`; if nothing here fits, add a component here, not inline in a page.
+
+- `avatars.tsx`: `AppAvatar` (name, slug, connectorKey, catalogSlug, size; simple-icons mark, then the app catalog logo from `useAppCatalog`, then initials), `PersonAvatar` (firstName, lastName, email), `GlyphAvatar` (icon). `size`: xs, sm, md, lg.
+- `choice-cards.tsx`: `ChoiceCards` radio-like cards; `ChoiceOption` has value, label, hint, icon.
+- `confirm-dialog.tsx`: `ConfirmDialog` (open, title, description, confirmLabel, `destructive`, `pending`, onConfirm, children). The short-question dialog.
+- `converted-money.tsx`: `ConvertedMoney` (amount), `ConvertedPrice` (price with period), `ConvertedTotal` (sum of currencies), all in the organization currency; `showOriginal` adds the app's own amount under it (app detail only).
+- `copy-button.tsx`: `CopyButton` (value, label), `CopyField` (read-only value with copy).
+- `currency-select.tsx`: `CurrencySelect` (id, value, onChange); loads codes with `useCurrencies`.
+- `detail-list.tsx`: `DetailList` label/value rows, `rows: [label, value][]`, `framed`; type `DetailRow`.
+- `empty-state.tsx`: `EmptyState` (title, description, icon, action), `NotAvailable` (what).
+- `file-button.tsx`: `FileButton` (Button props, accept, onFile): a button that opens the file picker.
+- `file-drop.tsx`: `FileDrop` (id, accept, what, fileName, icon, disabled, onFile): file field, drop or click; replaces `<input type="file">`.
+- `form-field.tsx`: `FormField` (label, htmlFor, hint, info, required) wraps one control.
+- `form-page.tsx`: `FormPage` a create or edit form as its own page (title, backHref, backLabel, description, onSubmit, submitLabel, pending, submitDisabled, destructive, wide, actions, hint): back link in the page bar, one card, Cancel and submit in the footer.
+- `info-tip.tsx`: `InfoTip` (info icon with popup text), `Hint` (wraps any element in a tooltip).
+- `integration-icon.tsx`: `IntegrationIcon` for api, scim, browser, manual (`withLabel`).
+- `links.tsx`: `TextLink` (href, external, `tone` default or muted), `RecordLink` (name of a record in a table, underline on hover), `ExternalLinkButton` (variant outline or default), `FilterChip`, `LinkButton` (href, variant, size, disabled: a button that opens another panel page).
+- `money-list.tsx`: `Money` (one amount), `MoneyList` (amounts per currency).
+- `notice.tsx`: `Notice` (`tone`: danger, warning, success, info; title, action, icon), `InlineError` (message).
+- `option-select.tsx`: `OptionSelect` short fixed list (value, onChange, options, placeholder); `SelectOption`. Use instead of a native select.
+- `page-header.tsx`: `PageHeader` (title, meta, actions, back), `DetailHeader` (avatar, title, badges, subtitle, actions), `SectionHeader`, `SETTINGS_COLUMN` (centred settings width class).
+- `panel.tsx`: `Panel` card (title, meta, actions, footer, `tone` default or muted, bodyClassName), `PanelFooter`.
+- `person-picker.tsx`: `PersonPicker` (value, onChange, allowClear, `variant` inline or field); searches with `usePeople`.
+- `page-skeletons.tsx`: `TableSkeleton` (rows, shaped like a `DataTable`), `DetailPageSkeleton` (stats, tabs, rows: header, stat strip, tabs, table). Pass them to `QueryState` `loading`.
+- `query-state.tsx`: `QueryState` (query, render-prop children, feature, rows, `loading`) handles loading and error; the skeleton (`loading`, default `LoadingRows`) shows at once with a short fade.
+- `rates-source.tsx`: `RatesSource` caption of the exchange-rate date; `formatRatesDay`.
+- `relative-time.tsx`: `RelativeTime` ("3 days ago").
+- `search-input.tsx`: `SearchInput` (value, onChange, placeholder), `Toolbar` (filters left, actions right).
+- `searchable-select.tsx`: `SearchableSelect` with search and groups (`SearchableGroup`, `SearchableOption` with hint and keywords).
+- `segmented.tsx`: `Segmented` filter switch (options with count, `attention`; label).
+- `spinner.tsx`: `Spinner`.
+- `stat.tsx`: `StatStrip` row, `Stat` (label, info, icon, children = value).
+- `status-badge.tsx`: `StatusBadge` (status maps to a `Tone` through one table; label, tone override), `StatusDot`, `ConnectionBadge`, `TagBadge`, `toneOf`, `TONE_DOT`, `TONE_TEXT`. Unknown statuses are neutral: add new enum values to the table here.
+- `steps.tsx`: `Steps` and `Step` (n, title, `state`: todo, active, running, done, failed).
+- `strings.tsx`: `Strings` animated canvas of lines used behind auth pages, empty states and the setup checklist (`shape`: `STRINGS_SWEEP` or `STRINGS_BAND`, count, intensity).
+- `suggest-input.tsx`: `SuggestInput` text input with a suggestion list (suggestions).
+- `switch-field.tsx`: `SwitchField` labelled switch (id, label, info, hint, checked, onChange).
+- `table-shell.tsx`: `Pager` ("1-100 of 340", total, limit, offset, onOffsetChange). Tables themselves are in `data-table/`.
+- `time-zone-select.tsx`: `TimeZoneSelect` (id, value, onChange).
+- `write-mode-badge.tsx`: `WriteModeBadge` and `WriteModeLine` for an app's write mode (automatic, writes_disabled, manual) and the action (`what`: create, remove, suspend).

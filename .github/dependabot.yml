@@ -1,0 +1,52 @@
+# Dependency updates, weekly. Minor and patch updates of one ecosystem come as one grouped pull
+# request; a major update comes alone, because it can break the app. A dependency update that
+# people who run Open Revoke notice (Chromium, PostgreSQL, Temporal) adds a CHANGELOG.md line
+# like any other change.
+version: 2
+updates:
+  - package-ecosystem: uv
+    directory: /backend
+    schedule:
+      interval: weekly
+    groups:
+      backend-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: bun
+    directory: /frontend
+    schedule:
+      interval: weekly
+    groups:
+      frontend-minor-patch:
+        update-types: [minor, patch]
+
+  # Base images of the Dockerfile (bun, uv with Python, Debian for the browser).
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      dockerfile-minor-patch:
+        update-types: [minor, patch]
+
+  # Images of compose.yaml: PostgreSQL, Redis, Temporal, Caddy. A PostgreSQL MAJOR needs a dump
+  # and restore on every installation, so Dependabot does not propose it: it is a planned release
+  # with a Breaking entry.
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+    ignore:
+      - dependency-name: postgres
+        update-types: ["version-update:semver-major"]
+    groups:
+      compose-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions-minor-patch:
+        update-types: [minor, patch]

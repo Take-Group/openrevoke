@@ -1,0 +1,40 @@
+name: Feature request
+description: Suggest a change or a new feature (for a new app connector use "Connector request").
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What you are trying to do, and what stops you today. Describe the situation, not the solution yet.
+      placeholder: When someone leaves, I cannot see ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How you would like Open Revoke to handle it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Workarounds you use now, or other ways you considered.
+
+  - type: input
+    id: company-size
+    attributes:
+      label: Company size
+      description: Optional. Roughly how many people and SaaS apps Open Revoke manages for you.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you send
+      options:
+        - label: I searched the open issues for the same request.
+          required: true

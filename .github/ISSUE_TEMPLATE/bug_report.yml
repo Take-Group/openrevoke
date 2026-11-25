@@ -1,0 +1,98 @@
+name: Bug report
+description: Something in Open Revoke does not work as described.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. A security problem does not belong here: report it privately
+        (see SECURITY.md, "Report a vulnerability" in the Security tab).
+
+        **Remove secrets before you paste anything**: API tokens, SCIM tokens, cookies, session
+        tokens, the setup link, `OPEN_REVOKE_SECRET_KEY`, passwords. Replace real names and
+        e-mail addresses with `person@example.com`.
+
+  - type: textarea
+    id: version
+    attributes:
+      label: Version
+      description: Output of `open-revoke version` on the server. From source, the commit (`git rev-parse --short HEAD`).
+      render: text
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install
+    attributes:
+      label: Install method
+      options:
+        - install.sh (release bundle)
+        - docker compose with release images, without install.sh
+        - built from source (compose.build.yaml)
+        - other (describe below)
+    validations:
+      required: true
+
+  - type: input
+    id: platform
+    attributes:
+      label: Operating system and architecture
+      description: For example "Ubuntu 24.04, amd64" or "macOS 15, arm64 (Docker Desktop)". Add `docker compose version`.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: connector
+    attributes:
+      label: Connector
+      description: The app connection the bug is about, if any.
+      options:
+        - none / not connector related
+        - Google Workspace
+        - GitHub
+        - SCIM 2.0
+        - Slack (browser)
+        - Claude Team (browser)
+        - ChatGPT Team (browser)
+        - manual
+        - other (describe below)
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open Apps, choose ...
+        2. Click Sync now
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        `open-revoke logs app 200` (or `docker compose logs --tail 200 app worker`). For a sync or an
+        action, the error shown in the panel. Remove secrets and real people's data first.
+      render: text
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you send
+      options:
+        - label: I removed tokens, cookies, passwords, setup links and real people's data from this report.
+          required: true
+        - label: I searched the open issues for the same problem.
+          required: true

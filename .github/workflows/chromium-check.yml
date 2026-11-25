@@ -1,0 +1,94 @@
+# Weekly check for a newer Chromium in Debian trixie than in the latest release's browser image.
+# That Chromium holds the signed-in admin sessions of every browser connector, so its security
+# fixes matter more than in an ordinary app. The workflow only opens an issue; a person cuts the
+# PATCH release (CHANGELOG `### Security`: "Chromium X"), because a new Chromium can change how
+# CDP or the profile behave.
+name: Chromium check
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  # Pulls the browser image while the ghcr.io package is private.
+  packages: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  chromium:
+    name: Compare Chromium versions
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      BROWSER_IMAGE: ghcr.io/take-group/open-revoke-browser:latest
+    steps:
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Versions
+        id: versions
+        run: |
+          # The Debian package version (142.0.7444.175-1~deb13u1), not `chromium --version`: the
+          # Debian revision changes with security rebuilds too, and dpkg can compare it.
+          candidate=$(docker run --rm debian:trixie-slim sh -c \
+            'apt-get update -qq > /dev/null && apt-cache policy chromium' \
+            | awk '/Candidate:/ { print $2 }')
+          [ -n "$candidate" ] && [ "$candidate" != "(none)" ] \
+            || { echo "::error::cannot read the chromium version of Debian trixie"; exit 1; }
+
+          if ! docker pull -q "$BROWSER_IMAGE" > /dev/null 2>&1; then
+            echo "::notice::$BROWSER_IMAGE does not exist yet (no release): nothing to compare."
+            echo "newer=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          installed=$(docker run --rm --entrypoint dpkg-query "$BROWSER_IMAGE" -W -f '${Version}' chromium)
+          release=$(docker inspect -f '{{ index .Config.Labels "org.opencontainers.image.version" }}' "$BROWSER_IMAGE")
+          echo "Debian trixie: $candidate. Release ${release:-unknown}: $installed."
+
+          newer=false
+          dpkg --compare-versions "$candidate" gt "$installed" && newer=true
+          {
+            echo "newer=$newer"
+            echo "candidate=$candidate"
+            echo "installed=$installed"
+            echo "release=$release"
+            echo "upstream=${candidate%%-*}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Open an issue
+        if: steps.versions.outputs.newer == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE: ${{ steps.versions.outputs.candidate }}
+          INSTALLED: ${{ steps.versions.outputs.installed }}
+          RELEASE: ${{ steps.versions.outputs.release }}
+          UPSTREAM: ${{ steps.versions.outputs.upstream }}
+        run: |
+          title="Chromium $UPSTREAM available"
+          open=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" --json title \
+            | jq --arg t "$title" '[.[] | select(.title == $t)] | length')
+          if [ "$open" != 0 ]; then
+            echo "An open issue \"$title\" exists already."
+            exit 0
+          fi
+          cat > "$RUNNER_TEMP/issue.md" << EOF
+          Debian trixie ships \`chromium\` **$CANDIDATE**; the browser image of release ${RELEASE:-unknown} has **$INSTALLED**.
+
+          The shared browser holds the signed-in admin sessions of the browser connectors, so this needs a PATCH release:
+
+          1. Check the Debian security tracker and the Chromium release notes for what the update fixes.
+          2. Build the browser image from \`main\` (it installs the newest \`chromium\` of trixie) and check the browser connectors and the live view in a local stack.
+          3. Add \`### Security\` with "Chromium $UPSTREAM" to \`CHANGELOG.md\` under \`[Unreleased]\` and cut the release with \`scripts/release.sh\`.
+
+          Opened by the weekly workflow \`.github/workflows/chromium-check.yml\`.
+          EOF
+          gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body-file "$RUNNER_TEMP/issue.md"

@@ -1,0 +1,67 @@
+# open-revoke/backend/app/services/
+
+Logic between `app/api/`, `app/temporal/` activities and `app/models/`. Services raise `errors` subclasses (mapped to HTTP by `app.api.errors`) and call `audit.record` on writes. Activities only call these services.
+
+- `__init__.py`: empty.
+- `errors.py`: `DomainError` and subclasses (`NotFoundError`, `ConflictError`, `InvalidInputError`, ...).
+- `auth/`: own AGENTS.md. Sign-in, 2FA, sessions, invites.
+- `google_cloud_setup/`: own AGENTS.md. Browser-driven Google Cloud setup.
+- `audit.py`: `record`, `list_events`; append-only log, also fills app and person of an event.
+- `presenters.py`: model to schema builders (`account_out`, `app_ref`, `person_ref`, `money`), shared by services.
+- `apps.py`: app CRUD with seats (`seat_stats`).
+- `accounts.py`: `list_app_accounts`, `create_manual_account`, `update_account`, `set_owner`, `rematch_accounts`.
+- `matching.py`: account to person by e-mail, order manual, primary, alias (`resolve_match`, `match_email`, `EmailIndex`).
+- `people.py`: people CRUD with e-mail and code uniqueness checks.
+- `people_import.py`: CSV import (`parse_csv`, `import_people` with `dry_run`).
+- `people_sources.py`: `get_or_create_source`, `upsert_link`, `source_names` (where a person comes from).
+- `people_sync.py`: `apply_people` stores `RemotePerson`s from a people-source connection, called by `sync.run`.
+- `person_kind.py`: `classify` decides person or service account from address and name, returns a reason.
+- `connections.py`: connector `catalog`, `upsert_connection` (encrypts secrets), `check_connection`, `set_status`, `split_form`.
+- `connector_runtime.py`: `resolve_connector`, `parse_config`, `open_context` (secrets, HTTP client); every connector call.
+- `secret_box.py`: Fernet with `OPEN_REVOKE_SECRET_KEY`: `encrypt_secrets`, `decrypt_secrets`, `encrypt_value`, `decrypt_value`.
+- `connection_lock.py`: Redis lock, one sync or action per connection (`connection_lock`, `is_locked`, `ConnectionBusyError`).
+- `capabilities.py`: `write_mode` (connector write vs `manual_task`), `connector_supports`, `delete_suspends`.
+- `sync.py`: `start_run`, `run`, `fail_run`: account sync of one connection (and billing); fetches first, stores in one transaction.
+- `sync_accounts.py`: `apply_accounts` upserts, matches, marks removed accounts.
+- `sync_rules.py`: `clean_accounts`, `exceeds_removal_threshold` (30% stop, `RemovalThresholdError`).
+- `sync_requests.py`: `request_sync` ("Sync now": creates `sync_run`, calls dispatcher).
+- `sync_dispatch.py`: `SyncDispatcher` protocol, `upsert_schedule_quietly`, `delete_schedule_quietly`.
+- `discovery_scan.py`: `start_run`, `run`, `fail_run`, `scan_lock`; app discovery scan, for `ScanConnectionWorkflow`.
+- `discovery_apply.py`: `apply_discovery` merges found apps, grants, directory state.
+- `discovery.py`: read side: `overview`, `list_discovered_apps`, `get_discovered_app`, `person_discovered_apps`, `apps_at_risk`, `grant_risk`.
+- `discovery_review.py`: `update_discovered_app` (ignore), `track_discovered_app` (becomes an app).
+- `discovery_setup.py`: `setup_google_source` onboarding in one step: verifies the key and scope, then first sync and scan.
+- `discovery_sources.py`: connections able to scan (`discovery_connections`, `discovery_keys`).
+- `scan_requests.py`: `request_scan`, `resolve_source`.
+- `scan_dispatch.py`: `ScanDispatcher` protocol, `upsert_scan_schedule_quietly`.
+- `google_oauth.py`: Connect with Google: `start`, `finish` (saves the connection).
+- `actions.py`: action lifecycle: `create_action`, `advance`, `cancel`, `complete`, `can_transition`, `get_action`.
+- `action_approval.py`: `approve`, `approve_batch`, `start_workflow`, `ensure_can_run`, `reveal_secret`.
+- `action_retry.py`: `retry` (failed write runs again, reading first), `do_by_hand` (becomes a `manual_task`).
+- `action_dispatch.py`: `ActionDispatcher` protocol (Temporal impl: `app/temporal/action_dispatcher.py`).
+- `action_execution.py`: workflow steps `start`, `precheck`, `write`, `verify`, `fail`, under `connection_lock`.
+- `action_flow.py`: `run_action_steps`, workflow step order.
+- `action_accounts.py`: `apply_created`, `apply_deleted`, `add_manual_account` after a verified write or a closed manual task.
+- `action_queries.py`: `list_actions`, `get_action_out`, `get_actions_out` (with `recipe_fixes`), `screenshot`.
+- `recipe_fixes.py`: recipe step fixes: `active_fixes`, `list_fixes`, `approve`, `reject` (reverts too).
+- `recipe_repair.py`: `RecipeRepairService`: AI repair of a recipe step; stores the fix.
+- `access_requests.py`: `request_access`, `list_requests`; an account request becomes an action.
+- `my_access.py`: `person_of`, `overview`, `request`: the signed-in user's access (`/api/me`).
+- `organization.py`: `get`, `update` (organization row; auto-approval needs a domain).
+- `onboarding.py`: `onboard_person` creates `create_account` actions.
+- `offboarding.py`: `offboard_person` marks `left`, creates delete actions.
+- `billing.py`: `apply_billing` (stores `BillingInfo`, sets the app price), `stop_applying`, `use_billing`.
+- `costs.py`: pure cost rules (`monthly_price`, `app_monthly_cost`, `seat_monthly_cost`, `sum_by_currency`, `is_billable_seat`).
+- `conversion.py`: `Converter` via EUR rates.
+- `exchange_rates.py`: `refresh`, `store`, `load_converter`, `latest_info`.
+- `currencies.py`: `is_known`.
+- `dashboard.py`: `get_dashboard`.
+- `setup_checklist.py`: `overview`, `save_choices`, `dismiss` (welcome answers, computed checklist).
+- `timezones.py`: `known_timezones`, `is_known_timezone`.
+- `browser.py`: `browser_state`, `open_page` (Browser page, shared browser login).
+- `update_check.py`: `check` (latest GitHub release into Redis), `stored`, `enabled`, `is_newer`.
+- `system_info.py`: `version_overview` (`/api/system/version`).
+- `maintenance.py`: `actions_in_flight` (for `app.ops`).
+- `ai_settings.py`: model settings `save`, `list_models` ("Connect"), `test`, `load_model` (every AI feature).
+- `slack_agent_setup.py`: Slack agent setup (`state`, `create_app`, OAuth, `save_tokens`).
+- `slack_agent_secrets.py`: `read`, `write`, `update`, `set_config_tokens`.

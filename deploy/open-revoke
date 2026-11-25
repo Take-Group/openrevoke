@@ -1,0 +1,180 @@
+#!/bin/sh
+# open-revoke: manage an Open Revoke installation made by install.sh.
+# Lives in the install directory (linked into PATH); works from any folder.
+# POSIX sh, no bash, no Python on the host.
+set -eu
+
+resolve_self() {
+    path=$0
+    while [ -L "$path" ]; do
+        link=$(readlink "$path")
+        case $link in
+            /*) path=$link ;;
+            *) path=$(dirname "$path")/$link ;;
+        esac
+    done
+    cd "$(dirname "$path")" && pwd
+}
+
+INSTALL_DIR=${OPEN_REVOKE_DIR:-$(resolve_self)}
+ASSUME_YES=0
+# shellcheck source=lib/common.sh
+. "$INSTALL_DIR/lib/common.sh"
+# shellcheck source=lib/backup.sh
+. "$INSTALL_DIR/lib/backup.sh"
+# shellcheck source=lib/update.sh
+. "$INSTALL_DIR/lib/update.sh"
+
+usage() {
+    cat << 'EOF'
+Usage: open-revoke <command>
+
+  status                     version, newest release, containers, write actions in progress
+  version                    version of this script, the images and the release
+  update [--to X.Y.Z]        back up the database, install a newer release, go back if it fails
+  rollback                   undo the last update (files and database from before it)
+  backup [--with-browser]    database and .env into backups/ (+ signed-in browser sessions)
+  restore <file>             put a backup back (asks first)
+  doctor                     check address, certificate, disk, clock and containers
+  logs [service] [lines]     last lines of the logs (default: all services, 100)
+  setup-link                 new link to create the first admin of a fresh installation
+  admin reset-link <email>   one-time link to set a new password
+  start | stop | restart     the whole stack
+  uninstall [--purge]        stop and remove containers; --purge also deletes all data
+
+Options for update, rollback, restore and uninstall: --yes (do not ask).
+EOF
+}
+
+cmd_version() {
+    say "Release:  $(env_get OPEN_REVOKE_VERSION)"
+    say "Script:   $(cat "$INSTALL_DIR/VERSION" 2> /dev/null || echo unknown)"
+    id=$(container_of app)
+    if [ -n "$id" ]; then
+        say "Running:  $(app_python app.ops version 2> /dev/null | json_value version)"
+    else
+        say "Running:  (app container not running)"
+    fi
+}
+
+cmd_status() {
+    current=$(env_get OPEN_REVOKE_VERSION)
+    say "Open Revoke $current in $INSTALL_DIR"
+    say "Panel:    $(env_get PUBLIC_URL)"
+    latest=$(latest_version)
+    if [ -z "$latest" ]; then
+        say "Newest:   unknown (no answer from $(releases_url))"
+    elif version_gt "$latest" "$current"; then
+        say "Newest:   $latest is available: open-revoke update"
+    else
+        say "Newest:   $latest (up to date)"
+    fi
+    last=$(ls -t "$INSTALL_DIR/backups" 2> /dev/null | head -n 1)
+    say "Backup:   ${last:-none yet (open-revoke backup)}"
+    if [ -n "$(container_of app)" ]; then
+        count=$(app_python app.ops in-flight 2> /dev/null | json_value actions_in_flight)
+        say "Actions:  ${count:-?} write action(s) in progress"
+    fi
+    say ""
+    compose ps --format 'table {{.Service}}\t{{.State}}\t{{.Status}}'
+}
+
+cmd_logs() {
+    service=${1:-}
+    lines=${2:-100}
+    if [ -n "$service" ]; then compose logs --tail "$lines" "$service"; else compose logs --tail "$lines"; fi
+}
+
+cmd_doctor() {
+    problems=0
+    check() {
+        if [ "$1" = ok ]; then say "  ok    $2"; else say "  FAIL  $2"; problems=$((problems + 1)); fi
+    }
+    step "Configuration"
+    [ -n "$(env_get OPEN_REVOKE_SECRET_KEY)" ] && check ok "OPEN_REVOKE_SECRET_KEY is set" || check fail "OPEN_REVOKE_SECRET_KEY is empty in .env"
+    [ -n "$(env_get POSTGRES_PASSWORD)" ] && check ok "POSTGRES_PASSWORD is set" || check fail "POSTGRES_PASSWORD is empty in .env"
+    host_tz=$(detect_timezone)
+    env_tz=$(env_get TZ)
+    [ "${env_tz:-UTC}" = "$host_tz" ] && check ok "time zone $host_tz matches the host" \
+        || say "  note  TZ in .env is ${env_tz:-UTC}, the host says $host_tz (open-revoke restart after a change)"
+
+    step "Containers"
+    docker info > /dev/null 2>&1 && check ok "Docker answers" || check fail "Docker does not answer (is it running? permission?)"
+    for service in postgres redis temporal browser app; do
+        id=$(container_of "$service")
+        state=$( [ -n "$id" ] && docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$id" || echo missing)
+        case $state in healthy | running) check ok "$service: $state" ;; *) check fail "$service: $state" ;; esac
+    done
+
+    step "Address"
+    url=$(env_get PUBLIC_URL)
+    code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$url/api/auth/state" 2> /dev/null || true)
+    [ "$code" = 200 ] && check ok "$url answers (certificate valid if https)" \
+        || check fail "$url/api/auth/state gave HTTP ${code:-000}; 000 = no connection (DNS, proxy or certificate; docs/self-hosting.md)"
+
+    step "Host"
+    free_kb=$(df -Pk "$INSTALL_DIR" | awk 'NR == 2 { print $4 }')
+    [ "${free_kb:-0}" -gt 5242880 ] && check ok "$((free_kb / 1048576)) GB free on disk" \
+        || check fail "less than 5 GB free on disk"
+    remote=$(curl -sI --max-time 10 https://api.github.com 2> /dev/null | awk -F': ' 'tolower($1) == "date" { print $2 }' | tr -d '\r')
+    if [ -n "$remote" ]; then
+        skew=$(( $(date -u +%s) - $(date -u -d "$remote" +%s 2> /dev/null || date -u -j -f '%a, %d %b %Y %T GMT' "$remote" +%s) ))
+        [ "${skew#-}" -le 30 ] && check ok "clock within ${skew#-} s of GitHub's" \
+            || check fail "clock off by ${skew#-} s: 2FA codes fail (set up NTP)"
+    else
+        say "  note  could not compare the clock (no internet?)"
+    fi
+    say ""
+    [ "$problems" = 0 ] && say "No problems found." || die "$problems problem(s) found"
+}
+
+detect_timezone() {
+    zone=""
+    if command -v timedatectl > /dev/null 2>&1; then zone=$(timedatectl show -p Timezone --value 2> /dev/null || true); fi
+    if [ -z "$zone" ] && [ -f /etc/timezone ]; then zone=$(head -n 1 /etc/timezone); fi
+    if [ -z "$zone" ] && [ -L /etc/localtime ]; then zone=$(readlink /etc/localtime | sed -n 's#.*zoneinfo/##p'); fi
+    printf '%s' "${zone:-UTC}"
+}
+
+cmd_uninstall() {
+    purge=0
+    for arg in "$@"; do
+        case $arg in --purge) purge=1 ;; --yes) ASSUME_YES=1 ;; *) die "unknown option: $arg" ;; esac
+    done
+    if [ "$purge" = 1 ]; then
+        say "This deletes the database, the browser sessions and every volume of $(env_get COMPOSE_PROJECT_NAME). Backups in $INSTALL_DIR/backups stay."
+        confirm "Delete all data?" || die "cancelled"
+        compose down -v
+    else
+        compose down
+        say "Stopped. Data stays in the Docker volumes; start again with: open-revoke start"
+    fi
+}
+
+[ -f "$INSTALL_DIR/.env" ] || die "no .env in $INSTALL_DIR: is this an Open Revoke installation? (set OPEN_REVOKE_DIR)"
+command=${1:-help}
+[ $# -gt 0 ] && shift
+case $command in
+    status) cmd_status ;;
+    version) cmd_version ;;
+    update) cmd_update "$@" ;;
+    rollback) cmd_rollback "$@" ;;
+    backup) cmd_backup "$@" ;;
+    restore) cmd_restore "$@" ;;
+    doctor) cmd_doctor ;;
+    logs) cmd_logs "$@" ;;
+    setup-link) app_python app.cli setup-link ;;
+    admin)
+        [ "${1:-}" = reset-link ] && [ -n "${2:-}" ] || die "usage: open-revoke admin reset-link <email>"
+        app_python app.cli reset-link "$2"
+        ;;
+    start) compose up -d && wait_healthy 300 && say "Running: $(env_get PUBLIC_URL)" ;;
+    stop) compose stop ;;
+    restart) compose up -d --force-recreate && wait_healthy 300 && say "Running: $(env_get PUBLIC_URL)" ;;
+    uninstall) cmd_uninstall "$@" ;;
+    help | -h | --help) usage ;;
+    *)
+        usage
+        exit 1
+        ;;
+esac

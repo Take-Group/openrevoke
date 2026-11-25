@@ -1,0 +1,75 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "open-revoke-backend"
+version = "0.1.0"
+description = "Open Revoke backend"
+license = "MIT"
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi>=0.162.4",
+    "uvicorn[standard]>=0.54.0",
+    "pydantic>=2.14.3",
+    "pydantic-settings>=2.16.2",
+    "sqlalchemy[asyncio]>=2.1.8",
+    "asyncpg>=0.32",
+    "redis>=8.1",
+    "temporalio>=1.36",
+    "structlog>=26.1",
+    "httpx>=0.28.1",
+    "cryptography>=50.0.2",
+    "python-multipart>=0.0.34",
+    "google-auth>=2.63.1",
+    "playwright>=1.65.2",
+    "argon2-cffi>=25.1.0",
+    "pyotp>=2.12.1",
+    "segno>=1.6.6",
+    "tzdata>=2026.6",
+    "anthropic>=2.13.0",
+    "openai>=3.58.0",
+    "websockets>=17.4",
+    "alembic>=1.20.1",
+]
+
+[project.scripts]
+serve = "app.main:run"
+worker = "app.temporal.worker:run"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "A", "SIM", "TCH"]
+
+[tool.ruff.lint.flake8-type-checking]
+# FastAPI evaluates annotations at runtime: type imports from collections.abc must stay outside TYPE_CHECKING
+exempt-modules = ["typing", "collections.abc"]
+# Pydantic and SQLAlchemy read annotations at runtime too.
+runtime-evaluated-base-classes = [
+    "pydantic.BaseModel",
+    "app.database.Base",
+    "app.schemas.common.ApiModel",
+    "app.schemas.accounts.AccountOut",
+    "app.schemas.people.PersonListItem",
+    "app.schemas.apps.AppListItem",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# FastAPI resolves endpoint annotations (path params, bodies, dependencies) at runtime.
+"app/api/**" = ["TC001", "TC002", "TC003"]
+# Temporal reads workflow and activity annotations at runtime to (de)serialize arguments.
+"app/temporal/**" = ["TC001", "TC002", "TC003"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.17.6",
+]

@@ -1,0 +1,534 @@
+# Release of one version, started by pushing the tag vX.Y.Z (scripts/release.sh makes it).
+#
+#   checks         the CI checks (ci.yml), from scratch: a tag made without release.sh is checked too
+#   prepare        version, pre-release or not, image tags, release notes from CHANGELOG.md,
+#                  previous stable release
+#   build-test     amd64 images loaded into the runner's Docker (not pushed), the release bundle
+#                  (scripts/build-release.sh --skip-images), a fresh install with install.sh and an
+#                  update from the previous release with `open-revoke update`, then rollback
+#   publish        multi-arch images (amd64 and arm64, each on a native runner) with SBOM and
+#                  provenance, pushed by digest: nothing is pushed before the tests pass
+#   tag-and-sign   one multi-arch tag set per image (X.Y.Z, X.Y, latest; a pre-release only X.Y.Z),
+#                  cosign keyless signature of each image
+#   release        cosign signature of SHA256SUMS, GitHub Release with the notes and bundle files
+#
+# Plan: docs/product/release/03-wydanie.md in the private workspace; tooling:
+# skills/backend/releases.md. Parts marked "GitHub only" cannot be tried on a laptop: they need
+# the repository, ghcr.io, the OIDC token of Actions or the arm64 runners.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+# Each job asks for what it needs: contents write only to create the release, packages write only
+# to push images, id-token write only to sign (cosign keyless, OIDC).
+permissions:
+  contents: read
+
+# Explicit bash: GitHub then adds -o pipefail, so `install.sh | tee` fails when install.sh fails.
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/take-group/open-revoke
+  BROWSER_IMAGE: ghcr.io/take-group/open-revoke-browser
+
+jobs:
+  checks:
+    name: Checks
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
+  prepare:
+    name: Prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+      tags: ${{ steps.previous.outputs.tags }}
+      latest: ${{ steps.previous.outputs.latest }}
+      previous: ${{ steps.previous.outputs.previous }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Version from the tag
+        id: version
+        run: |
+          version=${GITHUB_REF_NAME#v}
+          if ! echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+            echo "::error::$GITHUB_REF_NAME is not vX.Y.Z or vX.Y.Z-suffix"
+            exit 1
+          fi
+          case $version in *-*) prerelease=true ;; *) prerelease=false ;; esac
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+
+      - name: Release notes from CHANGELOG.md
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/notes"
+          awk -v head="## [$VERSION]" '
+            index($0, head) == 1 { on = 1; next }
+            /^## \[/ && on { exit }
+            on
+          ' CHANGELOG.md > "$RUNNER_TEMP/notes/notes.md"
+          if ! grep -q '[^[:space:]]' "$RUNNER_TEMP/notes/notes.md"; then
+            echo "::error::CHANGELOG.md has no section ## [$VERSION]: cut the release with scripts/release.sh"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/notes/notes.md"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-notes
+          path: ${{ runner.temp }}/notes/notes.md
+          if-no-files-found: error
+
+      # GitHub only: reads the releases of this repository.
+      - name: Previous stable release and image tags
+        id: previous
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          PRERELEASE: ${{ steps.version.outputs.prerelease }}
+        run: |
+          # `gh release view` without a tag is the repository's latest release: no drafts, no
+          # pre-releases. None yet (first release): empty, and the update test is skipped.
+          previous=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName 2> /dev/null || true)
+          previous=${previous#v}
+          newer=true
+          if [ -n "$previous" ]; then
+            top=$(printf '%s\n%s\n' "$previous" "$VERSION" | sort -V | tail -n 1)
+            if [ "$top" != "$VERSION" ] || [ "$previous" = "$VERSION" ]; then
+              # A fix for an older line (0.4.3 after 0.5.0): no update test from a newer release,
+              # and `latest` stays where it is.
+              newer=false
+              previous=""
+            fi
+          fi
+          if [ "$PRERELEASE" = true ]; then
+            tags="$VERSION"
+            latest=false
+          else
+            minor=$(echo "$VERSION" | cut -d. -f1-2)
+            tags="$VERSION $minor"
+            latest=$newer
+            [ "$latest" = true ] && tags="$tags latest"
+          fi
+          {
+            echo "previous=$previous"
+            echo "tags=$tags"
+            echo "latest=$latest"
+          } >> "$GITHUB_OUTPUT"
+          echo "Previous stable release: ${previous:-none}. Image tags: $tags. Latest: $latest."
+
+  build-test:
+    name: Build and test install and update (amd64)
+    needs: [checks, prepare]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      # Pulls the images of the previous release for the update test (needed while ghcr.io
+      # packages are private).
+      packages: read
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      PREVIOUS: ${{ needs.prepare.outputs.previous }}
+    steps:
+      - uses: actions/checkout@v7
+
+      # Laid out like GitHub Releases (download/vX.Y.Z/, latest/download/VERSION), so install.sh
+      # and `open-revoke update` read it with OPEN_REVOKE_RELEASES_URL=file://...
+      - name: Release directory
+        run: echo "RELEASES=$RUNNER_TEMP/releases" >> "$GITHUB_ENV"
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      # The images under test are loaded into the runner's Docker with the release tags, so
+      # install.sh (`docker compose up --pull missing`) and `open-revoke update` use them instead
+      # of pulling. The publish job builds the same Dockerfile again from the same GitHub Actions
+      # cache, for both platforms.
+      - name: Build app image (amd64, local)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: app
+          platforms: linux/amd64
+          build-args: OPEN_REVOKE_VERSION=${{ env.VERSION }}
+          tags: ${{ env.IMAGE }}:${{ env.VERSION }}
+          load: true
+          push: false
+          provenance: false
+          sbom: false
+          cache-from: type=gha,scope=app-linux-amd64
+          cache-to: type=gha,mode=max,scope=app-linux-amd64
+
+      - name: Build browser image (amd64, local)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: browser
+          # The browser stage runs `apt-get install chromium`. From the cache it would keep the
+          # Chromium of an earlier build, and a Chromium security release would ship the old one.
+          no-cache-filters: browser
+          platforms: linux/amd64
+          tags: ${{ env.BROWSER_IMAGE }}:${{ env.VERSION }}
+          load: true
+          push: false
+          provenance: false
+          sbom: false
+          cache-from: type=gha,scope=browser-linux-amd64
+          cache-to: type=gha,mode=max,scope=browser-linux-amd64
+
+      # The bundle comes from scripts/build-release.sh itself, so the workflow and a local release
+      # cannot drift apart. The script builds images only for one platform and never pushes, so
+      # it runs with --skip-images; the images are the job above and the publish job below.
+      - name: Build the release bundle
+        run: scripts/build-release.sh "$VERSION" --skip-images --out "$RELEASES"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-bundle
+          path: ${{ runner.temp }}/releases/download/v${{ needs.prepare.outputs.version }}/
+          if-no-files-found: error
+
+      - name: Test a fresh install
+        run: |
+          dir="$RUNNER_TEMP/fresh"
+          OPEN_REVOKE_RELEASES_URL="file://$RELEASES" sh "$RELEASES/download/v$VERSION/install.sh" \
+            --yes --version "$VERSION" --dir "$dir" --name or-fresh --port 18420 --no-link \
+            | tee "$RUNNER_TEMP/fresh.log"
+          # install.sh returns only after the app container is healthy and prints the setup link.
+          token=$(grep -Eo '/setup\?token=[A-Za-z0-9_-]+' "$RUNNER_TEMP/fresh.log" | tail -n 1 | cut -d= -f2)
+          [ -n "$token" ] || { echo "::error::install.sh printed no setup link"; exit 1; }
+          panel=http://localhost:18420
+
+          curl -fsS "$panel/api/auth/state" | jq -e '.setup_required == true'
+
+          code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$panel/api/auth/setup/check" \
+            -H 'Content-Type: application/json' -H 'X-Open-Revoke-Client: 1' \
+            -d "{\"token\": \"$token\"}")
+          [ "$code" = 204 ] || { echo "::error::the setup link was refused ($code)"; exit 1; }
+
+          code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$panel/api/auth/setup/check" \
+            -H 'Content-Type: application/json' -H 'X-Open-Revoke-Client: 1' \
+            -d '{"token": "not-the-token-of-this-installation"}')
+          [ "$code" = 403 ] || { echo "::error::a wrong setup token got $code instead of 403"; exit 1; }
+
+          "$dir/open-revoke" version | tee "$RUNNER_TEMP/fresh-version.txt"
+          grep -Eq "^Running: +$VERSION\$" "$RUNNER_TEMP/fresh-version.txt" \
+            || { echo "::error::the running app does not report $VERSION"; exit 1; }
+
+      - name: Logs of the fresh install
+        if: failure()
+        run: (cd "$RUNNER_TEMP/fresh" && docker compose ps && docker compose logs --tail 200) || true
+
+      - name: Remove the fresh install
+        if: always()
+        run: |
+          if [ -x "$RUNNER_TEMP/fresh/open-revoke" ]; then
+            "$RUNNER_TEMP/fresh/open-revoke" uninstall --purge --yes || true
+          fi
+
+      - name: No earlier release to update from
+        if: needs.prepare.outputs.previous == ''
+        run: |
+          echo "::notice::No earlier stable release, or this is a fix for an older line. The update test is skipped."
+
+      # GitHub only: installs the previous release from this repository's GitHub Releases and
+      # pulls its images from ghcr.io.
+      - name: Test the update from the previous release
+        if: needs.prepare.outputs.previous != ''
+        run: |
+          dir="$RUNNER_TEMP/update"
+          panel=http://localhost:18421
+          password="release-check-$(openssl rand -hex 12)"
+          echo "::add-mask::$password"
+
+          curl -fsSL "https://github.com/$GITHUB_REPOSITORY/releases/download/v$PREVIOUS/install.sh" \
+            -o "$RUNNER_TEMP/install-previous.sh"
+          sh "$RUNNER_TEMP/install-previous.sh" --yes --version "$PREVIOUS" --dir "$dir" \
+            --name or-update --port 18421 --no-link --releases "https://github.com/$GITHUB_REPOSITORY/releases" \
+            | tee "$RUNNER_TEMP/previous.log"
+          token=$(grep -Eo '/setup\?token=[A-Za-z0-9_-]+' "$RUNNER_TEMP/previous.log" | tail -n 1 | cut -d= -f2)
+          [ -n "$token" ] || { echo "::error::install.sh of $PREVIOUS printed no setup link"; exit 1; }
+
+          # Data that has to survive the update and the rollback: the organization and its admin.
+          jq -n --arg token "$token" --arg password "$password" '{
+            organization_name: "Release Check", currency: "USD", timezone: "UTC",
+            name: "Release Check", email: "admin@example.com", password: $password, token: $token
+          }' > "$RUNNER_TEMP/setup.json"
+          curl -fsS -o /dev/null -X POST "$panel/api/auth/setup" \
+            -H 'Content-Type: application/json' -H 'X-Open-Revoke-Client: 1' \
+            --data @"$RUNNER_TEMP/setup.json"
+          curl -fsS "$panel/api/auth/state" | jq -e '.setup_required == false and .organization.name == "Release Check"'
+
+          # From here on the installation reads releases from the bundle built above.
+          echo "OPEN_REVOKE_RELEASES_URL=file://$RELEASES" >> "$dir/.env"
+          "$dir/open-revoke" update --to "$VERSION" --yes
+          "$dir/open-revoke" version | tee "$RUNNER_TEMP/updated-version.txt"
+          grep -Eq "^Running: +$VERSION\$" "$RUNNER_TEMP/updated-version.txt" \
+            || { echo "::error::after the update the app does not report $VERSION"; exit 1; }
+          curl -fsS "$panel/api/auth/state" | jq -e '.setup_required == false and .organization.name == "Release Check"'
+
+          # The way back has to work too: files and database from before the update.
+          "$dir/open-revoke" rollback --yes
+          "$dir/open-revoke" version | tee "$RUNNER_TEMP/rollback-version.txt"
+          grep -Eq "^Running: +$PREVIOUS\$" "$RUNNER_TEMP/rollback-version.txt" \
+            || { echo "::error::after the rollback the app does not report $PREVIOUS"; exit 1; }
+          curl -fsS "$panel/api/auth/state" | jq -e '.setup_required == false and .organization.name == "Release Check"'
+
+      - name: Logs of the update test
+        if: failure() && needs.prepare.outputs.previous != ''
+        run: (cd "$RUNNER_TEMP/update" && docker compose ps && docker compose logs --tail 200) || true
+
+  publish:
+    name: Publish ${{ matrix.platform }}
+    needs: [prepare, build-test]
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - platform: linux/amd64
+            slug: linux-amd64
+            runner: ubuntu-24.04
+          # GitHub only: native arm64 runner. Building Next.js under QEMU on an amd64 runner also
+          # works but is many times slower; if arm64 runners are not available for the repository,
+          # use ubuntu-24.04 here and add docker/setup-qemu-action@v4 before buildx.
+          - platform: linux/arm64
+            slug: linux-arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: OCI labels
+        id: labels
+        run: |
+          {
+            echo "app<<EOF"
+            echo "org.opencontainers.image.title=Open Revoke"
+            echo "org.opencontainers.image.description=Self-hosted panel for SaaS accounts, costs and offboarding"
+            echo "org.opencontainers.image.version=$VERSION"
+            echo "org.opencontainers.image.revision=$GITHUB_SHA"
+            echo "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
+            echo "org.opencontainers.image.licenses=MIT"
+            echo "EOF"
+            echo "browser<<EOF"
+            echo "org.opencontainers.image.title=Open Revoke browser"
+            echo "org.opencontainers.image.description=Chromium with noVNC for Open Revoke browser connectors"
+            echo "org.opencontainers.image.version=$VERSION"
+            echo "org.opencontainers.image.revision=$GITHUB_SHA"
+            echo "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
+            echo "org.opencontainers.image.licenses=MIT"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      # Pushed by digest only: no tag points at it until tag-and-sign has both platforms.
+      - name: Build and push app (${{ matrix.platform }})
+        id: app
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: app
+          platforms: ${{ matrix.platform }}
+          build-args: OPEN_REVOKE_VERSION=${{ env.VERSION }}
+          labels: ${{ steps.labels.outputs.app }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          sbom: true
+          provenance: mode=max
+          cache-from: type=gha,scope=app-${{ matrix.slug }}
+          cache-to: type=gha,mode=max,scope=app-${{ matrix.slug }}
+
+      - name: Build and push browser (${{ matrix.platform }})
+        id: browser
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: browser
+          # The browser stage runs `apt-get install chromium`. From the cache it would keep the
+          # Chromium of an earlier build, and a Chromium security release would ship the old one.
+          no-cache-filters: browser
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.labels.outputs.browser }}
+          outputs: type=image,name=${{ env.BROWSER_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          sbom: true
+          provenance: mode=max
+          cache-from: type=gha,scope=browser-${{ matrix.slug }}
+          cache-to: type=gha,mode=max,scope=browser-${{ matrix.slug }}
+
+      - name: Keep the digests
+        env:
+          APP_DIGEST: ${{ steps.app.outputs.digest }}
+          BROWSER_DIGEST: ${{ steps.browser.outputs.digest }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/digests/app" "$RUNNER_TEMP/digests/browser"
+          touch "$RUNNER_TEMP/digests/app/${APP_DIGEST#sha256:}"
+          touch "$RUNNER_TEMP/digests/browser/${BROWSER_DIGEST#sha256:}"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: digests-${{ matrix.slug }}
+          path: ${{ runner.temp }}/digests/
+          if-no-files-found: error
+          retention-days: 1
+
+  tag-and-sign:
+    name: Tag and sign images
+    needs: [prepare, publish]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      TAGS: ${{ needs.prepare.outputs.tags }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: digests-*
+          path: ${{ runner.temp }}/digests
+          merge-multiple: true
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - uses: sigstore/cosign-installer@v4
+
+      # GitHub only: pushes tags to ghcr.io and signs with the workflow's OIDC identity
+      # (keyless, the signature goes to the public Sigstore transparency log).
+      - name: Multi-arch tags and signatures
+        run: |
+          publish() {
+            name=$1
+            dir=$2
+            args=()
+            for tag in $TAGS; do args+=(--tag "$name:$tag"); done
+            sources=()
+            for digest in "$dir"/*; do sources+=("$name@sha256:$(basename "$digest")"); done
+            [ "${#sources[@]}" = 2 ] || { echo "::error::expected 2 platform digests of $name, got ${#sources[@]}"; exit 1; }
+            docker buildx imagetools create "${args[@]}" \
+              --annotation "index:org.opencontainers.image.version=$VERSION" \
+              --annotation "index:org.opencontainers.image.revision=$GITHUB_SHA" \
+              --annotation "index:org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+              --annotation "index:org.opencontainers.image.licenses=MIT" \
+              "${sources[@]}"
+            digest=$(docker buildx imagetools inspect "$name:$VERSION" --format '{{json .Manifest}}' | jq -r .digest)
+            docker buildx imagetools inspect "$name@$digest"
+            cosign sign --yes "$name@$digest"
+            echo "- \`$name@$digest\` ($TAGS)" >> "$GITHUB_STEP_SUMMARY"
+          }
+          echo "### Images" >> "$GITHUB_STEP_SUMMARY"
+          publish "$IMAGE" "$RUNNER_TEMP/digests/app"
+          publish "$BROWSER_IMAGE" "$RUNNER_TEMP/digests/browser"
+
+  release:
+    name: GitHub Release
+    needs: [prepare, build-test, tag-and-sign]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
+      LATEST: ${{ needs.prepare.outputs.latest }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-bundle
+          path: ${{ runner.temp }}/bundle
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-notes
+          path: ${{ runner.temp }}/notes
+
+      - uses: sigstore/cosign-installer@v4
+
+      # GitHub only: keyless signature with the workflow's OIDC identity.
+      - name: Check and sign SHA256SUMS
+        working-directory: ${{ runner.temp }}/bundle
+        run: |
+          sha256sum --check SHA256SUMS
+          cosign sign-blob --yes --bundle SHA256SUMS.sigstore.json SHA256SUMS
+
+      - name: Verification steps in the release notes
+        run: |
+          identity="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/.github/workflows/release.yml@$GITHUB_REF"
+          cat >> "$RUNNER_TEMP/notes/notes.md" << EOF
+
+          ### Install or update
+
+          \`\`\`bash
+          curl -fsSLO $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/download/v$VERSION/install.sh
+          sh install.sh --version $VERSION
+          \`\`\`
+
+          An existing installation: \`open-revoke update --to $VERSION\`.
+
+          ### Verify
+
+          \`\`\`bash
+          sha256sum --check SHA256SUMS
+          cosign verify-blob SHA256SUMS --bundle SHA256SUMS.sigstore.json \\
+            --certificate-identity "$identity" \\
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com
+          cosign verify $IMAGE:$VERSION \\
+            --certificate-identity "$identity" \\
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com
+          cosign verify $BROWSER_IMAGE:$VERSION \\
+            --certificate-identity "$identity" \\
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com
+          \`\`\`
+          EOF
+
+      # GitHub only. VERSION is attached because install.sh and `open-revoke update` read
+      # releases/latest/download/VERSION to find the newest stable release.
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        working-directory: ${{ runner.temp }}/bundle
+        run: |
+          flags=(--verify-tag --title "Open Revoke $VERSION" --notes-file "$RUNNER_TEMP/notes/notes.md" "--latest=$LATEST")
+          [ "$PRERELEASE" = true ] && flags+=(--prerelease)
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" "${flags[@]}" \
+            "open-revoke-$VERSION.tar.gz" install.sh SHA256SUMS SHA256SUMS.sigstore.json VERSION

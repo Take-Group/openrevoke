@@ -1,0 +1,62 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+*.whl
+.venv/
+venv/
+
+# === Node ===
+node_modules/
+
+# === IDE / OS ===
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# === Environment / Secrets ===
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+
+# === Databases, logs, caches ===
+*.sqlite3
+*.db
+*.log
+logs/
+.mypy_cache/
+.ruff_cache/
+temporal-data/
+docker-compose.override.yml
+
+# === AI tools ===
+# The skills belong to the repo; local agent state does not.
+.claude/*
+!.claude/skills
+.codex/
+.cursor/
+.aider*
+.playwright-mcp/
+
+# === Misc ===
+*.bak
+*.tmp
+*.orig
+*.rej
+
+# === Open Revoke ===
+# Traffic recordings from app.devtools.capture contain real people and tokens.
+captures/

@@ -1,0 +1,8 @@
+# open-revoke/docs/
+
+Product docs, public with the repo: no plans and no business data (market, competitors, prices, the company's own accounts) here.
+
+- `browser-recipes.md`: click recipes for writes in apps without an API: decision (API, SCIM, browser, manual), JSON format, locators, safety, repair by AI.
+- `self-hosting.md`: install under your own domain: `PUBLIC_URL`, HTTPS with Caddy, own proxy or VPN, Google redirect rules.
+- `openapi.json`: API contract, source of the frontend types (`frontend/src/lib/api/types.ts`).
+- `connectors/`: own AGENTS.md. How to connect each app, endpoints, limits.

@@ -1,0 +1,26 @@
+"use client";
+
+import { Checkbox as CheckboxPrimitive } from "@base-ui/react/checkbox";
+import { CheckIcon } from "lucide-react";
+
+import { cn } from "@/lib/utils";
+
+/** The panel's checkbox. Never use `<input type="checkbox">`: the browser draws its own. */
+function Checkbox({ className, ...props }: CheckboxPrimitive.Root.Props) {
+  return (
+    <CheckboxPrimitive.Root
+      data-slot="checkbox"
+      className={cn(
+        "peer relative flex size-4 shrink-0 cursor-pointer items-center justify-center rounded-[4px] border border-input bg-background shadow-xs transition-colors outline-none after:absolute after:-inset-x-3 after:-inset-y-2 focus-visible:border-brand focus-visible:ring-3 focus-visible:ring-brand/15 data-disabled:cursor-not-allowed data-disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-checked:border-brand data-checked:bg-brand data-checked:text-brand-foreground dark:bg-input/30 dark:data-checked:bg-brand",
+        className,
+      )}
+      {...props}
+    >
+      <CheckboxPrimitive.Indicator data-slot="checkbox-indicator" className="grid place-content-center text-current [&>svg]:size-3.5">
+        <CheckIcon />
+      </CheckboxPrimitive.Indicator>
+    </CheckboxPrimitive.Root>
+  );
+}
+
+export { Checkbox };

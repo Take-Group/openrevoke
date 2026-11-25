@@ -1,0 +1,21 @@
+# Build Open Revoke from this source instead of pulling release images:
+#
+#   docker compose -f compose.yaml -f compose.build.yaml up -d --build
+#
+# The images get the tag of OPEN_REVOKE_VERSION (default `dev`), which is also the version the
+# panel shows. scripts/build-release.sh builds release images with the same targets.
+services:
+  app:
+    build:
+      context: .
+      target: app
+      args:
+        OPEN_REVOKE_VERSION: ${OPEN_REVOKE_VERSION:-dev}
+    # Traffic recordings of app.devtools.capture land in ./captures on the host (git-ignored).
+    volumes:
+      - ./captures:/app/captures
+
+  browser:
+    build:
+      context: .
+      target: browser

@@ -1,0 +1,12 @@
+Open Revoke
+Copyright (c) 2026-present Take Group sp. z o.o.
+
+Third-party names and logos
+
+The app catalog (backend/app/catalog/apps.json) and the images in
+backend/app/catalog/logos/ name and show third-party products only so that
+people can recognize those apps in the panel. The names and logos are
+trademarks of their owners. Open Revoke is not affiliated with, endorsed by
+or sponsored by any of them. The MIT license of this repository does not
+cover these names and logos. To have a logo removed or changed, open an
+issue on GitHub.

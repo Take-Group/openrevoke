@@ -1,0 +1,43 @@
+Open Revoke Enterprise License
+Copyright (c) 2026-present Take Group sp. z o.o.
+
+The content of every "ee/" directory of the Open Revoke repository (the
+"Enterprise Software") is commercial software of Take Group sp. z o.o.
+("Take Group"). It is not covered by the MIT license that applies to the
+rest of Open Revoke.
+
+Allowed without a commercial license
+
+You may read the Enterprise Software and run it in a non-production
+environment, for developer-only evaluation.
+
+Not allowed without a commercial license from Take Group
+
+You may not:
+- use the Enterprise Software in production,
+- use it for any commercial purpose,
+- reproduce, redistribute, sublicense or publish it,
+- modify, refactor, reverse engineer or derive from it, or generate new
+  features based on it, including with AI tools,
+- remove or bypass its license key checks,
+- offer it to third parties as a hosted service.
+
+A valid commercial license from Take Group is required for production or
+commercial use. Its terms, including what it covers and its price, are set
+in a written agreement with Take Group. You are not granted any other rights
+beyond what is expressly stated herein.
+
+Every other part of Open Revoke is licensed under the MIT license in the
+LICENSE file at the root of the repository. The full text of this license
+shall be included in all copies or substantial portions of the Enterprise
+Software.
+
+THE ENTERPRISE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO
+EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES
+OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE ENTERPRISE SOFTWARE OR THE USE
+OR OTHER DEALINGS IN IT.
+
+For a commercial license, write to contact@openrevoke.com.

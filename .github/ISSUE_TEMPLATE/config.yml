@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/Take-Group/openrevoke/security/advisories/new
+    about: Report it privately here, never in a public issue. See SECURITY.md.
+  - name: Self-hosting guide
+    url: https://github.com/Take-Group/openrevoke/blob/main/docs/self-hosting.md
+    about: Installing, HTTPS, backups and updates.

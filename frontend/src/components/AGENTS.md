@@ -1,0 +1,23 @@
+# open-revoke/frontend/src/components/
+
+React components of the panel. Pages in `src/app/` are thin and render one `*-view.tsx` per route; views fetch with hooks from `src/hooks/` (TanStack Query) and compose shared parts from `common/`, `ui/` and `data-table/`. One folder per feature; features do not import each other except `auth/form-parts`, `auth/auth-shell`, `browser/live-view`, `settings/settings-section` (also used by `ai/` and `slack/`).
+
+- `common/`: own AGENTS.md. shared app-level parts (page header, panel, form field, status badge, pickers).
+- `ui/`: own AGENTS.md. shadcn/base-ui primitives (button, dialog, sheet, table, sidebar, ...).
+- `layout/`: own AGENTS.md. admin frame: sidebar, command menu, nav items, theme toggle.
+- `dashboard/`: own AGENTS.md. the `/` page: KPI cards, alerts, setup checklist.
+- `actions/`: own AGENTS.md. action queue (`/actions`): table, approve, reveal secret.
+- `ai/`, no map: `ai-settings-view.tsx` (`AiSettingsView`, `/settings/ai`), `ai-settings-card.tsx` (`AiSettingsCard`: two steps, holds the `AiConnection`), `ai-connect-form.tsx` (`AiConnectForm`: provider, base URL, key, "Connect" lists the real models; hook `useAiModels`), `ai-model-form.tsx` (`AiModelForm`: model from the list, reasoning level the model takes, Save, Test; hooks `useSavedAiModels`, `useSaveAiSettings`, `useTestAi`). One model for every AI feature.
+- `slack/`, no map: `slack-view.tsx` (`SlackView`, `/settings/slack`: reads Slack OAuth `?installed=1` / `?error=` once and cleans the URL; hook `useSlackAgent`), `slack-setup-card.tsx` (`SlackSetupCard` three steps, `SlackStatus` badge and on/off switch, remove; links to `/settings/ai` while no model is set), `slack-steps.tsx` (`CreateAppForm`, `AvatarRow`, `TokenForm`).
+- `requests/`, no map: `requests-view.tsx` (`RequestsView`, `/requests`), `access-requests-table.tsx` (`AccessRequestsTable`: requests from Slack and My access, newest first; hook `useAccessRequests`).
+- `apps/`: own AGENTS.md. app list, app detail tabs, connection form (`/apps`, `/apps/[id]`).
+- `auth/`: own AGENTS.md. sign-in, first-run setup, 2FA, route guard.
+- `discovery/`: own AGENTS.md. Google Workspace scan and discovered apps (`/discovery`).
+- `people/`: own AGENTS.md. people list and detail, onboard/offboard, CSV import.
+- `audit/`, no map: `audit-view.tsx` (`AuditView`, `/audit`: filters by entity type, `?app=`, `?person=`; hooks `useAudit`, `useDebouncedValue`), `audit-table.tsx` (`AuditTable`: events with links to person and app).
+- `browser/`, no map: `browser-view.tsx` (`BrowserView`, `/browser`: live view edge to edge under the page bar plus a side panel remembered in storage; hooks `useBrowserState`, `useSidePanel`), `browser-apps-list.tsx` (`BrowserAppsList`: apps using the shared browser, "Log in"; hook `useOpenInBrowser`), `live-view.tsx` (`LiveView`: iframe of the noVNC browser filling its box, `fit` resizes the browser display to it, `bare` drops the frame; `liveViewUrl`; also used by `discovery/google-auto-setup.tsx`).
+- `me/`, no map: `my-access-view.tsx` (`MyAccessView`, `/me`: the user's accounts and requests; hook `useMyAccess`), `request-access-view.tsx` (`RequestAccessView`, `/me/request?app=`: form page; `useRequestAccess`).
+- `onboarding/`, no map: `welcome-view.tsx` (`WelcomeView`, `/welcome`: two questions after setup that pick the dashboard checklist; hooks `useOnboarding`, `useSaveOnboardingChoices`).
+- `settings/`: own AGENTS.md. account and organization settings, users, sign-up rules, invites.
+- `data-table/`, no map: `data-table.tsx` (`DataTable`: TanStack table, client sort only, `rowHref` row click, Ctrl/Cmd opens a new tab; clicks on links and buttons do not open the row), `column-header.tsx` (`SortHeader`), `row-actions.tsx` (`RowActions`: the "..." menu, children are dropdown items).
+- `providers.tsx`: `Providers` (rendered by `src/app/layout.tsx`): QueryClient with global toast on query and mutation errors, ThemeProvider, TooltipProvider, Toaster.

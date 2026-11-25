@@ -1,0 +1,247 @@
+<!doctype html>
+<!--
+  Live view of the shared browser for the Open Revoke panel (skills/backend/browser.md).
+  Only the screen: no noVNC menu. Served by websockify from /usr/share/novnc next to
+  noVNC's own vnc.html. The panel loads it through the API at /api/browser/live/live.html
+  (backend/app/browser/live_proxy.py); the WebSocket URL is relative, so it works there and
+  on a published noVNC port alike.
+
+  Query: quality (0-9, default 9), compression (0-9, default 0), resize (1: the browser
+  display follows the size of this page, see fitRemoteSize below; without it the display
+  keeps its size and is scaled into the page).
+  Keyboard: Cmd+V / Ctrl+V pastes the local clipboard into the browser (passwords from a
+  password manager). On a Mac, Cmd+<key> is sent as Ctrl+<key> (copy, select all, undo),
+  because the browser in the container runs on Linux.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Open Revoke browser</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #0b0b0b;
+        overflow: hidden;
+      }
+      #screen {
+        position: absolute;
+        inset: 0;
+      }
+      #status {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        padding: 8px 14px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.08);
+        color: #d4d4d4;
+        font: 13px/1.4 system-ui, -apple-system, sans-serif;
+        pointer-events: none;
+      }
+      #status[hidden] {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="screen"></div>
+    <div id="status">Connecting…</div>
+    <script type="module">
+      import RFB from "./core/rfb.js";
+      import KeyTable from "./core/input/keysym.js";
+
+      const params = new URLSearchParams(location.search);
+      const level = (name, fallback) => {
+        const value = Number.parseInt(params.get(name) ?? "", 10);
+        return Number.isInteger(value) && value >= 0 && value <= 9 ? value : fallback;
+      };
+      const isMac = /Mac|iPhone|iPad/.test(navigator.platform);
+      const resize = params.get("resize") === "1";
+
+      // Chromium runs at this device scale factor (start-chromium.sh, --force-device-scale-factor).
+      // With resize=1 the display gets SCALE pixels per CSS pixel of this page, so web pages are laid
+      // out at the size of the page here and stay sharp on a 2x (Retina) screen. The layout is kept
+      // between MIN and MAX CSS pixels: below MIN sites switch to phone layouts (bad for click
+      // recipes, which run at the last size), above MAX the picture is scaled down instead.
+      const SCALE = 2;
+      const MIN = { w: 800, h: 500 };
+      const MAX = { w: 1920, h: 1200 };
+      const clamp = (value, low, high) => Math.round(Math.min(high, Math.max(low, value)));
+
+      /**
+       * noVNC asks the server for the size of the page in CSS pixels; ask for that size times
+       * SCALE instead. Wraps a private method of noVNC 1.6 (core/rfb.js, _requestRemoteResize):
+       * check it after a noVNC upgrade.
+       */
+      function fitRemoteSize(rfb) {
+        const request = rfb._requestRemoteResize.bind(rfb);
+        const pageSize = rfb._screenSize.bind(rfb);
+        rfb._requestRemoteResize = () => {
+          rfb._screenSize = () => {
+            const size = pageSize();
+            return { w: clamp(size.w, MIN.w, MAX.w) * SCALE, h: clamp(size.h, MIN.h, MAX.h) * SCALE };
+          };
+          try {
+            request();
+          } finally {
+            rfb._screenSize = pageSize; // scaling the picture into the page still uses the real size
+          }
+        };
+      }
+      const screen = document.getElementById("screen");
+      const status = document.getElementById("status");
+      const url = new URL("websockify", location.href);
+      url.protocol = location.protocol === "https:" ? "wss:" : "ws:";
+      url.search = "";
+      let rfb = null;
+
+      function showStatus(text) {
+        status.textContent = text;
+        status.hidden = !text;
+      }
+
+      /** Ctrl+<letter> on the remote Linux browser. */
+      function sendCtrl(key) {
+        const keysym = key.toLowerCase().charCodeAt(0);
+        const code = `Key${key.toUpperCase()}`;
+        rfb.sendKey(KeyTable.XK_Control_L, "ControlLeft", true);
+        rfb.sendKey(keysym, code, true);
+        rfb.sendKey(keysym, code, false);
+        rfb.sendKey(KeyTable.XK_Control_L, "ControlLeft", false);
+      }
+
+      // Copy inside the remote browser, then Cmd+V: the local clipboard still holds older text
+      // when the copy could not reach it, and must not overwrite the remote copy.
+      let lastLocal = null; // local clipboard text at the last paste
+      let remoteNewer = false; // the remote clipboard changed after that
+
+      /** Put local text on the remote clipboard when it is new, then Ctrl+V there. */
+      function pasteText(text) {
+        const unchanged = remoteNewer && text === lastLocal;
+        if (text && !unchanged) rfb.clipboardPasteFrom(text);
+        lastLocal = text;
+        remoteNewer = unchanged;
+        sendCtrl("v");
+      }
+
+      // Cmd+V / Ctrl+V: the keydown is let through to the browser, which fires a "paste"
+      // event with the local clipboard. That needs no permission, unlike
+      // navigator.clipboard.readText(), which Chrome may refuse in this cross-origin iframe.
+      // readText() is the fallback when no paste event comes.
+      let pendingPaste = null;
+      window.addEventListener(
+        "paste",
+        (event) => {
+          if (!rfb) return;
+          event.preventDefault();
+          clearTimeout(pendingPaste);
+          pendingPaste = null;
+          pasteText(event.clipboardData?.getData("text/plain") ?? "");
+        },
+        true,
+      );
+      function pasteFallback() {
+        pendingPaste = null;
+        if (!rfb) return;
+        navigator.clipboard
+          .readText()
+          .catch(() => "") // no permission: paste what the remote clipboard holds
+          .then(pasteText);
+      }
+
+      // Capture phase: runs before noVNC's own keyboard handler on the canvas.
+      const handled = new Set();
+      function onKeyDown(event) {
+        if (!rfb) return;
+        const shortcut = isMac ? event.metaKey : event.ctrlKey;
+        if (isMac && event.key === "Meta") {
+          event.preventDefault();
+          event.stopImmediatePropagation(); // never send Super to the remote browser
+          return;
+        }
+        if (!shortcut || event.altKey || !/^Key[A-Z]$/.test(event.code)) return;
+        const key = event.code.slice(3);
+        if (key !== "V" && !isMac) return; // Ctrl+<key> outside a Mac: noVNC sends it as is
+        event.stopImmediatePropagation(); // keep it from noVNC
+        handled.add(event.code);
+        if (key === "V") {
+          // No preventDefault: the browser's own paste event carries the clipboard.
+          clearTimeout(pendingPaste);
+          pendingPaste = setTimeout(pasteFallback, 150);
+          return;
+        }
+        event.preventDefault();
+        sendCtrl(key);
+      }
+      function onKeyUp(event) {
+        if ((isMac && event.key === "Meta") || handled.delete(event.code)) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        }
+      }
+      window.addEventListener("keydown", onKeyDown, true);
+      window.addEventListener("keyup", onKeyUp, true);
+
+      /**
+       * The cursor comes from the server as an image in display pixels; noVNC shows it one
+       * display pixel per CSS pixel, so with Chromium at scale 2 it is twice too big. Show it as a
+       * higher-resolution image (image-set), shrunk by at most CURSOR_SHRINK: at the full scale of
+       * the picture (1/2) it came out too small next to the Mac's own cursor.
+       * Wraps private parts of noVNC 1.6 (rfb._cursor, rfb._display): check after an upgrade.
+       */
+      const CURSOR_SHRINK = 1.4;
+      function scaleCursor(rfb) {
+        const cursor = rfb._cursor;
+        const change = cursor.change.bind(cursor);
+        cursor.change = (rgba, hotx, hoty, w, h) => {
+          change(rgba, hotx, hoty, w, h);
+          const target = cursor._target;
+          const image = target?.style.cursor.match(/url\("?(data:[^")]+)"?\)/);
+          if (!image) return;
+          const ratio = Math.min(CURSOR_SHRINK, Math.max(1, 1 / (rfb._display.scale || 1)));
+          const x = Math.round(hotx / ratio);
+          const y = Math.round(hoty / ratio);
+          target.style.cursor = `image-set(url("${image[1]}") ${ratio}x) ${x} ${y}, default`;
+        };
+      }
+
+      function connect() {
+        rfb = new RFB(screen, url.href, { shared: true });
+        scaleCursor(rfb);
+        if (resize) fitRemoteSize(rfb);
+        rfb.scaleViewport = true;
+        rfb.resizeSession = resize;
+        rfb.qualityLevel = level("quality", 9);
+        rfb.compressionLevel = level("compression", 0);
+        rfb.focusOnClick = true;
+        rfb.background = "#0b0b0b";
+        rfb.addEventListener("connect", () => {
+          showStatus("");
+          rfb.focus();
+        });
+        rfb.addEventListener("disconnect", () => {
+          rfb = null;
+          showStatus("Reconnecting…");
+          setTimeout(connect, 1000);
+        });
+        rfb.addEventListener("clipboard", (event) => {
+          // Text copied in the remote browser goes to the local clipboard when allowed.
+          const text = event.detail.text;
+          remoteNewer = true;
+          navigator.clipboard
+            ?.writeText(text)
+            .then(() => {
+              lastLocal = text; // the local clipboard holds the remote copy now
+            })
+            .catch(() => {});
+        });
+      }
+
+      connect();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,231 @@
+# Open Revoke: DEVELOPMENT stack with hot reload. Not for running Open Revoke for real: that is
+# compose.yaml (release images) or the installer.
+#
+#   cp .env.example .env              # then set OPEN_REVOKE_SECRET_KEY (command in .env.example)
+#   docker compose -f compose.dev.yaml up -d --build
+#
+# The code is mounted from disk: api runs `uvicorn --reload`, worker restarts on every Python
+# change (watchfiles), the panel runs `next dev`. A code change needs no rebuild; a new Python
+# package needs `docker compose -f compose.dev.yaml restart api worker`, a new JS package
+# `... restart web`.
+#
+#   http://localhost:18410            panel (the API is behind it under /api)
+#   http://localhost:18411            API directly (/health, /docs)
+#   http://localhost:18412/vnc.html   live view of the shared browser (admin sessions inside!)
+#   http://127.0.0.1:18415            CDP of the shared browser, for local agents and devtools
+# Everything is published on 127.0.0.1 only: noVNC and CDP have no sign-in.
+#
+# Database: migrations run at api start, an empty database is seeded with fictional data.
+# Sign in: admin@example.com / open-revoke-dev-password (2FA can be skipped).
+#   docker compose -f compose.dev.yaml exec api python -m app.db reset     # drop, migrate, seed
+#   docker compose -f compose.dev.yaml exec api alembic revision --autogenerate -m "..."
+#
+# compose.yaml and this file share the project name and volumes: run one of them at a time.
+
+name: open-revoke
+
+x-backend: &backend
+  build:
+    context: .
+    target: backend-dev
+  working_dir: /app/backend
+  env_file:
+    - path: ./.env
+      required: true
+  environment: &backend-env
+    TZ: ${TZ:-UTC}
+    DATABASE_URL: postgresql+asyncpg://postgres:postgres@open-revoke-postgres:5432/open_revoke
+    REDIS_URL: redis://open-revoke-redis:6379/0
+    TEMPORAL_HOST: open-revoke-temporal:7233
+    TEMPORAL_TASK_QUEUE: open-revoke
+    OPEN_REVOKE_ENABLE_FAKE_CONNECTOR: "true"
+    OPEN_REVOKE_DEV_PREFILL: "true"
+    ACTION_VERIFY_DELAY_SECONDS: "1"
+    BROWSER_CDP_HOST: open-revoke-browser
+    BROWSER_CDP_PORT: "9223"
+    PUBLIC_URL: http://localhost:18410
+    ALLOWED_HOSTS: '["localhost","127.0.0.1","[::1]","api","open-revoke-app","web"]'
+    CORS_ORIGINS: '["http://localhost:18410"]'
+  volumes:
+    - ./backend:/app/backend
+    - ./captures:/app/captures
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: postgres:18.6
+    command: ["postgres", "-c", "timezone=${TZ:-UTC}", "-c", "log_timezone=${TZ:-UTC}"]
+    environment:
+      TZ: ${TZ:-UTC}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: open_revoke
+    volumes:
+      - pgdata:/var/lib/postgresql
+    networks:
+      default:
+        aliases: [open-revoke-postgres]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d open_revoke"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:8.10.3-alpine
+    environment:
+      TZ: ${TZ:-UTC}
+    networks:
+      default:
+        aliases: [open-revoke-redis]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  temporal-schema-setup:
+    image: temporalio/admin-tools:1.32.2
+    environment:
+      TZ: ${TZ:-UTC}
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PWD: postgres
+      POSTGRES_SEEDS: postgres
+      SQL_PASSWORD: postgres
+    entrypoint: ["/bin/sh"]
+    command: ["/scripts/setup-postgres.sh"]
+    volumes:
+      - ./backend/temporal/scripts:/scripts:ro
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  temporal:
+    image: temporalio/server:1.32.2
+    environment:
+      TZ: ${TZ:-UTC}
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PWD: postgres
+      POSTGRES_SEEDS: postgres
+      BIND_ON_IP: 0.0.0.0
+      DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development-sql.yaml
+    volumes:
+      - ./backend/temporal/dynamicconfig:/etc/temporal/config/dynamicconfig:ro
+    networks:
+      default:
+        aliases: [open-revoke-temporal]
+    depends_on:
+      temporal-schema-setup: { condition: service_completed_successfully }
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "7233"]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 30s
+
+  temporal-create-namespace:
+    image: temporalio/admin-tools:1.32.2
+    environment:
+      TZ: ${TZ:-UTC}
+      TEMPORAL_ADDRESS: temporal:7233
+      DEFAULT_NAMESPACE: default
+      DEFAULT_NAMESPACE_RETENTION: 24h
+    entrypoint: ["/bin/sh"]
+    command: ["/scripts/create-namespace.sh"]
+    volumes:
+      - ./backend/temporal/scripts:/scripts:ro
+    depends_on:
+      temporal: { condition: service_healthy }
+
+  # FastAPI with reload. Migrates the database and seeds an empty one first.
+  api:
+    <<: *backend
+    command: >
+      sh -c "uv sync --frozen &&
+      python -m app.db migrate --seed &&
+      exec uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
+    # open-revoke-app: the browser container opens the browser_fake test panel
+    # at http://open-revoke-app:8000 (Chromium forces HTTPS for the name `app`).
+    networks:
+      default:
+        aliases: [open-revoke-app]
+    ports:
+      - "127.0.0.1:18411:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      browser: { condition: service_started }
+      temporal-create-namespace: { condition: service_completed_successfully }
+
+  # Temporal worker, restarted by watchfiles on every Python change.
+  worker:
+    <<: *backend
+    command: >
+      sh -c "uv sync --frozen &&
+      exec watchfiles --filter python worker /app/backend/app"
+    depends_on:
+      api: { condition: service_healthy }
+
+  # Panel: next dev. /api goes to the api container (API_PROXY_TARGET).
+  web:
+    image: oven/bun:1.4.4
+    working_dir: /app
+    environment:
+      TZ: ${TZ:-UTC}
+      API_PROXY_TARGET: http://open-revoke-app:8000
+      NEXT_TELEMETRY_DISABLED: "1"
+    volumes:
+      - ./frontend:/app
+      - web-node-modules:/app/node_modules
+      - web-next:/app/.next
+    command: >
+      sh -c "bun install --frozen-lockfile &&
+      exec bun run dev --hostname 0.0.0.0 --port 3000"
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:18410:3000"
+    depends_on:
+      api: { condition: service_started }
+
+  # Chromium on Xvnc (TigerVNC) with noVNC. The browser-profile volume holds signed-in admin
+  # sessions of SaaS panels: never publish noVNC or CDP beyond 127.0.0.1.
+  browser:
+    build:
+      context: .
+      target: browser
+    environment:
+      TZ: ${TZ:-UTC}
+      NOVNC_ALLOWED_ORIGINS: "http://localhost:18412 http://127.0.0.1:18412"
+      # Panel API the browser polls for which password manager to force-install (the admin's
+      # choice from /welcome and /settings). The API answers to this host (ALLOWED_HOSTS).
+      BROWSER_POLICY_API_URL: "http://open-revoke-app:8000"
+    shm_size: 1gb
+    volumes:
+      - browser-profile:/profile
+    ports:
+      - "127.0.0.1:18412:6080"
+      - "127.0.0.1:18415:9223"
+    networks:
+      default:
+        aliases: [open-revoke-browser]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:9222/json/version"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+volumes:
+  pgdata:
+  browser-profile:
+  web-node-modules:
+  web-next:

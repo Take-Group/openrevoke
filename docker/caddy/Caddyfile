@@ -1,0 +1,12 @@
+# HTTPS in front of Open Revoke (compose profile "https", docs/self-hosting.md).
+# The site address is PUBLIC_URL itself: with https://revoke.example.com Caddy gets a
+# Let's Encrypt certificate (DNS must point here, ports 80 and 443 open to the internet)
+# and redirects http to https. The panel proxies /api to the API, WebSockets included.
+{
+	admin off
+}
+
+{$PUBLIC_URL} {
+	encode zstd gzip
+	reverse_proxy app:3000
+}

@@ -1,0 +1,41 @@
+# Build context is open-revoke/: leave out everything that is not source.
+
+.git/
+.gitignore
+
+# Secrets
+.env
+.env.*
+captures/
+
+# Documentation
+*.md
+docs/
+skills/
+
+# Backend
+backend/.venv/
+backend/.env
+backend/__pycache__/
+backend/**/__pycache__/
+backend/**/*.py[cod]
+backend/.ruff_cache/
+backend/.mypy_cache/
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/.env*.local
+frontend/tsconfig.tsbuildinfo
+
+# Release tooling and built releases (scripts/build-release.sh); not part of any image
+dist/
+deploy/
+scripts/
+
+# Tools
+.claude/
+.vscode/
+.idea/
+.DS_Store
+

@@ -1,0 +1,23 @@
+{
+  "app": "slack",
+  "version": 1,
+  "actions": {
+    "create_account": [
+      {"id": "open-members", "do": "goto", "goal": "Open the workspace members admin page", "url": "https://{{workspace}}.slack.com/admin"},
+      {"id": "open-invite", "do": "click", "goal": "Open the invite dialog", "target": [{"css": "[data-qa=page_header_primary_button]"}, {"role": "button", "name": ["Invite People"]}]},
+      {"id": "fill-email", "do": "fill", "goal": "Type the e-mail address to invite", "value": "{{email}}", "within": {"role": "dialog"}, "target": [{"css": "[data-qa=invite_modal_select-input]"}, {"role": "combobox", "name": ["Email addresses"]}]},
+      {"id": "commit-email", "do": "press", "goal": "Turn the typed address into an invite entry", "value": "Enter"},
+      {"id": "send-invite", "do": "click", "goal": "Send the invitation", "within": {"role": "dialog"}, "target": [{"role": "button", "name": ["Send"]}]},
+      {"id": "open-invites", "do": "goto", "goal": "Open the pending invitations page", "url": "https://{{workspace}}.slack.com/admin/invites"},
+      {"id": "check-invite", "do": "expect", "goal": "The invitation is listed", "text": "{{email}}", "target": [{"text": "{{email}}"}]}
+    ],
+    "delete_account": [
+      {"id": "open-members", "do": "goto", "goal": "Open the workspace members admin page", "url": "https://{{workspace}}.slack.com/admin"},
+      {"id": "search-member", "do": "fill", "goal": "Filter the members table to this person", "value": "{{email}}", "target": [{"css": "input[type=search]"}, {"role": "searchbox"}]},
+      {"id": "check-row", "do": "expect", "goal": "The row with this Slack member ID shows the person's e-mail", "text": "{{email}}", "target": [{"css": "[role=row][data-qa-id=\"{{external_id}}\"]", "has_text": "{{email}}"}]},
+      {"id": "open-row-menu", "do": "click", "goal": "Open the actions menu in the person's row", "target": [{"css": "[role=row][data-qa-id=\"{{external_id}}\"] [data-qa=table_row_actions_button]"}]},
+      {"id": "choose-deactivate", "do": "click", "goal": "Choose deactivation (Revoke invitation for a pending invite)", "target": [{"css": "[data-qa=ws-members-action_deactivate]"}, {"role": "menuitem", "name": ["Deactivate account", "Revoke invitation"]}]},
+      {"id": "confirm-deactivate", "do": "click", "goal": "Confirm the deactivation", "irreversible": true, "within": {"role": "dialog"}, "target": [{"css": "[data-qa=primary_action]"}, {"role": "button", "name": ["Deactivate"]}]}
+    ]
+  }
+}

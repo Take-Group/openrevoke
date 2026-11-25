@@ -1,0 +1,32 @@
+{
+  "app": "browser_fake",
+  "version": 1,
+  "actions": {
+    "create_account": [
+      {"id": "open-users", "do": "goto", "goal": "Open the users page", "url": "{{panel_url}}/admin?count={{accounts}}"},
+      {"id": "open-invite", "do": "click", "goal": "Open the invite dialog",
+       "target": [{"role": "button", "name": ["Invite"]}]},
+      {"id": "fill-email", "do": "fill", "goal": "Type the e-mail of the new user", "value": "{{email}}",
+       "within": {"role": "dialog"},
+       "target": [{"label": "Email"}, {"role": "textbox"}]},
+      {"id": "send-invite", "do": "click", "goal": "Send the invitation",
+       "within": {"role": "dialog"},
+       "target": [{"role": "button", "name": ["Send invite"]}]},
+      {"id": "check-row", "do": "expect", "goal": "The new user is in the table", "text": "{{email}}",
+       "target": [{"role": "row", "has_text": "{{email}}"}]}
+    ],
+    "delete_account": [
+      {"id": "open-users", "do": "goto", "goal": "Open the users page", "url": "{{panel_url}}/admin?count={{accounts}}"},
+      {"id": "open-row-menu", "do": "click", "goal": "Open the actions menu in the user's row",
+       "within": {"role": "row", "has_text": "{{email}}"},
+       "target": [{"role": "button", "name": ["Actions"]}]},
+      {"id": "choose-remove", "do": "click", "goal": "Choose removal in the menu",
+       "target": [{"role": "menuitem", "name": ["Remove"]}]},
+      {"id": "check-confirmation", "do": "expect", "goal": "The confirmation names the user", "text": "{{email}}",
+       "target": [{"role": "dialog"}]},
+      {"id": "confirm-remove", "do": "click", "goal": "Confirm the removal", "irreversible": true,
+       "within": {"role": "dialog"},
+       "target": [{"role": "button", "name": ["Remove"]}]}
+    ]
+  }
+}

@@ -1,0 +1,72 @@
+name: Connector request
+description: Ask for an app Open Revoke should read accounts from, or add and remove them in.
+title: "Connector: "
+labels: ["connector"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One app per request. Apps that speak SCIM 2.0 may already work with the generic SCIM
+        connector: try it first. Do not paste recordings of the app's admin panel, tokens or real
+        people's data here.
+
+  - type: input
+    id: app
+    attributes:
+      label: App name and website
+      placeholder: Notion, https://www.notion.so
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scim
+    attributes:
+      label: Does the app offer SCIM?
+      options:
+        - "Yes, on our plan"
+        - "Yes, but only on a higher plan"
+        - "No"
+        - "I don't know"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: api
+    attributes:
+      label: Does the app have a public API for members or users?
+      options:
+        - "Yes"
+        - "No, only the admin panel"
+        - "I don't know"
+    validations:
+      required: true
+
+  - type: input
+    id: plan
+    attributes:
+      label: Your plan in that app
+      description: The plan name (for example Business, Team, Enterprise). It decides which APIs and admin pages exist.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: needs
+    attributes:
+      label: What Open Revoke should do in this app
+      options:
+        - label: Read the member list
+        - label: Invite or create an account
+        - label: Remove or deactivate an account
+        - label: Read seat costs or billing
+
+  - type: textarea
+    id: docs
+    attributes:
+      label: Links
+      description: API or SCIM documentation, admin help pages, anything that shows how members are managed.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else
+      description: How many seats you have there, how you remove people today, two-factor or SSO on the admin account.
