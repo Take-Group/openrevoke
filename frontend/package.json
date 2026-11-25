@@ -37,7 +37,7 @@
     "eslint-config-next": "16.4.6",
     "shadcn": "^4.23.0",
     "tailwindcss": "^4.3.5",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "overrides": {
     "@hono/node-server": "2.1.7",
