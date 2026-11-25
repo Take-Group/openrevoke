@@ -118,6 +118,9 @@ services:
       # Hourly check of GitHub for a newer stable release; false for servers without internet.
       OPEN_REVOKE_UPDATE_CHECK: ${OPEN_REVOKE_UPDATE_CHECK:-true}
       OPEN_REVOKE_UPDATE_URL: ${OPEN_REVOKE_UPDATE_URL:-https://api.github.com/repos/Take-Group/openrevoke/releases/latest}
+      # One anonymous event when the first admin finishes the setup (TELEMETRY.md); false turns it off.
+      OPEN_REVOKE_TELEMETRY: ${OPEN_REVOKE_TELEMETRY:-true}
+      OPEN_REVOKE_TELEMETRY_URL: ${OPEN_REVOKE_TELEMETRY_URL:-https://openrevoke.com/api/v1/telemetry}
       # Development only: the "fake" connector with test data (see .env.example).
       OPEN_REVOKE_ENABLE_FAKE_CONNECTOR: ${OPEN_REVOKE_ENABLE_FAKE_CONNECTOR:-false}
       # Development only: one-click form fill on the sign-in pages (see .env.example).

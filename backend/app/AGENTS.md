@@ -3,7 +3,7 @@
 The FastAPI app and the Temporal worker. Layers: `api/` (endpoints) calls `services/` (logic) which uses `models/`, `connectors/`, `browser/`, `ai/`; `schemas/` are request and response types; `temporal/` workflows call services.
 
 - `main.py`: `app` (FastAPI, CORS, `AllowedHostsMiddleware`, error handlers, `api_router`, the MCP endpoint at `/api/mcp`), `lifespan` (prints the setup link while no user exists, runs the MCP session manager), `run()`; operation id = endpoint function name.
-- `config.py`: `settings` (pydantic-settings, all env variables; `version` from `OPEN_REVOKE_VERSION`, `update_check`, `update_check_url`), `trusted_hosts`, `trusted_origins`, `public_origin`, `cookie_secure`, `google_oauth_redirect_uri`.
+- `config.py`: `settings` (pydantic-settings, all env variables; `version` from `OPEN_REVOKE_VERSION`, `update_check`, `update_check_url`, `telemetry`, `telemetry_url`), `trusted_hosts`, `trusted_origins`, `public_origin`, `cookie_secure`, `google_oauth_redirect_uri`.
 - `database.py`: async `engine`, `async_session`, `Base` (naming convention), `get_session` dependency.
 - `redis.py`: `redis_client`.
 - `logging.py`: `setup_logging(debug)` (structlog).

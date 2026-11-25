@@ -1,6 +1,6 @@
 """Sign-in endpoints. Public (no session needed), except password change and sign-out."""
 
-from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, status
 
 from app.api.auth_deps import CurrentSessionDep, OptionalSessionDep, require_client_header
 from app.api.deps import SessionDep
@@ -29,6 +29,7 @@ from app.schemas.auth import (
     TotpSkipRequest,
     UserOut,
 )
+from app.services import telemetry
 from app.services.auth import passwords_flow, sessions, setup_link, sign_in, signup, totp, two_factor
 
 router = APIRouter(
@@ -100,9 +101,14 @@ async def check_setup_token(data: SetupTokenCheck) -> None:
 
 
 @router.post("/setup", response_model=AuthStep, status_code=status.HTTP_201_CREATED)
-async def setup(data: SetupRequest, session: SessionDep) -> AuthStep:
+async def setup(data: SetupRequest, session: SessionDep, background: BackgroundTasks) -> AuthStep:
     """First run only: create the organization and the first user (admin). Next step: optional TOTP setup."""
-    return _step(await sign_in.setup(session, **data.model_dump()))
+    pending = await sign_in.setup(session, **data.model_dump())
+    # Background tasks run before the session dependency commits: commit first, so only a
+    # finished setup is reported. After the response, a slow telemetry server delays nothing.
+    await session.commit()
+    background.add_task(telemetry.report, telemetry.SETUP_COMPLETED)
+    return _step(pending)
 
 
 @router.post("/login", response_model=AuthStep, responses=RATE_LIMITED_RESPONSE)

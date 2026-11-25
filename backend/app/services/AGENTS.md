@@ -3,7 +3,7 @@
 Logic between `app/api/`, `app/temporal/` activities and `app/models/`. Services raise `errors` subclasses (mapped to HTTP by `app.api.errors`) and call `audit.record` on writes. Activities only call these services.
 
 - `__init__.py`: empty.
-- `errors.py`: `DomainError` and subclasses (`NotFoundError`, `ConflictError`, `InvalidInputError`, ...).
+- `errors.py`: `DomainError` and subclasses (`NotFoundError`, `ConflictError`, ...).
 - `auth/`: own AGENTS.md. Sign-in, 2FA, sessions, invites.
 - `google_cloud_setup/`: own AGENTS.md. Browser-driven Google Cloud setup.
 - `audit.py`: `record`, `list_events`; append-only log, also fills app and person of an event.
@@ -44,7 +44,7 @@ Logic between `app/api/`, `app/temporal/` activities and `app/models/`. Services
 - `action_accounts.py`: `apply_created`, `apply_deleted`, `add_manual_account` after a verified write or a closed manual task.
 - `action_queries.py`: `list_actions`, `get_action_out`, `get_actions_out` (with `recipe_fixes`), `screenshot`.
 - `recipe_fixes.py`: recipe step fixes: `active_fixes`, `list_fixes`, `approve`, `reject` (reverts too).
-- `recipe_repair.py`: `RecipeRepairService`: AI repair of a recipe step; stores the fix.
+- `recipe_repair.py`: `RecipeRepairService`: AI repair of a recipe step.
 - `access_requests.py`: `request_access`, `list_requests`; an account request becomes an action.
 - `my_access.py`: `person_of`, `overview`, `request`: the signed-in user's access (`/api/me`).
 - `organization.py`: `get`, `update` (organization row; auto-approval needs a domain).
@@ -59,9 +59,10 @@ Logic between `app/api/`, `app/temporal/` activities and `app/models/`. Services
 - `setup_checklist.py`: `overview`, `save_choices`, `dismiss` (welcome answers, computed checklist).
 - `timezones.py`: `known_timezones`, `is_known_timezone`.
 - `browser.py`: `browser_state`, `open_page` (Browser page, shared browser login).
-- `update_check.py`: `check` (latest GitHub release into Redis), `stored`, `enabled`, `is_newer`.
+- `update_check.py`: `check` (latest release into Redis), `stored`, `enabled`, `is_newer`.
 - `system_info.py`: `version_overview` (`/api/system/version`).
+- `telemetry.py`: `report` after setup, `post`, `enabled`.
 - `maintenance.py`: `actions_in_flight` (for `app.ops`).
-- `ai_settings.py`: model settings `save`, `list_models` ("Connect"), `test`, `load_model` (every AI feature).
+- `ai_settings.py`: model settings `save`, `list_models` ("Connect"), `test`, `load_model`.
 - `slack_agent_setup.py`: Slack agent setup (`state`, `create_app`, OAuth, `save_tokens`).
 - `slack_agent_secrets.py`: `read`, `write`, `update`, `set_config_tokens`.

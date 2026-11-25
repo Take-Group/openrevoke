@@ -29,6 +29,13 @@ class Settings(BaseSettings):
         default="https://api.github.com/repos/Take-Group/openrevoke/releases/latest",
         validation_alias="OPEN_REVOKE_UPDATE_URL",
     )
+    # One anonymous event when the first admin finishes the setup (TELEMETRY.md).
+    # Release builds only; false turns it off.
+    telemetry: bool = Field(default=True, validation_alias="OPEN_REVOKE_TELEMETRY")
+    telemetry_url: str = Field(
+        default="https://openrevoke.com/api/v1/telemetry",
+        validation_alias="OPEN_REVOKE_TELEMETRY_URL",
+    )
 
     # Security: Fernet key that encrypts connector secrets. Required, the app
     # refuses to start without it. Generate one with the command in .env.example.

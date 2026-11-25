@@ -36,6 +36,12 @@ multi-arch images, SBOM, signing, install and update tests) runs once the repo i
   the answer in Redis (`services/update_check.py`). `UpdateNotice` in the panel shows admins a
   newer release; a `### Security` heading in the release notes makes it a warning. Off with
   `OPEN_REVOKE_UPDATE_CHECK=false` and for `dev` builds. 404 (no repo yet) means "no news".
+- **Telemetry**: after `POST /api/auth/setup` commits, a background task posts
+  `{"event": "setup_completed", "version": ...}` to `OPEN_REVOKE_TELEMETRY_URL`
+  (`https://openrevoke.com/api/v1/telemetry`, the website sends it to Telegram;
+  `services/telemetry.py`). Nothing else, no id: the setup runs once per database. Release
+  builds only; off with `OPEN_REVOKE_TELEMETRY=false`. A new field or event changes
+  `TELEMETRY.md` in the same commit.
 - **Setup link**: `/api/auth/setup` needs the token of a link printed on the server. The API
   makes a new one at every start while no user exists (log line `Open Revoke setup link:`);
   `python -m app.cli setup-link` (`open-revoke setup-link`) makes a new one. SHA-256 in Redis

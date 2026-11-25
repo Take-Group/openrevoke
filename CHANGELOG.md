@@ -26,6 +26,8 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
   panel user can (people, apps, connections, offboarding), with a personal API token.
 - Personal API tokens (Settings, API and MCP), read-only or read and write, also for the REST API
   (`Authorization: Bearer`).
+- Anonymous telemetry: one event (`setup_completed` and the version) when the first admin
+  finishes the setup; `TELEMETRY.md` says what is sent, `OPEN_REVOKE_TELEMETRY=false` turns it off.
 
 ### Changed
 

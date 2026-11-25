@@ -38,13 +38,14 @@ Connectors are checked on the test connectors, not yet on real accounts.
 - `.agents/`: skills (explore, verify, diagnose, harness).
 - `.claude/`: `skills` symlink to `.agents/skills` for Claude Code.
 - `.github/`: CI (ruff, `alembic check`, panel lint/typecheck/build, ShellCheck), release on tag `v*` (multi-arch images, SBOM, cosign, install and update tests), weekly Chromium check, Dependabot, issue and PR templates.
-- `.dockerignore`, `.gitignore`: build context and git filters (secrets, caches, `captures/`).
+- `.dockerignore`, `.gitignore`: build context and git filters.
 - `.env.example`: template of the git-ignored `.env`; `install.sh` fills it.
 - `CHANGELOG.md`: release notes; a noticeable change adds a line under `[Unreleased]`.
 - `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`: contributing (MIT, no CLA), Contributor Covenant, private vulnerability reports.
 - `LICENSE`: MIT outside `ee/`; `ee/LICENSE` (commercial, no code yet) for paid features.
 - `NOTICE`: copyright; third-party app names and logos in the catalog are their owners' trademarks.
 - `README.md`: public overview, quick start, development.
+- `TELEMETRY.md`: what telemetry sends, how to turn it off.
 - `Dockerfile`: targets `app` (API, worker and panel under supervisor), `backend-dev` (dev stack), `browser`.
 - `compose.yaml`: self-hosting on release images, one port, Caddy profile `https`.
 - `compose.build.yaml`: overlay that builds `app` and `browser` from source.
