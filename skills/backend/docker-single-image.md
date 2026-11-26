@@ -20,7 +20,9 @@ and Redis from the official images.
   - `backend-dev`: backend with dev dependencies (ruff), venv in `/opt/venv`,
     code mounted from the host (local dev stack)
   - `browser`: Chromium on Xvnc (TigerVNC) with noVNC and CDP (a separate container, not
-    in `app`; described in `skills/backend/browser.md`)
+    in `app`; described in `skills/backend/browser.md`). Its Debian packages are listed in
+    `docker/browser/packages.txt`; `ARG BROWSER_PACKAGES_KEY` before the install keys the
+    layer cache in releases (`skills/backend/releases.md`, "Supply chain")
 
   PostgreSQL (`postgres:18.7`, has `tzdata`) and Redis (`redis:8.10.3-alpine`)
   are official images. The time zone is not set

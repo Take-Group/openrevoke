@@ -54,7 +54,7 @@ Connectors are checked on the test connectors, not yet on real accounts.
 - `backend/`: own AGENTS.md. Python 3.14, FastAPI, SQLAlchemy 2 with Alembic, Temporal, Redis.
 - `frontend/`: own AGENTS.md. Next.js 16 panel, React 19, Tailwind 4, Bun.
 - `deploy/`, no map: release bundle's `install.sh`, host command `open-revoke`, `lib/*.sh` (POSIX sh); `helm/open-revoke/` Helm chart (own AGENTS.md), `helm/artifacthub-repo.yml` (Artifact Hub metadata).
-- `scripts/`, no map: `release.sh` (changelog, tag), `build-release.sh` (images and bundle), `newest-version.sh` (SemVer order, also in `release.yml`). Skill `skills/backend/releases.md`.
+- `scripts/`, no map: `release.sh` (changelog, tag), `build-release.sh` (images and bundle), `newest-version.sh` (SemVer order, also in `release.yml`), `browser-packages-key.sh` (cache key of the browser image's Debian packages, release workflows). Skill `skills/backend/releases.md`.
 - `docker/`, no map: `entrypoint.sh` (`python -m app.db migrate`, then supervisor), `supervisord.conf`, `caddy/Caddyfile`, `browser/` (own AGENTS.md).
 - `docs/`: own AGENTS.md. Click recipes, self-hosting, `openapi.json`, `connectors/`.
 - `ee/`, no map: `LICENSE` only.

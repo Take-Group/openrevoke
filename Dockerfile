@@ -148,23 +148,16 @@ ENV TZ=UTC \
     DISPLAY=:99 \
     LANG=C.UTF-8
 
-RUN apt-get update \
-    && apt-get install --yes --no-install-recommends \
-        chromium \
-        tigervnc-standalone-server \
-        matchbox-window-manager \
-        x11-xserver-utils \
-        novnc \
-        websockify \
-        supervisor \
-        socat \
-        curl \
-        ca-certificates \
-        tzdata \
-        fonts-noto \
-        fonts-noto-color-emoji \
-        fonts-liberation \
-    && rm -rf /var/lib/apt/lists/*
+# Debian packages from docker/browser/packages.txt. BROWSER_PACKAGES_KEY is a hash of the package
+# versions apt would install now (scripts/browser-packages-key.sh, passed by the release
+# workflows): the same key reuses the cached layer, a new Chromium or any other Debian fix changes
+# the key and rebuilds it. Without the key (a local build) Docker's cache decides as usual.
+ARG BROWSER_PACKAGES_KEY=local
+COPY docker/browser/packages.txt /tmp/browser-packages.txt
+RUN echo "Debian packages key: $BROWSER_PACKAGES_KEY" \
+    && apt-get update \
+    && xargs -a /tmp/browser-packages.txt apt-get install --yes --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/* /tmp/browser-packages.txt
 
 # /profile is the mount point of the `browser-profile` volume. A new named
 # volume copies the owner of this directory, so the non-root user can write it.

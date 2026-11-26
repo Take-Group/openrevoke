@@ -144,6 +144,17 @@ OPEN_REVOKE_RELEASES_URL=file://$PWD/dist/releases \
   action: resolve the SHA of a release tag, never a branch.
 - **Base images are pinned by digest** in the `Dockerfile` (`tag@sha256:...`); Dependabot (`docker`)
   moves tag and digest together. A Debian fix in a base image arrives with that update.
+- **Browser image cache**: `scripts/browser-packages-key.sh` hashes the versions that
+  `apt-get install --simulate` picks for `docker/browser/packages.txt` (with dependencies) in the
+  browser stage's base image; the workflows pass it as `BROWSER_PACKAGES_KEY`. Same key: the
+  package layer comes from the GitHub Actions cache (seconds instead of ~3 minutes); a new
+  Chromium or any other Debian fix changes the key and rebuilds the layer, so a release never
+  ships an old Chromium from the cache. amd64 in `release-publish.yml` reuses the tested key; arm64
+  computes its own on its runner.
+- **Published amd64 = tested amd64**: `release-test.yml` outputs a hash of each tested image's
+  layer list (`RootFS.Layers`); `release-publish.yml` builds amd64 from the same cache and fails
+  when the pushed image's `diff_ids` differ (a cache miss would rebuild layers nobody tested).
+  Labels, SBOM and provenance live outside the layers. arm64 is not tested before publishing.
 - **Trivy** (`release-test.yml`) scans both images before anything is pushed. A CRITICAL with a
   fixed version fails the release: bump the package or base image, or add the CVE to
   `.trivyignore` with a reason and a date to check again. HIGH and CRITICAL go to the Security tab.

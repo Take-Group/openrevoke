@@ -170,6 +170,9 @@ jobs:
     with:
       version: ${{ needs.prepare.outputs.version }}
       tags: ${{ needs.prepare.outputs.tags }}
+      browser-packages-key: ${{ needs.build-test.outputs.browser-packages-key }}
+      app-layers: ${{ needs.build-test.outputs.app-layers }}
+      browser-layers: ${{ needs.build-test.outputs.browser-layers }}
 
   # Only after the images are tagged: the chart's default image tag is this version.
   chart:

@@ -1,0 +1,14 @@
+chromium
+tigervnc-standalone-server
+matchbox-window-manager
+x11-xserver-utils
+novnc
+websockify
+supervisor
+socat
+curl
+ca-certificates
+tzdata
+fonts-noto
+fonts-noto-color-emoji
+fonts-liberation
