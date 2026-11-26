@@ -3,7 +3,8 @@
 from typing import TYPE_CHECKING, Any
 
 from app.mcp.agent.api import match_app
-from app.mcp.agent.base import PERSON_ARG, AgentTool, ToolError, schema
+from app.mcp.agent.base import PERSON_ARG, AgentTool, schema
+from app.mcp.agent.errors import ToolError
 from app.mcp.agent.requests import request_line
 from app.mcp.agent.views import name
 

@@ -2,7 +2,8 @@
 
 from typing import TYPE_CHECKING, Any
 
-from app.mcp.agent.base import APP_ARG, AgentTool, ToolError, schema
+from app.mcp.agent.base import APP_ARG, AgentTool, schema
+from app.mcp.agent.errors import ToolError
 
 if TYPE_CHECKING:
     from app.mcp.agent.api import AgentApi

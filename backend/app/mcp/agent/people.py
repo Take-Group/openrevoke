@@ -3,7 +3,8 @@
 from typing import TYPE_CHECKING, Any
 
 from app.mcp.agent.api import PAGE_LIMIT
-from app.mcp.agent.base import PERSON_ARG, AgentTool, ToolError, schema
+from app.mcp.agent.base import PERSON_ARG, AgentTool, schema
+from app.mcp.agent.errors import ToolError
 from app.mcp.agent.views import account_line, money, name, person_line
 
 if TYPE_CHECKING:

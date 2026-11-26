@@ -7,10 +7,11 @@ import mcp_types as types
 import structlog
 
 from app.mcp.agent import accounts, actions, apps, connections, discovery, me, offboarding, onboarding, people, requests
-from app.mcp.agent.base import AgentTool, ToolError
+from app.mcp.agent.errors import ToolError
 
 if TYPE_CHECKING:
     from app.mcp.agent.api import AgentApi
+    from app.mcp.agent.base import AgentTool
 
 log = structlog.get_logger(__name__)
 

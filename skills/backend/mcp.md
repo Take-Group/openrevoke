@@ -44,7 +44,7 @@ token works for the REST API. Tokens are managed in Settings, API and MCP (`/set
 | `backend/app/mcp/schema.py` | `SchemaResolver`: inlines `$ref`, drops titles |
 | `backend/app/mcp/dispatch.py` | `ApiDispatcher.call`: builds the request, maps the response (JSON as text, images as image content, `HTTP <code>: <detail>` errors with flat argument names) |
 | `backend/app/mcp/server.py` | `OpenRevokeMcp` (SDK `Server`, both toolsets, list and call handlers, session manager), `McpEndpoint` (anonymous listing, 401 for the rest, `?tags=`, `?toolset=`), tool annotations |
-| `backend/app/mcp/agent/` | task tools: `base.py` (`AgentTool` with `audience`, `ToolError`), `api.py` (`AgentApi`: in-process API calls, person, app and discovered app lookup), `views.py` (compact shapes), one module per area with a `TOOLS` tuple, `registry.py` (`MODULES`, `AGENT_TOOLS`, `call`) |
+| `backend/app/mcp/agent/` | task tools: `base.py` (`AgentTool` with `audience`), `errors.py` (`ToolError`), `api.py` (`AgentApi`: in-process API calls, person, app and discovered app lookup), `views.py` (compact shapes), one module per area with a `TOOLS` tuple, `registry.py` (`MODULES`, `AGENT_TOOLS`, `call`) |
 | `backend/app/mcp/caller.py` | `Caller` (with `Toolset`), `current_caller`, `authenticate`, `anonymous` |
 | `backend/app/mcp/instructions.py` | `INSTRUCTIONS`: what the assistant reads first: domain, approve rules |
 | `backend/app/mcp/address.py` | `MCP_PATH`, `mcp_url()` (from `PUBLIC_URL`) |

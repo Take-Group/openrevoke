@@ -4,7 +4,7 @@ import uuid
 from typing import TYPE_CHECKING, Any
 
 from app.api.auth_deps import CLIENT_HEADER
-from app.mcp.agent.base import ToolError
+from app.mcp.agent.errors import ToolError
 
 if TYPE_CHECKING:
     import httpx

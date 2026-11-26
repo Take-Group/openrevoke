@@ -3,7 +3,8 @@
 Task tools of the MCP server (the default toolset): one tool per task an admin or a member asks, each composing a few API calls through `AgentApi` with the caller's token. Skill `skills/backend/mcp.md`, "Adding a task tool".
 
 - `__init__.py`: empty.
-- `base.py`: `AgentTool` (name, title, description, input schema, handler, `read_only`, `destructive`, `audience` admin or user), `ToolError` (message for the assistant), `schema()`, shared `PERSON_ARG`, `APP_ARG`.
+- `base.py`: `AgentTool` (name, title, description, input schema, handler, `read_only`, `destructive`, `audience` admin or user), `schema()`, shared `PERSON_ARG`, `APP_ARG`.
+- `errors.py`: `ToolError` (message for the assistant), apart so `api.py` and `base.py` do not import each other.
 - `api.py`: `AgentApi` (`get`, `post`, `patch`, `put` on `/api/...`, errors as `ToolError`; `apps()`, `person(reference)`, `app(reference)`, `discovered_app(reference)` resolve an e-mail, name, slug or id to one record or list the candidates), `match_app`, `PAGE_LIMIT`.
 - `views.py`: compact shapes: `person_line`, `account_line`, `action_line`, `money`, `removal` (how offboarding removes an account, from the app's `delete_mode`).
 - `apps.py`: `get_overview`, `get_spend_by_app`, `get_app_access`, `add_app` (catalog match), `update_app` (price, request policy).
