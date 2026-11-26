@@ -146,6 +146,10 @@ class AccessProfileMemberList(BaseModel):
 class ProfileAssign(BaseModel):
     profile_ids: list[uuid.UUID] = Field(min_length=1, max_length=50)
     dry_run: bool = Field(default=False, description="Preview the actions and their cost without saving")
+    create_actions: bool = Field(
+        default=True,
+        description="False: only assign (the panel's Onboard page creates the accounts itself in one batch)",
+    )
 
 
 class MembersAssign(BaseModel):

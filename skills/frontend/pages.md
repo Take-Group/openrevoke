@@ -41,6 +41,12 @@ sizes in rem (Tailwind classes), not in px.
 | `/people/[id]/add-to-app` | `components/people/add-to-app-view.tsx` | `usePerson`, `useApps`, `useCreateAction` | - |
 | `/people/[id]/onboard` | `components/people/onboard-view.tsx` | `usePerson`, `useApps`, `useActions`, `useOnboardPerson` | - |
 | `/people/[id]/offboard` | `components/people/offboard-view.tsx` | `usePerson`, `useApps`, `useActions`, `useOffboardPerson` | - |
+| `/people/[id]/access-profiles/add` | `components/access-profiles/assign-profiles-view.tsx` | `usePerson`, `useAccessProfiles`, `usePersonAccessProfiles`, `useAssignPersonProfiles` | - |
+| `/access-profiles` | `components/access-profiles/access-profiles-view.tsx` | `useAccessProfiles` | - |
+| `/access-profiles/new` | `components/access-profiles/new-access-profile-view.tsx` | `useCreateAccessProfile`, `useApps`, `useAppRoleSuggestions` | - |
+| `/access-profiles/[id]` | `components/access-profiles/access-profile-detail-view.tsx` | `useAccessProfile`, `useAccessProfileMembers`, `useDeleteAccessProfile` | - |
+| `/access-profiles/[id]/edit` | `components/access-profiles/edit-access-profile-view.tsx` | `useAccessProfile`, `useUpdateAccessProfile`, `useApps`, `useAppRoleSuggestions` | - |
+| `/access-profiles/[id]/members/add` | `components/access-profiles/add-members-view.tsx` | `useAccessProfile`, `useAccessProfileMembers`, `useAssignProfileMembers` | `missing=1` (preselects members who miss access) |
 | `/apps` | `components/apps/apps-view.tsx` | `useApps` | - |
 | `/apps/new` | `components/apps/new-app-view.tsx` | `useCreateApp`, `useConnectors`, `useAuthState` | - |
 | `/apps/[id]` | `components/apps/app-detail-view.tsx` | `useApp`, `useAppAccounts`, `useUpdateAccount`, `useConnectors`, `useCheckConnection`, `useSyncConnection`, `useSyncRuns`, `useSyncInProgress`, `useUpdateApp`, `useDeleteApp` | `tab` (`accounts`, `connection`, `sync`, `settings`), `accounts` (`all`, `unassigned`, `removed`) |
@@ -100,12 +106,27 @@ The backend is described in skills/backend/actions.md. Panel:
   (`actionOperation` in `lib/format.ts`, `removeVerb` in `lib/write-mode.ts`).
 - Person: "Onboard" (`onboard-view.tsx`, `/people/[id]/onboard`) is a list
   of apps with checkboxes; apps with an account or an open creation are disabled, as
-  in the backend. The result leads to `/actions?batch=…`. `batch-bar.tsx` shows
+  in the backend. Access profiles above it tick their apps and send their roles
+  (first profile by name with a role, as in the backend); the chosen profiles are
+  assigned after the batch is created (`create_actions: false`). The result leads to `/actions?batch=…`. `batch-bar.tsx` shows
   batches of both kinds (`reason`).
 - Person: "Add to app", "Remove from app" and the offboarding preview say what
   will happen, from the app's `create_mode` / `delete_mode` (`automatic`,
   `writes_disabled`, `manual`; texts in `lib/write-mode.ts`). "Delete" is
   shown only with `can_delete` (`delete-person-button.tsx`).
+
+## Access profiles in the panel
+
+Backend: `skills/backend/access-profiles.md`. "Access profiles" sits under
+"Apps" in the admin sidebar. Assigning (person page "Add profile", profile page
+"Add people") is a form page with "Preview" (a `dry_run` call: accounts to
+create, role, write mode, seat cost, role warnings) and then "Assign". The
+profile page warns when members miss access and links to
+`members/add?missing=1`. The person page section (`person-profiles-section.tsx`)
+lists the profiles, removes one after a confirmation and then shows the
+suggested removals with "Create removal actions"; it also lists missing apps,
+apps outside every profile and other roles. The dashboard alert
+`profile_access_missing` leads to the profile page.
 
 ## App discovery in the panel
 

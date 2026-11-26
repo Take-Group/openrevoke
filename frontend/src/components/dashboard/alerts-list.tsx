@@ -24,6 +24,8 @@ export function alertHref(alert: Alert): string {
       return alert.app_id ? `/apps/${alert.app_id}` : "/people";
     case "discovered_sign_ins_at_risk":
       return `/discovery/${alert.entity_id}`;
+    case "profile_access_missing":
+      return `/access-profiles/${alert.entity_id}`;
   }
 }
 

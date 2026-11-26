@@ -64,9 +64,17 @@ export type AlertKind =
   | "connection_error"
   | "action_failed"
   | "person_inactive_in_source"
-  | "discovered_sign_ins_at_risk";
+  | "discovered_sign_ins_at_risk"
+  | "profile_access_missing";
 export type AlertSeverity = "critical" | "warning";
-export type AlertEntityType = "account" | "app" | "connection" | "action" | "person" | "discovered_app";
+export type AlertEntityType =
+  | "account"
+  | "app"
+  | "connection"
+  | "action"
+  | "person"
+  | "discovered_app"
+  | "access_profile";
 export type ImportRowAction = "create" | "update" | "unchanged" | "error";
 export type OffboardSkipReason = "service_account" | "action_open";
 export type OnboardSkipReason = "has_account" | "action_open";

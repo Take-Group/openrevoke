@@ -47,7 +47,9 @@ async def assign_to_person(session: AsyncSession, person_id: uuid.UUID, data: Pr
     person = await onboarding.onboardable_person(session, person_id)
     profiles = await _profiles(session, data.profile_ids)
     converter = await exchange_rates.load_converter(session)
-    return await _assign(session, person, profiles, dry_run=data.dry_run, converter=converter)
+    return await _assign(
+        session, person, profiles, dry_run=data.dry_run, converter=converter, create_actions=data.create_actions
+    )
 
 
 async def assign_members(session: AsyncSession, profile_id: uuid.UUID, data: MembersAssign) -> MembersAssignResult:
@@ -85,6 +87,7 @@ async def _assign(
     *,
     dry_run: bool,
     converter: Converter,
+    create_actions: bool = True,
 ) -> ProfileAssignResult:
     assigned = set(
         await session.scalars(select(PersonAccessProfile.profile_id).where(PersonAccessProfile.person_id == person.id))
@@ -127,7 +130,7 @@ async def _assign(
     actions = []
     if not dry_run:
         await _save_assignments(session, person, new_profiles)
-        if planned_out:
+        if planned_out and create_actions:
             result = await onboarding.onboard_person(
                 session,
                 person.id,

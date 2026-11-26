@@ -26,6 +26,7 @@ export type ResourceKey =
   | "ai-settings"
   | "slack-agent"
   | "access-requests"
+  | "access-profiles"
   | "onboarding"
   | "organization"
   | "me"

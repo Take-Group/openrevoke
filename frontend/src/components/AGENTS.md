@@ -1,6 +1,6 @@
 # open-revoke/frontend/src/components/
 
-React components of the panel. Pages in `src/app/` are thin and render one `*-view.tsx` per route; views fetch with hooks from `src/hooks/` (TanStack Query) and compose shared parts from `common/`, `ui/` and `data-table/`. One folder per feature; features do not import each other except `auth/form-parts`, `auth/auth-shell`, `browser/live-view`, `settings/settings-section` (also used by `ai/` and `slack/`).
+React components of the panel. Pages in `src/app/` are thin and render one `*-view.tsx` per route; views fetch with hooks from `src/hooks/` (TanStack Query) and compose shared parts from `common/`, `ui/` and `data-table/`. One folder per feature; features do not import each other except `auth/form-parts`, `auth/auth-shell`, `browser/live-view`, `settings/settings-section` (also used by `ai/` and `slack/`), `access-profiles/profile-parts` and `access-profiles/profile-choice-list` (used by `people/`).
 
 - `common/`: own AGENTS.md. shared app-level parts (page header, panel, form field, status badge, pickers).
 - `ui/`: own AGENTS.md. shadcn/base-ui primitives (button, dialog, sheet, table, sidebar, ...).
@@ -9,6 +9,7 @@ React components of the panel. Pages in `src/app/` are thin and render one `*-vi
 - `actions/`: own AGENTS.md. action queue (`/actions`): table, approve, reveal secret.
 - `ai/`, no map: `ai-settings-view.tsx` (`AiSettingsView`, `/settings/ai`), `ai-settings-card.tsx` (`AiSettingsCard`: two steps, holds the `AiConnection`), `ai-connect-form.tsx` (`AiConnectForm`: provider, base URL, key, "Connect" lists the real models; hook `useAiModels`), `ai-model-form.tsx` (`AiModelForm`: model from the list, reasoning level the model takes, Save, Test; hooks `useSavedAiModels`, `useSaveAiSettings`, `useTestAi`). One model for every AI feature.
 - `slack/`, no map: `slack-view.tsx` (`SlackView`, `/settings/slack`: reads Slack OAuth `?installed=1` / `?error=` once and cleans the URL; hook `useSlackAgent`), `slack-setup-card.tsx` (`SlackSetupCard` three steps, `SlackStatus` badge and on/off switch, remove; links to `/settings/ai` while no model is set), `slack-steps.tsx` (`CreateAppForm`, `AvatarRow`, `TokenForm`).
+- `access-profiles/`: own AGENTS.md. access profiles (`/access-profiles`), assigning them to people, missing and extra access.
 - `requests/`, no map: `requests-view.tsx` (`RequestsView`, `/requests`), `access-requests-table.tsx` (`AccessRequestsTable`: requests from Slack and My access, newest first; hook `useAccessRequests`).
 - `apps/`: own AGENTS.md. app list, app detail tabs, connection form (`/apps`, `/apps/[id]`).
 - `auth/`: own AGENTS.md. sign-in, first-run setup, 2FA, route guard.

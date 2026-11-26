@@ -15,4 +15,5 @@ The only place that talks HTTP to the API, plus the response types, written by h
 - `recipe-fix-types.ts`: click recipe fixes (`RecipeFixStatus`, `RecipeFixOut`, `RecipeFixList`; `ActionOut.recipe_fixes`).
 - `catalog-types.ts`: app catalog (`CatalogAppOut`, `CatalogAppList`, `CatalogMatchOut`, `CatalogMatchedBy`).
 - `system-types.ts`: `SystemVersion` (GET `/api/system/version`).
+- `access-profile-types.ts`: access profiles (`AccessProfileOut`, `AccessProfileCreate`/`Update`, drift `AccessDrift`, `PersonAccessDrift`, `AccessProfileMember`, assignment `ProfileAssign`, `MembersAssign`, `ProfileAssignResult`, `PlannedAction`, `ProfileUnassignResult`).
 - `onboarding-types.ts`: `/welcome` questions and dashboard checklist (`OnboardingOut`, `PeopleImport`, `ChatPlatform`, `PasswordManager`).

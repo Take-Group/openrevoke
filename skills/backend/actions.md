@@ -150,6 +150,17 @@ approves them.
   an open creation (`action_open`). A `left` person and an unknown app: 400,
   then nothing is saved.
 
+### Onboarding with roles
+
+`OnboardApp.role` goes into the action's `payload.role` (`create_action`)
+and from there into the connector's `CreateAccountRequest.role`
+(`action_execution`); a manual task shows it to the person doing it.
+`onboarding.plan` computes per app what onboarding would do (skip reason,
+write mode) without saving; access profiles use it for the assignment preview
+and send the profile's role (`skills/backend/access-profiles.md`). The panel's
+Onboard page sends the role of the chosen profiles; apps ticked by hand go
+without a role.
+
 ## How to extend
 
 - New connector with writes: add `Capability.CREATE_ACCOUNT` /

@@ -8,6 +8,7 @@ App Router of the panel. Every `page.tsx` is a thin server component: it reads `
 - `not-found.tsx`: 404 page (`EmptyState` with a button back).
 - `page.tsx`: `/` renders `DashboardView`.
 - `actions/`: `/actions` renders `ActionsView`; `?tab=` picks the tab, `?batch=<uuid>` filters one batch.
+- `access-profiles/`: `/access-profiles` renders `AccessProfilesView`; `new/` (`NewAccessProfileView`); `[id]/` is `/access-profiles/<id>` (`AccessProfileDetailView`) with form pages `[id]/edit/` (`EditAccessProfileView`) and `[id]/members/add/` (`AddMembersView`, `?missing=1`).
 - `apps/`: `/apps` renders `AppsView`; `new/` is `/apps/new` (`NewAppView`); `[id]/` is `/apps/<id>` and renders `AppDetailView` (`?tab=`, accounts filter), with form pages `[id]/accounts/new/` (`NewAccountView`) and `[id]/connection/edit/` (`ConnectionFormView`, `?connector=`).
 - `audit/`: `/audit` renders `AuditView`; `?entity=&id=&app=&person=` prefilter the log.
 - `browser/`: `/browser` renders `BrowserView` (live view of the shared browser).
@@ -15,7 +16,7 @@ App Router of the panel. Every `page.tsx` is a thin server component: it reads `
 - `forgot-password/`: `/forgot-password` renders `ForgotPasswordView`.
 - `login/`: `/login` renders `LoginView`.
 - `me/`: `/me` renders `MyAccessView` (home of a `user`); `request/` is `/me/request?app=` (`RequestAccessView`).
-- `people/`: `/people` renders `PeopleView` (`?status=`); `new/` (`NewPersonView`) and `import/` (`ImportPeopleView`); `[id]/` is `/people/<id>` and renders `PersonDetailView` (`?tab=`), with form pages `[id]/edit/`, `[id]/add-to-app/`, `[id]/onboard/`, `[id]/offboard/`.
+- `people/`: `/people` renders `PeopleView` (`?status=`); `new/` (`NewPersonView`) and `import/` (`ImportPeopleView`); `[id]/` is `/people/<id>` and renders `PersonDetailView` (`?tab=`), with form pages `[id]/edit/`, `[id]/add-to-app/`, `[id]/onboard/`, `[id]/offboard/`, `[id]/access-profiles/add/` (`AssignProfilesView`).
 - `register/`: `/register?token=` renders `RegisterView` (accepting an invite).
 - `signup/`: `/signup` renders `SignupView` (self sign-up).
 - `requests/`: `/requests` renders `RequestsView` (access requests from Slack and My access).
