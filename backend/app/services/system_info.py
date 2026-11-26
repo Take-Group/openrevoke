@@ -9,6 +9,7 @@ async def version_overview() -> SystemVersion:
     latest = await update_check.stored() if update_check.enabled() else None
     return SystemVersion(
         version=settings.version,
+        install_method=settings.install_method,
         update_check=update_check.enabled(),
         latest_version=latest.version if latest else None,
         latest_url=latest.url if latest else None,

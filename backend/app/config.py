@@ -1,3 +1,4 @@
+from typing import Literal
 from urllib.parse import urlsplit
 
 from cryptography.fernet import Fernet
@@ -22,6 +23,9 @@ class Settings(BaseSettings):
     # Version of this build: the release image sets it from the git tag (Dockerfile
     # ARG OPEN_REVOKE_VERSION); the local stack runs "dev". skills/backend/releases.md.
     version: str = Field(default="dev", validation_alias="OPEN_REVOKE_VERSION")
+    # How this installation was set up, so the panel's update notice shows the right command:
+    # "compose" (install.sh, `open-revoke update`) or "helm" (set by the Helm chart).
+    install_method: Literal["compose", "helm"] = Field(default="compose", validation_alias="OPEN_REVOKE_INSTALL_METHOD")
     # Hourly check of the public GitHub repository for a newer stable release
     # (skills/backend/releases.md). Off for servers without internet access.
     update_check: bool = Field(default=True, validation_alias="OPEN_REVOKE_UPDATE_CHECK")

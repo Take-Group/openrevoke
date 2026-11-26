@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import Field
 
 from app.schemas.common import ApiModel
@@ -5,6 +7,10 @@ from app.schemas.common import ApiModel
 
 class SystemVersion(ApiModel):
     version: str = Field(description="Version of this installation; `dev` in the local stack")
+    install_method: Literal["compose", "helm"] = Field(
+        description="How it was installed (OPEN_REVOKE_INSTALL_METHOD): `compose` updates with `open-revoke update`, "
+        "`helm` with `helm upgrade`"
+    )
     update_check: bool = Field(description="The hourly check for a newer release is on (OPEN_REVOKE_UPDATE_CHECK)")
     latest_version: str | None = Field(description="Newest stable release seen by the last check; null before one")
     latest_url: str | None = Field(description="Release notes of that release")
