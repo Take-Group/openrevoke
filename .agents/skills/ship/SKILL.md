@@ -13,6 +13,12 @@ when asked (Correctness: manual invocation only). It costs $0.05 per KB of diff 
 at least $0.50 per review, paid from a shared prepaid balance. Ask for a review only when it can
 find something.
 
+Other sessions check out their own branches in the shared clone. Before you commit, pull or
+rebase there, run `git branch --show-current`: never commit to, pull into or rebase a branch that
+is not yours. Prepare a pull request in a worktree instead:
+`git worktree add -b <topic> /tmp/<topic> origin/main`, cherry-pick your commits, push from there,
+remove the worktree after the merge.
+
 1. Start from verified local commits (skill [verify](../verify/SKILL.md)). Group them by topic:
    one pull request per logical change. Fetch first: `git fetch origin`, then
    `git rebase origin/main`.
