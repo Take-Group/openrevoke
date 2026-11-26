@@ -38,7 +38,7 @@ def console_url(path: str, project: str | None = None) -> str:
 async def open_page(page: Page, path: str, project: str | None = None) -> None:
     # The console never goes network-idle: callers wait for the element they need.
     await page.goto(console_url(path, project), wait_until="load", timeout=NAV_TIMEOUT_MS)
-    if "accounts.google.com" in page.url:
+    if urlsplit(page.url).hostname == "accounts.google.com":
         raise NeedsSignInError("Sign in to Google in the browser below, then start the setup again.")
 
 

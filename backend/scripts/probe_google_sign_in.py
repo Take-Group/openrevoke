@@ -22,7 +22,7 @@ import json
 import re
 from collections import Counter
 from pathlib import Path
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import parse_qs, unquote, urlparse, urlsplit
 
 CATALOG = Path(__file__).resolve().parent.parent / "app" / "catalog" / "apps.json"
 CLIENT_ID = re.compile(r"\d{6,}-[a-z0-9]{20,40}\.apps\.googleusercontent\.com")
@@ -91,7 +91,7 @@ async def _probe_url(context, url: str) -> dict:
         else:
             result["via"] = "page load"
         for target in [page, *google_pages]:
-            if "accounts.google.com" in target.url:
+            if urlsplit(target.url).hostname == "accounts.google.com":
                 seen.extend(_ids_in(target.url))
                 result["google_name"] = await _google_name(target)
         if not seen:

@@ -20,7 +20,9 @@ if TYPE_CHECKING:
 
     from sqlalchemy.ext.asyncio import AsyncSession
 
-_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+# Domain labels cannot contain dots, so the pattern has one way to match (no polynomial backtracking).
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s.]+(?:\.[^@\s.]+)+$")
+MAX_EMAIL_LENGTH = 254
 
 
 def normalize_email(value: str | None) -> str | None:
@@ -32,7 +34,7 @@ def normalize_email(value: str | None) -> str | None:
 
 
 def is_valid_email(value: str) -> bool:
-    return bool(_EMAIL_RE.match(value))
+    return len(value) <= MAX_EMAIL_LENGTH and bool(_EMAIL_RE.match(value))
 
 
 @dataclass(frozen=True)

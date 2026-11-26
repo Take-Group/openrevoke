@@ -49,3 +49,26 @@ def test_csv_cells_cannot_start_a_formula(value: str) -> None:
     assert safe_cell(value).startswith("'")
     assert safe_cell("plain") == "plain"
     assert safe_cell(None) == ""
+
+
+def test_email_validation_is_linear_and_strict() -> None:
+    import time
+
+    from app.services.matching import is_valid_email
+
+    assert is_valid_email("ana@example.com")
+    assert is_valid_email("ana.k@mail.example.co.uk")
+    for bad in ("ana@example", "ana@@example.com", "ana@example..com", "ana @example.com", "a" * 250 + "@x.io"):
+        assert not is_valid_email(bad)
+    # The input that made the old pattern backtrack polynomially (CodeQL py/polynomial-redos).
+    started = time.perf_counter()
+    is_valid_email("!@!." + "!." * 20_000)
+    assert time.perf_counter() - started < 0.5
+
+
+def test_logo_path_stays_in_the_logo_folder() -> None:
+    from app.catalog.lookup import app_catalog
+
+    catalog = app_catalog()
+    assert catalog.logo_path("../../config") is None
+    assert catalog.logo_path("..") is None

@@ -50,6 +50,8 @@ def is_live_file(path: str) -> bool:
 
 async def fetch_file(path: str) -> LiveFile | None:
     """A file of the live view from the browser container; None when it has no such file."""
+    if not is_live_file(path):
+        return None
     try:
         async with httpx.AsyncClient(timeout=10) as client:
             response = await client.get(f"http://{_address()}/{path}")

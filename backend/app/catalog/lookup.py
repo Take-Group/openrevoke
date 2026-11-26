@@ -160,7 +160,9 @@ class AppCatalog:
     def logo_path(self, slug: str) -> Path | None:
         if not _SLUG.match(slug):
             return None
-        path = LOGO_DIR / f"{slug}.png"
+        path = (LOGO_DIR / f"{slug}.png").resolve()
+        if path.parent != LOGO_DIR.resolve():
+            return None
         return path if path.is_file() else None
 
 
