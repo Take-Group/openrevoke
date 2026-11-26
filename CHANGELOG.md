@@ -13,6 +13,18 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
 
 ## [Unreleased]
 
+### Breaking
+
+- The MCP server moved from `/api/mcp` to `/mcp`. Change the address in your assistant, for
+  example `claude mcp remove open-revoke`, then the command from **Settings, API and MCP**.
+
+### Added
+
+- MCP task tools for AI assistants: overview, access per person and app, people who left with
+  open accounts, cost per app, discovered apps, and offboarding in steps (plan, start, approve,
+  status). Every API operation as a tool stays available with `?toolset=api`.
+- Any MCP client can connect and list the tools without a token; a tool call without one gets 401.
+
 ### Changed
 
 - Images are renamed to `ghcr.io/take-group/openrevoke` and `ghcr.io/take-group/openrevoke-browser`,

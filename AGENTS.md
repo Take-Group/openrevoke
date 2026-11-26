@@ -142,7 +142,7 @@ Backend (`skills/backend/`):
 - [new-workflow.md](skills/backend/new-workflow.md): Temporal workflow and activities
 - [temporal-local-stack.md](skills/backend/temporal-local-stack.md): local Temporal server without Web UI
 - [timezone.md](skills/backend/timezone.md): time zone in backend services
-- [mcp.md](skills/backend/mcp.md): MCP server at `/api/mcp`, personal API tokens
+- [mcp.md](skills/backend/mcp.md): MCP at `/mcp`: task and API tools, anonymous listing, tokens
 - [access-requests.md](skills/backend/access-requests.md): request policy, manager and admin steps, `/requests`, CSV, Slack buttons
 - [access-profiles.md](skills/backend/access-profiles.md): apps with roles, assignment with onboarding batch, missing and extra access
 - [slack-agent.md](skills/backend/slack-agent.md): Slack bot for access requests, AI model settings, Socket Mode runner
