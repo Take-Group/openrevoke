@@ -1,0 +1,70 @@
+{{- /* The `redis` service of compose.yaml: official image, no persistence. */ -}}
+{{- $name := include "open-revoke.redisHost" . }}
+{{- $selector := dict "root" . "component" "redis" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "open-revoke.componentLabels" $selector | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "open-revoke.selectorLabels" $selector | nindent 4 }}
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "open-revoke.componentLabels" $selector | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "open-revoke.selectorLabels" $selector | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "open-revoke.selectorLabels" $selector | nindent 8 }}
+    spec:
+      {{- include "open-revoke.podDefaults" . | nindent 6 }}
+      {{- include "open-revoke.scheduling" .Values.redis | nindent 6 }}
+      containers:
+        - name: redis
+          image: {{ include "open-revoke.image" (dict "root" . "image" .Values.redis.image) }}
+          imagePullPolicy: {{ .Values.redis.image.pullPolicy }}
+          ports:
+            - name: redis
+              containerPort: 6379
+          env:
+            - name: TZ
+              value: {{ .Values.timezone | quote }}
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 6
+          {{- with .Values.redis.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          emptyDir: {}

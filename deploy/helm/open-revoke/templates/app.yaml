@@ -1,0 +1,185 @@
+{{- /*
+The `app` service of compose.yaml: API (8000), Temporal worker and panel (3000) under supervisor.
+The entrypoint migrates the database under a PostgreSQL advisory lock, so there is no migration
+job. One replica, Recreate: the old pod stops before the new version migrates.
+*/ -}}
+{{- $appName := include "open-revoke.component" (dict "root" . "component" "app") }}
+{{- $selector := dict "root" . "component" "app" }}
+{{- $publicUrl := include "open-revoke.publicUrl" . }}
+{{- $hosts := list "localhost" "127.0.0.1" "[::1]" $appName (printf "%s.%s" $appName .Release.Namespace) (printf "%s.%s.svc" $appName .Release.Namespace) (printf "%s.%s.svc.cluster.local" $appName .Release.Namespace) }}
+{{- $hosts = concat $hosts .Values.app.allowedHosts | uniq }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $appName }}
+  labels:
+    {{- include "open-revoke.componentLabels" $selector | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "open-revoke.selectorLabels" $selector | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: panel
+    # In the cluster only: the browser pod asks the API which password manager to install.
+    - name: api
+      port: 8000
+      targetPort: api
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $appName }}
+  labels:
+    {{- include "open-revoke.componentLabels" $selector | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "open-revoke.selectorLabels" $selector | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "open-revoke.selectorLabels" $selector | nindent 8 }}
+        {{- with .Values.app.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        # A changed secret restarts the app.
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.app.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- include "open-revoke.podDefaults" . | nindent 6 }}
+      {{- include "open-revoke.scheduling" .Values.app | nindent 6 }}
+      initContainers:
+        # temporal-create-namespace of compose.yaml: waits until Temporal answers (its own init
+        # containers set up the schema first), then creates the namespace if it is missing.
+        - name: temporal-namespace
+          image: {{ include "open-revoke.image" (dict "root" . "image" .Values.temporal.adminToolsImage) }}
+          imagePullPolicy: {{ .Values.temporal.adminToolsImage.pullPolicy }}
+          command: ["/bin/sh", "/scripts/create-namespace.sh"]
+          env:
+            - name: TEMPORAL_ADDRESS
+              value: {{ printf "%s:7233" (include "open-revoke.temporalHost" .) | quote }}
+            - name: DEFAULT_NAMESPACE
+              value: {{ .Values.temporal.namespace | quote }}
+            - name: DEFAULT_NAMESPACE_RETENTION
+              value: {{ .Values.temporal.namespaceRetention | quote }}
+            # 5 minutes: on a fresh install Temporal waits for PostgreSQL and its schema.
+            - name: TEMPORAL_HEALTH_CHECK_MAX_ATTEMPTS
+              value: "150"
+          volumeMounts:
+            - name: temporal-scripts
+              mountPath: /scripts
+              readOnly: true
+      containers:
+        - name: app
+          image: {{ include "open-revoke.image" (dict "root" . "image" .Values.app.image) }}
+          imagePullPolicy: {{ .Values.app.image.pullPolicy }}
+          ports:
+            - name: panel
+              containerPort: 3000
+            - name: api
+              containerPort: 8000
+          env:
+            - name: TZ
+              value: {{ .Values.timezone | quote }}
+            - name: OPEN_REVOKE_INSTALL_METHOD
+              value: helm
+            {{- include "open-revoke.db.passwordEnv" . | nindent 12 }}
+            # $(POSTGRES_PASSWORD) is expanded by Kubernetes from the variable above.
+            - name: DATABASE_URL
+              value: {{ printf "postgresql+asyncpg://%s:$(POSTGRES_PASSWORD)@%s:%s/%s%s" (include "open-revoke.db.user" .) (include "open-revoke.db.host" .) (include "open-revoke.db.port" .) (include "open-revoke.db.name" .) (ternary "?ssl=require" "" (and (not .Values.postgresql.enabled) .Values.externalDatabase.tls)) | quote }}
+            - name: REDIS_URL
+              value: {{ printf "redis://%s:6379/0" (include "open-revoke.redisHost" .) | quote }}
+            - name: TEMPORAL_HOST
+              value: {{ printf "%s:7233" (include "open-revoke.temporalHost" .) | quote }}
+            - name: TEMPORAL_NAMESPACE
+              value: {{ .Values.temporal.namespace | quote }}
+            - name: TEMPORAL_TASK_QUEUE
+              value: {{ .Values.app.temporalTaskQueue | quote }}
+            - name: OPEN_REVOKE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "open-revoke.secretName" . }}
+                  key: OPEN_REVOKE_SECRET_KEY
+            - name: OPEN_REVOKE_UPDATE_CHECK
+              value: {{ .Values.app.updateCheck | quote }}
+            - name: OPEN_REVOKE_UPDATE_URL
+              value: {{ .Values.app.updateUrl | quote }}
+            - name: OPEN_REVOKE_TELEMETRY
+              value: {{ .Values.app.telemetry | quote }}
+            - name: OPEN_REVOKE_TELEMETRY_URL
+              value: {{ .Values.app.telemetryUrl | quote }}
+            - name: OPEN_REVOKE_ENABLE_FAKE_CONNECTOR
+              value: {{ .Values.app.enableFakeConnector | quote }}
+            - name: OPEN_REVOKE_DEV_PREFILL
+              value: {{ .Values.app.devPrefill | quote }}
+            - name: ACTION_VERIFY_DELAY_SECONDS
+              value: {{ .Values.app.actionVerifyDelaySeconds | quote }}
+            - name: BROWSER_CDP_HOST
+              value: {{ include "open-revoke.component" (dict "root" . "component" "browser") | quote }}
+            - name: BROWSER_CDP_PORT
+              value: "9223"
+            - name: PUBLIC_URL
+              value: {{ $publicUrl | quote }}
+            - name: GOOGLE_OAUTH_REDIRECT_BASE
+              value: {{ .Values.app.googleOauthRedirectBase | quote }}
+            # The Service's names: the browser pod calls the API by them. Kubelet probes send
+            # Host: localhost (below).
+            - name: ALLOWED_HOSTS
+              value: {{ toJson $hosts | quote }}
+            {{- with .Values.app.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          # The API refuses unknown Host headers (DNS rebinding), and kubelet would send the pod IP.
+          startupProbe:
+            httpGet:
+              path: /health
+              port: api
+              httpHeaders:
+                - name: Host
+                  value: localhost
+            periodSeconds: 5
+            # Migrations run before the API starts: up to 10 minutes.
+            failureThreshold: 120
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: api
+              httpHeaders:
+                - name: Host
+                  value: localhost
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: api
+              httpHeaders:
+                - name: Host
+                  value: localhost
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          {{- with .Values.app.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: temporal-scripts
+          configMap:
+            name: {{ include "open-revoke.component" (dict "root" . "component" "temporal") }}

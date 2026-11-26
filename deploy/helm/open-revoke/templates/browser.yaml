@@ -1,0 +1,112 @@
+{{- /*
+The `browser` service of compose.yaml: Chromium on Xvnc for browser connectors. CDP (9223) and
+noVNC (6080) only inside the cluster; the NetworkPolicy lets only the app pods in. The profile
+PVC holds signed-in admin sessions of SaaS panels and survives the pod.
+*/ -}}
+{{- $name := include "open-revoke.component" (dict "root" . "component" "browser") }}
+{{- $selector := dict "root" . "component" "browser" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "open-revoke.componentLabels" $selector | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "open-revoke.selectorLabels" $selector | nindent 4 }}
+  ports:
+    - name: cdp
+      port: 9223
+      targetPort: cdp
+    - name: novnc
+      port: 6080
+      targetPort: novnc
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "open-revoke.componentLabels" $selector | nindent 4 }}
+spec:
+  replicas: 1
+  serviceName: {{ $name }}
+  selector:
+    matchLabels:
+      {{- include "open-revoke.selectorLabels" $selector | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "open-revoke.selectorLabels" $selector | nindent 8 }}
+      {{- with .Values.browser.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- include "open-revoke.podDefaults" . | nindent 6 }}
+      {{- include "open-revoke.scheduling" .Values.browser | nindent 6 }}
+      securityContext:
+        # The image's `browser` user (uid 1000) writes the profile. A Docker volume copies the
+        # owner of /profile; a PVC gets this group instead.
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+      containers:
+        - name: browser
+          image: {{ include "open-revoke.image" (dict "root" . "image" .Values.browser.image) }}
+          imagePullPolicy: {{ .Values.browser.image.pullPolicy }}
+          ports:
+            - name: cdp
+              containerPort: 9223
+            - name: novnc
+              containerPort: 6080
+          env:
+            - name: TZ
+              value: {{ .Values.timezone | quote }}
+            # The panel API the browser polls for the password manager to force-install.
+            - name: BROWSER_POLICY_API_URL
+              value: {{ printf "http://%s:8000" (include "open-revoke.component" (dict "root" . "component" "app")) | quote }}
+          # The healthcheck of the image: Chromium answers on CDP inside the container.
+          readinessProbe:
+            exec:
+              command: ["curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:9222/json/version"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:9222/json/version"]
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          {{- with .Values.browser.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - name: profile
+              mountPath: /profile
+            - name: dshm
+              mountPath: /dev/shm
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: {{ .Values.browser.shmSize }}
+  volumeClaimTemplates:
+    - metadata:
+        name: profile
+        labels:
+          {{- include "open-revoke.selectorLabels" $selector | nindent 10 }}
+      spec:
+        accessModes:
+          {{- toYaml .Values.browser.persistence.accessModes | nindent 10 }}
+        {{- with .Values.browser.persistence.storageClass }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.browser.persistence.size }}

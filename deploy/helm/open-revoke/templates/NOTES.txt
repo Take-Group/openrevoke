@@ -1,0 +1,30 @@
+{{- $app := include "open-revoke.component" (dict "root" . "component" "app") -}}
+Open Revoke {{ .Chart.AppVersion }} is starting in namespace {{ .Release.Namespace }}.
+The first start migrates the database and sets up Temporal: give it a few minutes.
+
+  kubectl -n {{ .Release.Namespace }} get pods -l app.kubernetes.io/instance={{ .Release.Name }}
+  kubectl -n {{ .Release.Namespace }} rollout status deploy/{{ $app }} --timeout 10m
+
+1. Open the panel
+{{- if .Values.ingress.enabled }}
+
+  {{ include "open-revoke.publicUrl" . }}
+{{- else }}
+
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ $app }} 18410:{{ .Values.service.port }}
+
+  then http://localhost:18410. For another address set publicUrl or ingress.host: links,
+  cookies and the host names the API answers to follow it.
+{{- end }}
+
+2. Create the first admin with a setup link (only it can; a new one invalidates the old):
+
+  kubectl -n {{ .Release.Namespace }} exec deploy/{{ $app }} -c app -- python -m app.cli setup-link
+
+3. Keep a copy of the secrets: OPEN_REVOKE_SECRET_KEY encrypts the connector secrets.
+
+  kubectl -n {{ .Release.Namespace }} get secret {{ include "open-revoke.secretName" . }} -o yaml
+
+Updates: helm upgrade {{ .Release.Name }} oci://ghcr.io/take-group/charts/open-revoke --version X.Y.Z
+Back up the database first; there is no automatic rollback. Guide:
+https://github.com/Take-Group/openrevoke/blob/main/docs/kubernetes.md
