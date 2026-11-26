@@ -15,6 +15,7 @@ class AlertKind(StrEnum):
     ACTION_FAILED = "action_failed"
     PERSON_INACTIVE_IN_SOURCE = "person_inactive_in_source"
     DISCOVERED_SIGN_INS_AT_RISK = "discovered_sign_ins_at_risk"
+    PROFILE_ACCESS_MISSING = "profile_access_missing"
 
 
 class AlertSeverity(StrEnum):
@@ -29,6 +30,7 @@ class AlertEntityType(StrEnum):
     ACTION = "action"
     PERSON = "person"
     DISCOVERED_APP = "discovered_app"
+    ACCESS_PROFILE = "access_profile"
 
 
 class Alert(BaseModel):
@@ -40,7 +42,8 @@ class Alert(BaseModel):
     app_id: uuid.UUID | None = Field(description="App to link to, when the alert concerns one")
     person_id: uuid.UUID | None = Field(description="Person to link to, when the alert concerns one")
     count: int | None = Field(
-        description="Number of items for grouped alerts (unassigned_accounts, discovered_sign_ins_at_risk)"
+        description="Number of items for grouped alerts (unassigned_accounts, discovered_sign_ins_at_risk,"
+        " profile_access_missing)"
     )
 
 

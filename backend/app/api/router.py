@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 
+from app.api.access_profiles import router as access_profiles_router
 from app.api.access_requests import router as access_requests_router
 from app.api.accounts import router as accounts_router
 from app.api.actions import router as actions_router
@@ -52,6 +53,7 @@ domain_router.include_router(users_router, tags=["users"])
 domain_router.include_router(ai_router, tags=["ai"])
 domain_router.include_router(slack_agent_router, tags=["slack"])
 domain_router.include_router(access_requests_router, tags=["access-requests"])
+domain_router.include_router(access_profiles_router, tags=["access-profiles"])
 domain_router.include_router(currencies_router)
 domain_router.include_router(system_router)
 

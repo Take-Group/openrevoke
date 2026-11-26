@@ -47,14 +47,14 @@ Logic between `app/api/`, `app/temporal/` activities and `app/models/`. Services
 - `recipe_fixes.py`: recipe step fixes: `active_fixes`, `list_fixes`, `approve`, `reject` (reverts too).
 - `recipe_repair.py`: `RecipeRepairService`: AI repair of a recipe step.
 - `organization.py`: `get`, `update` (organization row; auto-approval needs a domain).
-- `onboarding.py`: `onboard_person` creates `create_account` actions.
+- `onboarding.py`: `plan` (what onboarding would do per app, no writes; also the access profile preview), `onboardable_person`, `onboard_person` creates `create_account` actions with the role per app.
 - `offboarding.py`: `offboard_person` marks `left`, creates delete actions.
 - `billing.py`: `apply_billing` (stores `BillingInfo`, sets the app price), `stop_applying`, `use_billing`.
 - `costs.py`: pure cost rules (`monthly_price`, `app_monthly_cost`, `seat_monthly_cost`, `sum_by_currency`, `is_billable_seat`).
 - `conversion.py`: `Converter` via EUR rates.
 - `exchange_rates.py`: `refresh`, `store`, `load_converter`, `latest_info`.
 - `currencies.py`: `is_known`.
-- `dashboard.py`: `get_dashboard`.
+- `dashboard.py`: `get_dashboard` (alerts include `profile_access_missing` per access profile).
 - `setup_checklist.py`: `overview`, `save_choices`, `dismiss` (welcome answers, computed checklist).
 - `timezones.py`: `known_timezones`, `is_known_timezone`.
 - `browser.py`: `browser_state`, `open_page` (Browser page, shared browser login).
