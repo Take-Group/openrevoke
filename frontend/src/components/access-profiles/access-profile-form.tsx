@@ -81,7 +81,7 @@ function ProfileApps({ apps, onChange }: { apps: ProfileAppDraft[]; onChange: (a
     const app = allApps.data?.items.find((item) => item.id === appId);
     if (!app) return;
     const suggested = roles.data?.get(app.id)?.[0] ?? "";
-    onChange([...apps, { app: { app_id: app.id, name: app.name, slug: app.slug }, role: suggested }]);
+    onChange([...apps, { app: { app_id: app.id, name: app.name, slug: app.slug, logo_url: app.logo_url }, role: suggested }]);
   };
 
   return (

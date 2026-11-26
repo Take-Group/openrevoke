@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 
 from app.connectors.base import AuthKind
 from app.connectors.registry import UnknownConnectorError, get_connector
+from app.models import AccessProfile, Account, Action, App, Connection, Person, PersonLink
 from app.models.enums import (
     AccountStatus,
     ActionStatus,
@@ -14,7 +15,6 @@ from app.models.enums import (
     PersonStatus,
     RequestPolicy,
 )
-from app.models import AccessProfile, Account, Action, App, Connection, Person, PersonLink
 from app.schemas.currencies import ExchangeRatesInfo
 from app.schemas.dashboard import Alert, AlertEntityType, AlertKind, AlertSeverity, Dashboard, DashboardCounts
 from app.services import exchange_rates
@@ -262,6 +262,9 @@ async def _no_manager_alerts(session: AsyncSession, apps: list[App]) -> list[Ale
             person_id=None,
             count=count,
         )
+    ]
+
+
 async def _profile_access_alerts(session: AsyncSession) -> list[Alert]:
     """One alert per access profile whose active members miss one of its apps."""
     counts = await members_missing_by_profile(session)

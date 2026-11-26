@@ -1602,7 +1602,7 @@
           "me"
         ],
         "summary": "Get My Access",
-        "description": "The signed-in user's own accounts, open requests and the apps they can ask for.",
+        "description": "The signed-in user's own accounts, requests (with status, who decides next, rejection comment) and the\napps they can ask for.",
         "operationId": "get_my_access",
         "responses": {
           "200": {
@@ -1684,7 +1684,7 @@
           "me"
         ],
         "summary": "Request My Access",
-        "description": "Ask for an account in an app. The app's self-service policy decides if an admin approves it first.",
+        "description": "Ask for an account in an app, for yourself or (``person_id``) for one of your reports.\n\nThe app's request policy decides who approves: the manager, an admin, both, or nobody. 400 without a\njustification, 403 for someone who is not your report, 409 when a request for the app is already open.",
         "operationId": "request_my_access",
         "requestBody": {
           "content": {
@@ -1706,6 +1706,792 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/team": {
+      "get": {
+        "tags": [
+          "me"
+        ],
+        "summary": "Get My Team",
+        "description": "People whose manager is the signed-in user, with their apps and the apps you can ask for for them.",
+        "operationId": "get_my_team",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyTeam"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/approvals": {
+      "get": {
+        "tags": [
+          "me"
+        ],
+        "summary": "List My Approvals",
+        "description": "Requests that wait (or waited) for the signed-in user as the requester's manager, newest first.",
+        "operationId": "list_my_approvals",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccessRequestStatus"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Repeat for several; pending_manager lists what waits for you",
+              "title": "Status"
+            },
+            "description": "Repeat for several; pending_manager lists what waits for you"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyApprovals"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/approvals/{request_id}": {
+      "get": {
+        "tags": [
+          "me"
+        ],
+        "summary": "Get My Approval",
+        "description": "One request with its decisions; 403 unless you are the manager it waits for or the requester's manager.",
+        "operationId": "get_my_approval",
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessRequestDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/approvals/{request_id}/approve": {
+      "post": {
+        "tags": [
+          "me"
+        ],
+        "summary": "Approve My Approval",
+        "description": "Approve as the manager. 403 when you are not, 409 when the manager's step is already decided.",
+        "operationId": "approve_my_approval",
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessRequestDecisionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessRequestDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/approvals/{request_id}/reject": {
+      "post": {
+        "tags": [
+          "me"
+        ],
+        "summary": "Reject My Approval",
+        "description": "Reject as the manager; ``comment`` is required and shown to the person. 403 / 409 as for approve.",
+        "operationId": "reject_my_approval",
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessRequestDecisionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessRequestDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/apps/{app_id}/logo": {
+      "get": {
+        "tags": [
+          "apps"
+        ],
+        "summary": "Get App Logo",
+        "description": "The uploaded logo (``logo_url`` of an app points here). 404 when the app has none.",
+        "operationId": "get_app_logo",
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "App Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "image/png": {},
+              "image/svg+xml": {}
+            }
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not modified"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "apps"
+        ],
+        "summary": "Upload App Logo",
+        "description": "Sets the app's own logo; it wins over the catalog's. An SVG with scripts or links is refused (400).",
+        "operationId": "upload_app_logo",
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "App Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_app_logo"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "apps"
+        ],
+        "summary": "Delete App Logo",
+        "description": "Removes the uploaded logo: the app shows the catalog's logo or its initial again.",
+        "operationId": "delete_app_logo",
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "App Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
           },
           "400": {
             "description": "The request breaks a domain rule",
@@ -2373,7 +3159,7 @@
           "people"
         ],
         "summary": "List People",
-        "description": "``kind_counts`` counts the matches of ``q`` and ``status`` per kind, for the filter tabs.",
+        "description": "``q`` also matches department and job title.\n\n``kind_counts`` counts the matches of ``q``, ``status`` and ``no_manager`` per kind, for the filter tabs.",
         "operationId": "list_people",
         "parameters": [
           {
@@ -2426,6 +3212,18 @@
               ],
               "title": "Kind"
             }
+          },
+          {
+            "name": "no_manager",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Only people with no manager set",
+              "default": false,
+              "title": "No Manager"
+            },
+            "description": "Only people with no manager set"
           },
           {
             "name": "limit",
@@ -2621,7 +3419,7 @@
           "people"
         ],
         "summary": "Import People",
-        "description": "Adds or updates people from a CSV (header: email,first_name,last_name,employee_code,aliases).\n\nTry ``dry_run=true`` first.",
+        "description": "Adds or updates people from a CSV (header: email,first_name,last_name,employee_code,aliases,\nmanager_email,department,job_title; only email is required).\n\n``manager_email`` must be a person already stored or a row of the same file; it is set as manual,\nso syncs keep it. Try ``dry_run=true`` first.",
         "operationId": "import_people",
         "parameters": [
           {
@@ -2727,7 +3525,7 @@
           "people"
         ],
         "summary": "Get Person",
-        "description": "One person with their e-mails, sources, accounts in every app and monthly cost.",
+        "description": "One person with their e-mails, sources, accounts in every app, monthly cost, manager and reports.",
         "operationId": "get_person",
         "parameters": [
           {
@@ -2819,7 +3617,7 @@
           "people"
         ],
         "summary": "Update Person",
-        "description": "Changes a person's name, e-mails, code, kind or notes. Only the fields present change.",
+        "description": "Changes a person's name, e-mails, code, kind, notes, manager, department or job title.\n\nOnly the fields present change. ``manager_id`` is kept by syncs (manual); null clears it. 400 when the\nmanager is the person, has left, is a service account, or reports to the person (a loop).",
         "operationId": "update_person",
         "parameters": [
           {
@@ -3940,7 +4738,7 @@
           "discovery"
         ],
         "summary": "Track Discovered App",
-        "description": "Links the app with the same name in Open Revoke, or creates a manual one. Connect it from the app page.",
+        "description": "Links the app with the same name in Open Revoke, or creates a manual one. Connect it from the app page.\n\n``create_accounts`` also adds manual accounts for the people who signed in (active in the directory).",
         "operationId": "track_discovered_app",
         "parameters": [
           {
@@ -4416,7 +5214,7 @@
           "apps"
         ],
         "summary": "List Apps",
-        "description": "``status`` filters by connection status.",
+        "description": "``status`` filters by connection status; ``categories`` lists every category in use.",
         "operationId": "list_apps",
         "parameters": [
           {
@@ -4468,6 +5266,23 @@
                 }
               ],
               "title": "Integration"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
             }
           },
           {
@@ -4572,7 +5387,7 @@
           "apps"
         ],
         "summary": "Create App",
-        "description": "Adds a SaaS app with its price. Accounts come from a connection (put_connection) or are added by hand.",
+        "description": "Adds a SaaS app with its price. Accounts come from a connection (put_connection) or are added by hand.\n\nWith ``catalog_key`` (from search_catalog) and no ``name``, the name and website come from the catalog.",
         "operationId": "create_app",
         "requestBody": {
           "required": true,
@@ -4591,6 +5406,98 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AppDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/apps/bulk": {
+      "post": {
+        "tags": [
+          "apps"
+        ],
+        "summary": "Create Apps Bulk",
+        "description": "Adds up to 100 apps (catalog_key or name) as manual and free; apps that exist are skipped with a reason.",
+        "operationId": "create_apps_bulk",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppBulkCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppBulkResult"
                 }
               }
             }
@@ -5152,6 +6059,355 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AccountOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/apps/{app_id}/accounts/bulk": {
+      "post": {
+        "tags": [
+          "apps"
+        ],
+        "summary": "Paste App Accounts",
+        "description": "Adds accounts from pasted e-mails (new lines, commas or semicolons) to a manual app.\n\nExisting accounts stay as they are. Try ``dry_run=true`` first.",
+        "operationId": "paste_app_accounts",
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "App Id"
+            }
+          },
+          {
+            "name": "dry_run",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Preview the changes without saving",
+              "default": false,
+              "title": "Dry Run"
+            },
+            "description": "Preview the changes without saving"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountsPaste"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountImportResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/catalog/search": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Search Catalog",
+        "description": "Catalog apps for \"Add app\": by name, alias or website, with the connector that reads them and\nthe app already added. Without ``q``: apps discovery found and nobody tracks yet, then popular ones.",
+        "operationId": "search_catalog",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Case-insensitive text search",
+              "title": "Q"
+            },
+            "description": "Case-insensitive text search"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogSearchList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/import": {
+      "post": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Import Accounts",
+        "description": "Adds or updates accounts of apps without a connector from a CSV (several apps in one file).\n\nHeader ``app,email,username,display_name,role,status,kind``; ``app`` and one of email, username,\ndisplay_name are required. Nothing is deleted. Try ``dry_run=true`` first.",
+        "operationId": "import_accounts",
+        "parameters": [
+          {
+            "name": "dry_run",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Preview the changes without saving",
+              "default": false,
+              "title": "Dry Run"
+            },
+            "description": "Preview the changes without saving"
+          },
+          {
+            "name": "create_apps",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Create apps the file names but Open Revoke lacks",
+              "default": false,
+              "title": "Create Apps"
+            },
+            "description": "Create apps the file names but Open Revoke lacks"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_import_accounts"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountImportResult"
                 }
               }
             }
@@ -9603,7 +10859,7 @@
           "access-requests"
         ],
         "summary": "List Access Requests",
-        "description": "Requests for app accounts from Slack and My access, newest first; ``status`` filters.",
+        "description": "Requests from the panel, the API and Slack, newest first, with who decides next.",
         "operationId": "list_access_requests",
         "parameters": [
           {
@@ -9613,14 +10869,113 @@
             "schema": {
               "anyOf": [
                 {
-                  "$ref": "#/components/schemas/AccessRequestStatus"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccessRequestStatus"
+                  }
                 },
                 {
                   "type": "null"
                 }
               ],
+              "description": "Repeat to filter by several statuses",
               "title": "Status"
+            },
+            "description": "Repeat to filter by several statuses"
+          },
+          {
+            "name": "app_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "App Id"
             }
+          },
+          {
+            "name": "person_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Person Id"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Created at or after",
+              "title": "From"
+            },
+            "description": "Created at or after"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Created before",
+              "title": "To"
+            },
+            "description": "Created before"
+          },
+          {
+            "name": "waiting_for",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "manager",
+                    "admin"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Requests waiting for the manager or for an admin",
+              "title": "Waiting For"
+            },
+            "description": "Requests waiting for the manager or for an admin"
           },
           {
             "name": "limit",
@@ -9653,6 +11008,1626 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AccessRequestPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/access-requests/export": {
+      "get": {
+        "tags": [
+          "access-requests"
+        ],
+        "summary": "Export Access Requests",
+        "description": "CSV of the requests matching the filters, oldest first: person, app, justification, every decision, action.",
+        "operationId": "export_access_requests",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccessRequestStatus"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Repeat to filter by several statuses",
+              "title": "Status"
+            },
+            "description": "Repeat to filter by several statuses"
+          },
+          {
+            "name": "app_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "App Id"
+            }
+          },
+          {
+            "name": "person_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Person Id"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Created at or after",
+              "title": "From"
+            },
+            "description": "Created at or after"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Created before",
+              "title": "To"
+            },
+            "description": "Created before"
+          },
+          {
+            "name": "waiting_for",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "manager",
+                    "admin"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Requests waiting for the manager or for an admin",
+              "title": "Waiting For"
+            },
+            "description": "Requests waiting for the manager or for an admin"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/csv": {}
+            }
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/access-requests/{request_id}": {
+      "get": {
+        "tags": [
+          "access-requests"
+        ],
+        "summary": "Get Access Request",
+        "description": "One request with its decisions (oldest first) and its action.",
+        "operationId": "get_access_request",
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessRequestDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/access-requests/{request_id}/approve": {
+      "post": {
+        "tags": [
+          "access-requests"
+        ],
+        "summary": "Approve Access Request",
+        "description": "The admin step, or the manager's step decided for the manager (recorded as an override).\n\n400 when writes are off for the app; 403 on your own request; 409 when the request waits for nobody.",
+        "operationId": "approve_access_request",
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessRequestDecisionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessRequestDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/access-requests/{request_id}/reject": {
+      "post": {
+        "tags": [
+          "access-requests"
+        ],
+        "summary": "Reject Access Request",
+        "description": "Reject with a ``comment`` (required): the person sees it. Cancels the request's pending action.",
+        "operationId": "reject_access_request",
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessRequestDecisionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessRequestDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/access-profiles": {
+      "get": {
+        "tags": [
+          "access-profiles"
+        ],
+        "summary": "List Access Profiles",
+        "description": "Access profiles by name: apps with roles, member count, monthly seat cost per person.",
+        "operationId": "list_access_profiles",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessProfileList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "access-profiles"
+        ],
+        "summary": "Create Access Profile",
+        "description": "A named set of apps with a role in each (\"Developer\"). 409 when the name is taken.",
+        "operationId": "create_access_profile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessProfileCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessProfileOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/access-profiles/app-roles": {
+      "get": {
+        "tags": [
+          "access-profiles"
+        ],
+        "summary": "List Access Profile App Roles",
+        "description": "Roles of existing accounts per app, to suggest in the profile form.",
+        "operationId": "list_access_profile_app_roles",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppRoleSuggestionList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/access-profiles/{profile_id}": {
+      "get": {
+        "tags": [
+          "access-profiles"
+        ],
+        "summary": "Get Access Profile",
+        "operationId": "get_access_profile",
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessProfileOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "access-profiles"
+        ],
+        "summary": "Update Access Profile",
+        "description": "Only the fields present change; ``apps`` replaces the list. Creates no actions:\n``members_missing_access`` says how many members now lack an app (assign them again to fix it).",
+        "operationId": "update_access_profile",
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessProfileUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessProfileOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "access-profiles"
+        ],
+        "summary": "Delete Access Profile",
+        "description": "Removes the profile and its assignments. Accounts in apps stay.",
+        "operationId": "delete_access_profile",
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/access-profiles/{profile_id}/members": {
+      "get": {
+        "tags": [
+          "access-profiles"
+        ],
+        "summary": "List Access Profile Members",
+        "description": "Members with what they miss from their profiles, what they have outside them, and other roles.",
+        "operationId": "list_access_profile_members",
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessProfileMemberList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "access-profiles"
+        ],
+        "summary": "Assign Access Profile Members",
+        "description": "Assigns the profile to people: one onboarding batch per person for the apps they lack.\n\nTry ``dry_run`` first: it shows the actions and their monthly cost without saving. People who left are skipped.",
+        "operationId": "assign_access_profile_members",
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MembersAssign"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MembersAssignResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/people/{person_id}/access-profiles": {
+      "get": {
+        "tags": [
+          "access-profiles"
+        ],
+        "summary": "List Person Access Profiles",
+        "operationId": "list_person_access_profiles",
+        "parameters": [
+          {
+            "name": "person_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Person Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonAccessProfileList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "access-profiles"
+        ],
+        "summary": "Assign Person Access Profiles",
+        "description": "Assigns profiles and creates one onboarding batch (role from the profile) for the apps the person lacks.\n\n``dry_run`` previews the actions and their monthly cost without saving. 400 when the person has left.",
+        "operationId": "assign_person_access_profiles",
+        "parameters": [
+          {
+            "name": "person_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Person Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileAssign"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileAssignResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/people/{person_id}/access-profiles/{profile_id}": {
+      "delete": {
+        "tags": [
+          "access-profiles"
+        ],
+        "summary": "Unassign Person Access Profile",
+        "description": "Removes the profile from the person. Deletes nothing in apps: ``suggested_removals`` lists the accounts\nonly this profile gave; create delete_account actions for the ones to remove.",
+        "operationId": "unassign_person_access_profile",
+        "parameters": [
+          {
+            "name": "person_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Person Id"
+            }
+          },
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileUnassignResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request breaks a domain rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the session expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The role does not allow it, or the client header is missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with existing data or state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/people/{person_id}/access-drift": {
+      "get": {
+        "tags": [
+          "access-profiles"
+        ],
+        "summary": "Get Person Access Drift",
+        "description": "What the person misses from their profiles, what they have outside them, and accounts with another role.",
+        "operationId": "get_person_access_drift",
+        "parameters": [
+          {
+            "name": "person_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Person Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonAccessDrift"
                 }
               }
             }
@@ -9897,6 +12872,452 @@
   },
   "components": {
     "schemas": {
+      "AccessProfileAppIn": {
+        "properties": {
+          "app_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "App Id"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role",
+            "description": "Role of the new account in the app, e.g. member; empty: any role"
+          }
+        },
+        "type": "object",
+        "required": [
+          "app_id"
+        ],
+        "title": "AccessProfileAppIn"
+      },
+      "AccessProfileAppOut": {
+        "properties": {
+          "app": {
+            "$ref": "#/components/schemas/AppRef"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "seat_price": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MoneyAmount"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What one person adds per month (per-seat apps only), in the app's currency"
+          },
+          "seat_price_converted": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MoneyAmount"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "seat_price in the organization currency"
+          }
+        },
+        "type": "object",
+        "required": [
+          "app",
+          "logo_url",
+          "role",
+          "seat_price",
+          "seat_price_converted"
+        ],
+        "title": "AccessProfileAppOut"
+      },
+      "AccessProfileCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "auto_approve_requests": {
+            "type": "boolean",
+            "title": "Auto Approve Requests",
+            "description": "Access requests for these apps, from people with the profile, skip the manager",
+            "default": false
+          },
+          "apps": {
+            "items": {
+              "$ref": "#/components/schemas/AccessProfileAppIn"
+            },
+            "type": "array",
+            "maxItems": 200,
+            "title": "Apps"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "AccessProfileCreate",
+        "description": "A repeated ``app_id`` counts once (the first one)."
+      },
+      "AccessProfileList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AccessProfileOut"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total"
+        ],
+        "title": "AccessProfileList"
+      },
+      "AccessProfileMember": {
+        "properties": {
+          "missing": {
+            "items": {
+              "$ref": "#/components/schemas/MissingAccess"
+            },
+            "type": "array",
+            "title": "Missing",
+            "description": "Apps of the profiles without an account or an open creation"
+          },
+          "extra": {
+            "items": {
+              "$ref": "#/components/schemas/ExtraAccess"
+            },
+            "type": "array",
+            "title": "Extra",
+            "description": "Accounts in apps outside every profile of the person; empty when the person has no profile"
+          },
+          "role_mismatch": {
+            "items": {
+              "$ref": "#/components/schemas/RoleMismatch"
+            },
+            "type": "array",
+            "title": "Role Mismatch"
+          },
+          "person": {
+            "$ref": "#/components/schemas/PersonRef"
+          },
+          "assigned_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Assigned At"
+          },
+          "assigned_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned By"
+          }
+        },
+        "type": "object",
+        "required": [
+          "missing",
+          "extra",
+          "role_mismatch",
+          "person",
+          "assigned_at",
+          "assigned_by"
+        ],
+        "title": "AccessProfileMember"
+      },
+      "AccessProfileMemberList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AccessProfileMember"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total"
+        ],
+        "title": "AccessProfileMemberList"
+      },
+      "AccessProfileOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "auto_approve_requests": {
+            "type": "boolean",
+            "title": "Auto Approve Requests"
+          },
+          "apps": {
+            "items": {
+              "$ref": "#/components/schemas/AccessProfileAppOut"
+            },
+            "type": "array",
+            "title": "Apps",
+            "description": "By app name"
+          },
+          "member_count": {
+            "type": "integer",
+            "title": "Member Count"
+          },
+          "members_missing_access": {
+            "type": "integer",
+            "title": "Members Missing Access",
+            "description": "Active members who lack an account in an app of this profile (no open creation either)"
+          },
+          "cost_per_person": {
+            "items": {
+              "$ref": "#/components/schemas/MoneyAmount"
+            },
+            "type": "array",
+            "title": "Cost Per Person",
+            "description": "Monthly seat prices of the apps, per currency"
+          },
+          "cost_per_person_total": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MoneyAmount"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "cost_per_person in the organization currency; null when a currency has no rate"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "auto_approve_requests",
+          "apps",
+          "member_count",
+          "members_missing_access",
+          "cost_per_person",
+          "cost_per_person_total",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AccessProfileOut"
+      },
+      "AccessProfileUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "auto_approve_requests": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Approve Requests"
+          },
+          "apps": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AccessProfileAppIn"
+                },
+                "type": "array",
+                "maxItems": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Apps"
+          }
+        },
+        "type": "object",
+        "title": "AccessProfileUpdate",
+        "description": "Only the fields present change; ``apps`` replaces the whole list."
+      },
+      "AccessRequestActionOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ActionKind"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ActionStatus"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved By"
+          },
+          "approved_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "approved_by",
+          "approved_at",
+          "finished_at",
+          "error"
+        ],
+        "title": "AccessRequestActionOut"
+      },
       "AccessRequestChannel": {
         "type": "string",
         "enum": [
@@ -9905,6 +13326,327 @@
         ],
         "title": "AccessRequestChannel",
         "description": "Where a person asked for access."
+      },
+      "AccessRequestDecisionCreate": {
+        "properties": {
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment",
+            "description": "Required to reject; shown to the person who asked"
+          }
+        },
+        "type": "object",
+        "title": "AccessRequestDecisionCreate"
+      },
+      "AccessRequestDecisionOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "step": {
+            "$ref": "#/components/schemas/DecisionStep"
+          },
+          "decision": {
+            "$ref": "#/components/schemas/DecisionOutcome"
+          },
+          "decided_by": {
+            "type": "string",
+            "title": "Decided By",
+            "description": "E-mail of the panel user, 'e-mail (Slack)', a token name or 'Automatic (...)'"
+          },
+          "decided_by_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided By User Id"
+          },
+          "via": {
+            "$ref": "#/components/schemas/DecisionVia"
+          },
+          "override": {
+            "type": "boolean",
+            "title": "Override",
+            "description": "An admin decided for the manager"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          },
+          "decided_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Decided At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "step",
+          "decision",
+          "decided_by",
+          "decided_by_user_id",
+          "via",
+          "override",
+          "comment",
+          "decided_at"
+        ],
+        "title": "AccessRequestDecisionOut"
+      },
+      "AccessRequestDetail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "person": {
+            "$ref": "#/components/schemas/PersonRef"
+          },
+          "app": {
+            "$ref": "#/components/schemas/AppRef"
+          },
+          "action_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action Id"
+          },
+          "action_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ActionStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "channel": {
+            "$ref": "#/components/schemas/AccessRequestChannel",
+            "description": "slack: asked the Slack agent; panel: the panel or the API"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AccessRequestStatus"
+          },
+          "waiting_for": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "manager",
+                  "admin"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Waiting For",
+            "description": "Who decides next; null when nobody (approved or closed)"
+          },
+          "approver": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PersonRef"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The manager the request waits for (or waited for)"
+          },
+          "fallback_reason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RequestFallbackReason"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why an admin decides instead of the manager: no_manager, manager_left, manager_no_access, manager_is_requester"
+          },
+          "justification": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Justification"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "requested_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested By",
+            "description": "Who asked: panel user e-mail, 'e-mail (Slack)' or a token name"
+          },
+          "on_behalf": {
+            "type": "boolean",
+            "title": "On Behalf",
+            "description": "The person's manager asked for them"
+          },
+          "rejection_comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejection Comment",
+            "description": "Why it was rejected, when it was"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
+          },
+          "notified_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notified At"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/RequestPolicy",
+            "description": "The app's request policy now"
+          },
+          "seat_monthly_cost": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MoneyAmount"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Price of one seat per month in the app's currency"
+          },
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/AccessRequestDecisionOut"
+            },
+            "type": "array",
+            "title": "Decisions",
+            "description": "Oldest first"
+          },
+          "action": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccessRequestActionOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "person",
+          "app",
+          "action_id",
+          "action_status",
+          "channel",
+          "status",
+          "waiting_for",
+          "approver",
+          "fallback_reason",
+          "justification",
+          "role",
+          "message",
+          "requested_by",
+          "on_behalf",
+          "rejection_comment",
+          "created_at",
+          "closed_at",
+          "notified_at",
+          "policy",
+          "seat_monthly_cost",
+          "decisions",
+          "action"
+        ],
+        "title": "AccessRequestDetail"
       },
       "AccessRequestOut": {
         "properties": {
@@ -9943,10 +13685,70 @@
           },
           "channel": {
             "$ref": "#/components/schemas/AccessRequestChannel",
-            "description": "slack: asked the Slack agent; panel: asked on My access"
+            "description": "slack: asked the Slack agent; panel: the panel or the API"
           },
           "status": {
             "$ref": "#/components/schemas/AccessRequestStatus"
+          },
+          "waiting_for": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "manager",
+                  "admin"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Waiting For",
+            "description": "Who decides next; null when nobody (approved or closed)"
+          },
+          "approver": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PersonRef"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The manager the request waits for (or waited for)"
+          },
+          "fallback_reason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RequestFallbackReason"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why an admin decides instead of the manager: no_manager, manager_left, manager_no_access, manager_is_requester"
+          },
+          "justification": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Justification"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
           },
           "message": {
             "anyOf": [
@@ -9958,6 +13760,35 @@
               }
             ],
             "title": "Message"
+          },
+          "requested_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested By",
+            "description": "Who asked: panel user e-mail, 'e-mail (Slack)' or a token name"
+          },
+          "on_behalf": {
+            "type": "boolean",
+            "title": "On Behalf",
+            "description": "The person's manager asked for them"
+          },
+          "rejection_comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejection Comment",
+            "description": "Why it was rejected, when it was"
           },
           "created_at": {
             "type": "string",
@@ -9998,7 +13829,15 @@
           "action_status",
           "channel",
           "status",
+          "waiting_for",
+          "approver",
+          "fallback_reason",
+          "justification",
+          "role",
           "message",
+          "requested_by",
+          "on_behalf",
+          "rejection_comment",
           "created_at",
           "closed_at",
           "notified_at"
@@ -10029,9 +13868,12 @@
       "AccessRequestStatus": {
         "type": "string",
         "enum": [
-          "open",
+          "pending_manager",
+          "pending_admin",
+          "approved",
           "done",
           "failed",
+          "rejected",
           "cancelled"
         ],
         "title": "AccessRequestStatus"
@@ -10117,6 +13959,213 @@
         "type": "object",
         "title": "AccountCreate",
         "description": "A manual account in an app with ``integration = manual``.\n\nGive at least one of ``email``, ``username``, ``display_name``. Without\n``person_id`` the account is matched to a person by e-mail."
+      },
+      "AccountImportNewApp": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "catalog_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Catalog Key"
+          },
+          "app_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "App Id",
+            "description": "Set once saved; null with dry_run"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "catalog_key",
+          "app_id"
+        ],
+        "title": "AccountImportNewApp"
+      },
+      "AccountImportResult": {
+        "properties": {
+          "dry_run": {
+            "type": "boolean",
+            "title": "Dry Run"
+          },
+          "created": {
+            "type": "integer",
+            "title": "Created"
+          },
+          "updated": {
+            "type": "integer",
+            "title": "Updated"
+          },
+          "unchanged": {
+            "type": "integer",
+            "title": "Unchanged"
+          },
+          "failed": {
+            "type": "integer",
+            "title": "Failed"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/AccountImportRow"
+            },
+            "type": "array",
+            "title": "Rows"
+          },
+          "new_apps": {
+            "items": {
+              "$ref": "#/components/schemas/AccountImportNewApp"
+            },
+            "type": "array",
+            "title": "New Apps",
+            "description": "Apps the import creates (create_apps=true)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "dry_run",
+          "created",
+          "updated",
+          "unchanged",
+          "failed",
+          "rows",
+          "new_apps"
+        ],
+        "title": "AccountImportResult",
+        "description": "With ``dry_run`` nothing is saved and the counts say what would happen."
+      },
+      "AccountImportRow": {
+        "properties": {
+          "line": {
+            "type": "integer",
+            "title": "Line",
+            "description": "Line in the file (the header is line 1), or the position of a pasted e-mail"
+          },
+          "app": {
+            "type": "string",
+            "title": "App",
+            "description": "The app as written in the file"
+          },
+          "app_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "App Id",
+            "description": "Null for an app the import creates (until it is saved) or an error"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "action": {
+            "$ref": "#/components/schemas/ImportRowAction"
+          },
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id",
+            "description": "Existing account (update, unchanged) or the created one"
+          },
+          "person": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PersonRef"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Owner: matched by e-mail for new accounts"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/FieldChange"
+            },
+            "type": "array",
+            "title": "Changes"
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Errors"
+          }
+        },
+        "type": "object",
+        "required": [
+          "line",
+          "app",
+          "app_id",
+          "email",
+          "username",
+          "display_name",
+          "action",
+          "account_id",
+          "person",
+          "changes",
+          "errors"
+        ],
+        "title": "AccountImportRow",
+        "description": "What one CSV row (or one pasted e-mail) does."
       },
       "AccountKind": {
         "type": "string",
@@ -10440,6 +14489,22 @@
         "title": "AccountUpdate",
         "description": "Only the fields present in the request change.\n\nSetting ``person_id`` (also to null) is a manual assignment: sync never\noverrides it. ``role``, ``status`` and ``display_name`` can change only\non accounts without a connection."
       },
+      "AccountsPaste": {
+        "properties": {
+          "emails": {
+            "type": "string",
+            "maxLength": 500000,
+            "minLength": 1,
+            "title": "Emails"
+          }
+        },
+        "type": "object",
+        "required": [
+          "emails"
+        ],
+        "title": "AccountsPaste",
+        "description": "E-mails separated by new lines, commas or semicolons; ``Name <e-mail>`` works too."
+      },
       "ActionCreate": {
         "properties": {
           "kind": {
@@ -10614,6 +14679,30 @@
               }
             ],
             "title": "Approved At"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved By",
+            "description": "Who approved: panel user e-mail, 'e-mail (Slack)', a token, or 'Automatic (...)'"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By",
+            "description": "Who asked for it; null for workflows and old actions"
           },
           "started_at": {
             "anyOf": [
@@ -11160,7 +15249,8 @@
           "entity_id": {
             "type": "string",
             "format": "uuid",
-            "title": "Entity Id"
+            "title": "Entity Id",
+            "description": "The record; people_without_manager: the first of those people"
           },
           "app_id": {
             "anyOf": [
@@ -11198,7 +15288,7 @@
               }
             ],
             "title": "Count",
-            "description": "Number of items for grouped alerts (unassigned_accounts, discovered_sign_ins_at_risk)"
+            "description": "Number of items for grouped alerts (unassigned_accounts, discovered_sign_ins_at_risk, people_without_manager, profile_access_missing)"
           }
         },
         "type": "object",
@@ -11222,7 +15312,8 @@
           "connection",
           "action",
           "person",
-          "discovered_app"
+          "discovered_app",
+          "access_profile"
         ],
         "title": "AlertEntityType"
       },
@@ -11235,7 +15326,9 @@
           "connection_error",
           "action_failed",
           "person_inactive_in_source",
-          "discovered_sign_ins_at_risk"
+          "discovered_sign_ins_at_risk",
+          "people_without_manager",
+          "profile_access_missing"
         ],
         "title": "AlertKind"
       },
@@ -11487,13 +15580,179 @@
         "title": "AppBillingOut",
         "description": "What the app's own billing reports, read by the sync."
       },
-      "AppCreate": {
+      "AppBulkCreate": {
+        "properties": {
+          "apps": {
+            "items": {
+              "$ref": "#/components/schemas/AppBulkItem"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Apps"
+          }
+        },
+        "type": "object",
+        "required": [
+          "apps"
+        ],
+        "title": "AppBulkCreate"
+      },
+      "AppBulkItem": {
+        "properties": {
+          "catalog_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Catalog Key",
+            "description": "Slug in the app catalog (GET /api/catalog/search)"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "title": "AppBulkItem",
+        "description": "One app: from the catalog (``catalog_key``) or by name."
+      },
+      "AppBulkResult": {
+        "properties": {
+          "created": {
+            "items": {
+              "$ref": "#/components/schemas/AppRef"
+            },
+            "type": "array",
+            "title": "Created"
+          },
+          "skipped": {
+            "items": {
+              "$ref": "#/components/schemas/AppBulkSkipped"
+            },
+            "type": "array",
+            "title": "Skipped"
+          }
+        },
+        "type": "object",
+        "required": [
+          "created",
+          "skipped"
+        ],
+        "title": "AppBulkResult",
+        "description": "New apps are manual and free: set prices and connections on each app later."
+      },
+      "AppBulkSkipped": {
         "properties": {
           "name": {
             "type": "string",
-            "maxLength": 200,
-            "minLength": 1,
             "title": "Name"
+          },
+          "catalog_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Catalog Key"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "app_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "App Id",
+            "description": "The app that already exists, when that is the reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "catalog_key",
+          "reason",
+          "app_id"
+        ],
+        "title": "AppBulkSkipped"
+      },
+      "AppCreate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "catalog_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Catalog Key",
+            "description": "Slug in the app catalog (GET /api/catalog/search)"
+          },
+          "website": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website",
+            "description": "The app's public website, https://..."
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 50
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category",
+            "description": "Free text, stored lowercase. Suggested: communication, development, design, ai, sales, finance, hr, security, infrastructure, productivity, other"
           },
           "slug": {
             "anyOf": [
@@ -11550,17 +15809,14 @@
             ],
             "title": "Notes"
           },
-          "self_service": {
-            "$ref": "#/components/schemas/SelfServicePolicy",
-            "default": "approval"
+          "request_policy": {
+            "$ref": "#/components/schemas/RequestPolicy",
+            "default": "manager"
           }
         },
         "type": "object",
-        "required": [
-          "name"
-        ],
         "title": "AppCreate",
-        "description": "``price`` is required unless ``pricing_model`` is free, and must be null when it is."
+        "description": "``price`` is required unless ``pricing_model`` is free, and must be null when it is.\n\nGive ``name`` or ``catalog_key``: with only ``catalog_key`` the name and website come from the catalog."
       },
       "AppDetail": {
         "properties": {
@@ -11587,6 +15843,52 @@
               }
             ],
             "title": "Admin Url"
+          },
+          "catalog_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Catalog Key",
+            "description": "Slug in the app catalog, when the app was picked from it"
+          },
+          "website": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url",
+            "description": "Uploaded logo, else the catalog's; null without one"
           },
           "integration": {
             "$ref": "#/components/schemas/Integration"
@@ -11700,9 +16002,9 @@
             "title": "Delete Suspends",
             "description": "The connector suspends instead of deleting; UI label \"Suspend\""
           },
-          "self_service": {
-            "$ref": "#/components/schemas/SelfServicePolicy",
-            "description": "What the Slack agent does when a person asks for an account"
+          "request_policy": {
+            "$ref": "#/components/schemas/RequestPolicy",
+            "description": "Who approves when a person asks for an account"
           },
           "created_at": {
             "type": "string",
@@ -11748,6 +16050,10 @@
           "name",
           "slug",
           "admin_url",
+          "catalog_key",
+          "website",
+          "category",
+          "logo_url",
           "integration",
           "pricing_model",
           "price",
@@ -11763,7 +16069,7 @@
           "create_mode",
           "delete_mode",
           "delete_suspends",
-          "self_service",
+          "request_policy",
           "created_at",
           "notes",
           "connection",
@@ -11796,6 +16102,52 @@
               }
             ],
             "title": "Admin Url"
+          },
+          "catalog_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Catalog Key",
+            "description": "Slug in the app catalog, when the app was picked from it"
+          },
+          "website": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url",
+            "description": "Uploaded logo, else the catalog's; null without one"
           },
           "integration": {
             "$ref": "#/components/schemas/Integration"
@@ -11909,9 +16261,9 @@
             "title": "Delete Suspends",
             "description": "The connector suspends instead of deleting; UI label \"Suspend\""
           },
-          "self_service": {
-            "$ref": "#/components/schemas/SelfServicePolicy",
-            "description": "What the Slack agent does when a person asks for an account"
+          "request_policy": {
+            "$ref": "#/components/schemas/RequestPolicy",
+            "description": "Who approves when a person asks for an account"
           },
           "created_at": {
             "type": "string",
@@ -11925,6 +16277,10 @@
           "name",
           "slug",
           "admin_url",
+          "catalog_key",
+          "website",
+          "category",
+          "logo_url",
           "integration",
           "pricing_model",
           "price",
@@ -11940,7 +16296,7 @@
           "create_mode",
           "delete_mode",
           "delete_suspends",
-          "self_service",
+          "request_policy",
           "created_at"
         ],
         "title": "AppListItem"
@@ -11957,12 +16313,21 @@
           "total": {
             "type": "integer",
             "title": "Total"
+          },
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Categories",
+            "description": "Every category used by an app, for the filter"
           }
         },
         "type": "object",
         "required": [
           "items",
-          "total"
+          "total",
+          "categories"
         ],
         "title": "AppPage"
       },
@@ -11980,6 +16345,18 @@
           "slug": {
             "type": "string",
             "title": "Slug"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url",
+            "description": "Uploaded logo, else the catalog's; null without one (show initials)"
           }
         },
         "type": "object",
@@ -11989,6 +16366,45 @@
           "slug"
         ],
         "title": "AppRef"
+      },
+      "AppRoleSuggestionList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AppRoleSuggestions"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "AppRoleSuggestionList"
+      },
+      "AppRoleSuggestions": {
+        "properties": {
+          "app_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "App Id"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Roles",
+            "description": "Roles of existing accounts in the app, most common first"
+          }
+        },
+        "type": "object",
+        "required": [
+          "app_id",
+          "roles"
+        ],
+        "title": "AppRoleSuggestions"
       },
       "AppUpdate": {
         "properties": {
@@ -12071,16 +16487,42 @@
             ],
             "title": "Notes"
           },
-          "self_service": {
+          "website": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SelfServicePolicy"
+                "type": "string",
+                "maxLength": 500
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Requests through the Slack agent: off, approval (an admin approves), automatic"
+            "title": "Website",
+            "description": "The app's public website, https://..."
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 50
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category",
+            "description": "Free text, stored lowercase. Suggested: communication, development, design, ai, sales, finance, hr, security, infrastructure, productivity, other"
+          },
+          "request_policy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RequestPolicy"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Who approves access requests: off, automatic, manager, manager_then_admin, admin"
           },
           "price_from_app": {
             "anyOf": [
@@ -12362,13 +16804,28 @@
         ],
         "title": "BillingPeriod"
       },
+      "Body_import_accounts": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "description": "CSV: app,email,username,display_name,role,status,kind"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_import_accounts"
+      },
       "Body_import_people": {
         "properties": {
           "file": {
             "type": "string",
             "contentMediaType": "application/octet-stream",
             "title": "File",
-            "description": "CSV: email,first_name,last_name,employee_code,aliases"
+            "description": "CSV: email,first_name,last_name,employee_code,aliases,manager_email,department,job_title"
           }
         },
         "type": "object",
@@ -12394,6 +16851,21 @@
         },
         "type": "object",
         "title": "Body_set_slack_avatar"
+      },
+      "Body_upload_app_logo": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "description": "PNG, JPEG, WebP or SVG, at most 256 KB"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_app_logo"
       },
       "BrowserApp": {
         "properties": {
@@ -12743,6 +17215,98 @@
         ],
         "title": "CatalogMatchOut",
         "description": "What the catalog knows about a found app."
+      },
+      "CatalogSearchItem": {
+        "properties": {
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "website": {
+            "type": "string",
+            "title": "Website"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
+          },
+          "connector_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Connector Key",
+            "description": "Connector that reads this app's accounts, when there is one"
+          },
+          "already_added": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Already Added",
+            "description": "Id of the app in Open Revoke with this catalog_key or name; null when not added yet"
+          },
+          "discovered_users": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discovered Users",
+            "description": "People who signed in with Google, when discovery found the app and it is not tracked yet"
+          }
+        },
+        "type": "object",
+        "required": [
+          "slug",
+          "name",
+          "website",
+          "logo_url",
+          "connector_key",
+          "already_added",
+          "discovered_users"
+        ],
+        "title": "CatalogSearchItem",
+        "description": "A catalog app as \"Add app\" offers it."
+      },
+      "CatalogSearchList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CatalogSearchItem"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "CatalogSearchList"
       },
       "ChangePasswordRequest": {
         "properties": {
@@ -13276,6 +17840,32 @@
         ],
         "title": "DashboardCounts"
       },
+      "DecisionOutcome": {
+        "type": "string",
+        "enum": [
+          "approved",
+          "rejected"
+        ],
+        "title": "DecisionOutcome"
+      },
+      "DecisionStep": {
+        "type": "string",
+        "enum": [
+          "manager",
+          "admin"
+        ],
+        "title": "DecisionStep"
+      },
+      "DecisionVia": {
+        "type": "string",
+        "enum": [
+          "panel",
+          "slack",
+          "api",
+          "automatic"
+        ],
+        "title": "DecisionVia"
+      },
       "DevPrefill": {
         "properties": {
           "organization_name": {
@@ -13441,6 +18031,18 @@
             "type": "array",
             "title": "Grants",
             "description": "At-risk people first, then by last sign-in"
+          },
+          "accounts_created": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accounts Created",
+            "description": "Only in the answer to track with create_accounts: accounts it added"
           }
         },
         "type": "object",
@@ -13623,6 +18225,12 @@
             ],
             "title": "Name",
             "description": "Defaults to the found name"
+          },
+          "create_accounts": {
+            "type": "boolean",
+            "title": "Create Accounts",
+            "description": "Also add an active account for every person who signed in and is active in the directory. Only for apps without a connector. Off by default: a Google sign-in does not prove a paid seat",
+            "default": false
           }
         },
         "type": "object",
@@ -14057,6 +18665,34 @@
         ],
         "title": "ExchangeRatesInfo"
       },
+      "ExtraAccess": {
+        "properties": {
+          "account": {
+            "$ref": "#/components/schemas/AccountRef"
+          },
+          "app": {
+            "$ref": "#/components/schemas/AppRef"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account",
+          "app",
+          "role"
+        ],
+        "title": "ExtraAccess"
+      },
       "FieldChange": {
         "properties": {
           "field": {
@@ -14457,6 +19093,42 @@
             "type": "array",
             "title": "Aliases",
             "description": "create rows: the new person's aliases"
+          },
+          "manager_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manager Email",
+            "description": "create rows: the new person's manager"
+          },
+          "department": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department",
+            "description": "create rows: the new person's department"
+          },
+          "job_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Title",
+            "description": "create rows: the new person's job title"
           }
         },
         "type": "object",
@@ -14664,6 +19336,15 @@
         ],
         "title": "LoginRequest"
       },
+      "ManagerSource": {
+        "type": "string",
+        "enum": [
+          "auto",
+          "manual"
+        ],
+        "title": "ManagerSource",
+        "description": "Who set a person's manager. A manual choice wins: syncs never change it."
+      },
       "MatchMethod": {
         "type": "string",
         "enum": [
@@ -14681,6 +19362,128 @@
           "name"
         ],
         "title": "MatchedBy"
+      },
+      "MembersAssign": {
+        "properties": {
+          "person_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 500,
+            "minItems": 1,
+            "title": "Person Ids"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "title": "Dry Run",
+            "description": "Preview the actions and their cost without saving",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "person_ids"
+        ],
+        "title": "MembersAssign",
+        "description": "Already assigned people stay; they get creations for what they now miss."
+      },
+      "MembersAssignResult": {
+        "properties": {
+          "dry_run": {
+            "type": "boolean",
+            "title": "Dry Run"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProfileAssignResult"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "One per person, each with its own batch"
+          },
+          "skipped_people": {
+            "items": {
+              "$ref": "#/components/schemas/SkippedPerson"
+            },
+            "type": "array",
+            "title": "Skipped People",
+            "description": "People who left: they cannot get a profile"
+          },
+          "monthly_cost": {
+            "items": {
+              "$ref": "#/components/schemas/MoneyAmount"
+            },
+            "type": "array",
+            "title": "Monthly Cost"
+          },
+          "monthly_cost_total": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MoneyAmount"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "dry_run",
+          "items",
+          "skipped_people",
+          "monthly_cost",
+          "monthly_cost_total"
+        ],
+        "title": "MembersAssignResult"
+      },
+      "MissingAccess": {
+        "properties": {
+          "app": {
+            "$ref": "#/components/schemas/AppRef"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role",
+            "description": "Role the profiles give (null: any)"
+          },
+          "profiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Profiles",
+            "description": "Profiles of the person that give the app"
+          }
+        },
+        "type": "object",
+        "required": [
+          "app",
+          "logo_url",
+          "role",
+          "profiles"
+        ],
+        "title": "MissingAccess"
       },
       "MoneyAmount": {
         "properties": {
@@ -14738,7 +19541,7 @@
             },
             "type": "array",
             "title": "Requestable Apps",
-            "description": "Apps the user can ask for: self-service on, no account and no open request yet"
+            "description": "Apps the user can ask for: policy not off, no account and no open request yet"
           }
         },
         "type": "object",
@@ -14757,23 +19560,44 @@
             "format": "uuid",
             "title": "App Id"
           },
-          "message": {
+          "justification": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Justification",
+            "description": "Why it is needed; the approver reads it"
+          },
+          "role": {
             "anyOf": [
               {
                 "type": "string",
-                "maxLength": 2000
+                "maxLength": 100
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Message",
-            "description": "Why the user needs it, for the admin"
+            "title": "Role",
+            "description": "Role asked for in the app"
+          },
+          "person_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Person Id",
+            "description": "Ask for one of your reports (you are their manager); empty asks for yourself"
           }
         },
         "type": "object",
         "required": [
-          "app_id"
+          "app_id",
+          "justification"
         ],
         "title": "MyAccessRequestCreate"
       },
@@ -14782,7 +19606,7 @@
           "outcome": {
             "type": "string",
             "title": "Outcome",
-            "description": "in_progress, waiting_for_approval, waiting_for_admin, already_has_account, already_requested or not_available"
+            "description": "in_progress, waiting_for_manager, waiting_for_approval (an admin), waiting_for_admin (an admin creates it by hand), already_has_account or not_available"
           },
           "app_name": {
             "type": "string",
@@ -14797,14 +19621,28 @@
                 "type": "null"
               }
             ],
-            "title": "Note"
+            "title": "Note",
+            "description": "waiting_for_manager: the manager's name; else why it waits for an admin"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Id"
           }
         },
         "type": "object",
         "required": [
           "outcome",
           "app_name",
-          "note"
+          "note",
+          "request_id"
         ],
         "title": "MyAccessRequestResult"
       },
@@ -14886,6 +19724,39 @@
         ],
         "title": "MyAccount"
       },
+      "MyApprovals": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AccessRequestOut"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "pending": {
+            "type": "integer",
+            "title": "Pending",
+            "description": "Requests waiting for the signed-in user's decision"
+          },
+          "has_reports": {
+            "type": "boolean",
+            "title": "Has Reports",
+            "description": "Someone has the signed-in user as their manager"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "pending",
+          "has_reports"
+        ],
+        "title": "MyApprovals"
+      },
       "MyRequest": {
         "properties": {
           "request_id": {
@@ -14896,10 +19767,48 @@
           "app": {
             "$ref": "#/components/schemas/AppRef"
           },
-          "state": {
-            "$ref": "#/components/schemas/RequestState"
+          "status": {
+            "$ref": "#/components/schemas/AccessRequestStatus"
           },
-          "message": {
+          "waiting_for": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "manager",
+                  "admin"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Waiting For",
+            "description": "Who decides next: the manager or an admin"
+          },
+          "approver": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PersonRef"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The manager the request waits for (or waited for)"
+          },
+          "fallback_reason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RequestFallbackReason"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why an admin decides instead of the manager"
+          },
+          "justification": {
             "anyOf": [
               {
                 "type": "string"
@@ -14908,23 +19817,99 @@
                 "type": "null"
               }
             ],
-            "title": "Message"
+            "title": "Justification"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "rejection_comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejection Comment",
+            "description": "Why it was rejected, when it was"
+          },
+          "requested_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested By"
+          },
+          "on_behalf": {
+            "type": "boolean",
+            "title": "On Behalf",
+            "description": "The manager asked for the person"
           },
           "created_at": {
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closed At"
           }
         },
         "type": "object",
         "required": [
           "request_id",
           "app",
-          "state",
-          "message",
-          "created_at"
+          "status",
+          "waiting_for",
+          "approver",
+          "fallback_reason",
+          "justification",
+          "role",
+          "rejection_comment",
+          "requested_by",
+          "on_behalf",
+          "created_at",
+          "closed_at"
         ],
         "title": "MyRequest"
+      },
+      "MyTeam": {
+        "properties": {
+          "reports": {
+            "items": {
+              "$ref": "#/components/schemas/TeamMember"
+            },
+            "type": "array",
+            "title": "Reports",
+            "description": "People whose manager is the signed-in user, by name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reports"
+        ],
+        "title": "MyTeam"
       },
       "NotApproved": {
         "properties": {
@@ -15442,6 +20427,123 @@
         "title": "PeopleImport",
         "description": "Where the admin said the company's people come from (onboarding, ``/welcome``)."
       },
+      "PersonAccessDrift": {
+        "properties": {
+          "missing": {
+            "items": {
+              "$ref": "#/components/schemas/MissingAccess"
+            },
+            "type": "array",
+            "title": "Missing",
+            "description": "Apps of the profiles without an account or an open creation"
+          },
+          "extra": {
+            "items": {
+              "$ref": "#/components/schemas/ExtraAccess"
+            },
+            "type": "array",
+            "title": "Extra",
+            "description": "Accounts in apps outside every profile of the person; empty when the person has no profile"
+          },
+          "role_mismatch": {
+            "items": {
+              "$ref": "#/components/schemas/RoleMismatch"
+            },
+            "type": "array",
+            "title": "Role Mismatch"
+          },
+          "person": {
+            "$ref": "#/components/schemas/PersonRef"
+          },
+          "profiles": {
+            "items": {
+              "$ref": "#/components/schemas/ProfileRef"
+            },
+            "type": "array",
+            "title": "Profiles"
+          }
+        },
+        "type": "object",
+        "required": [
+          "missing",
+          "extra",
+          "role_mismatch",
+          "person",
+          "profiles"
+        ],
+        "title": "PersonAccessDrift"
+      },
+      "PersonAccessProfileList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PersonAccessProfileOut"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "PersonAccessProfileList"
+      },
+      "PersonAccessProfileOut": {
+        "properties": {
+          "profile": {
+            "$ref": "#/components/schemas/ProfileRef"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "auto_approve_requests": {
+            "type": "boolean",
+            "title": "Auto Approve Requests"
+          },
+          "apps": {
+            "items": {
+              "$ref": "#/components/schemas/AccessProfileAppOut"
+            },
+            "type": "array",
+            "title": "Apps"
+          },
+          "assigned_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Assigned At"
+          },
+          "assigned_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned By"
+          }
+        },
+        "type": "object",
+        "required": [
+          "profile",
+          "description",
+          "auto_approve_requests",
+          "apps",
+          "assigned_at",
+          "assigned_by"
+        ],
+        "title": "PersonAccessProfileOut"
+      },
       "PersonAccountOut": {
         "properties": {
           "id": {
@@ -15661,6 +20763,43 @@
             "type": "array",
             "title": "Aliases",
             "description": "Alias e-mails used to match accounts"
+          },
+          "manager_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manager Id",
+            "description": "The person's manager (set as manual)"
+          },
+          "department": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department"
+          },
+          "job_title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Title"
           }
         },
         "type": "object",
@@ -15735,6 +20874,43 @@
             ],
             "title": "Kind Reason",
             "description": "Why the rules made it a service account"
+          },
+          "department": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department"
+          },
+          "job_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Title"
+          },
+          "manager": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PersonRef"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The person's manager; approves their access requests"
+          },
+          "manager_source": {
+            "$ref": "#/components/schemas/ManagerSource",
+            "description": "auto: a people source sets it (a sync may change it); manual: an admin or a CSV import"
           },
           "accounts_count": {
             "type": "integer",
@@ -15815,6 +20991,14 @@
             "type": "boolean",
             "title": "Can Delete",
             "description": "True when the person has no accounts and no actions (DELETE allowed)"
+          },
+          "reports": {
+            "items": {
+              "$ref": "#/components/schemas/PersonRef"
+            },
+            "type": "array",
+            "title": "Reports",
+            "description": "People whose manager is this person, active first"
           }
         },
         "type": "object",
@@ -15829,6 +21013,10 @@
           "kind",
           "kind_source",
           "kind_reason",
+          "department",
+          "job_title",
+          "manager",
+          "manager_source",
           "accounts_count",
           "apps",
           "monthly_cost",
@@ -15839,7 +21027,8 @@
           "aliases",
           "sources",
           "accounts",
-          "can_delete"
+          "can_delete",
+          "reports"
         ],
         "title": "PersonDetail"
       },
@@ -16053,6 +21242,43 @@
             "title": "Kind Reason",
             "description": "Why the rules made it a service account"
           },
+          "department": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department"
+          },
+          "job_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Title"
+          },
+          "manager": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PersonRef"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The person's manager; approves their access requests"
+          },
+          "manager_source": {
+            "$ref": "#/components/schemas/ManagerSource",
+            "description": "auto: a people source sets it (a sync may change it); manual: an admin or a CSV import"
+          },
           "accounts_count": {
             "type": "integer",
             "title": "Accounts Count",
@@ -16108,6 +21334,10 @@
           "kind",
           "kind_source",
           "kind_reason",
+          "department",
+          "job_title",
+          "manager",
+          "manager_source",
           "accounts_count",
           "apps",
           "monthly_cost",
@@ -16353,11 +21583,120 @@
               }
             ],
             "description": "Person or service account; an admin's choice is kept"
+          },
+          "manager_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manager Id",
+            "description": "Manager; null clears it. Syncs keep this choice"
+          },
+          "department": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department"
+          },
+          "job_title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Title"
           }
         },
         "type": "object",
         "title": "PersonUpdate",
-        "description": "Only the fields present in the request change.\n\n``status = left`` sets ``left_at`` to now unless ``left_at`` is given;\n``status = active`` clears it. ``aliases`` replaces the whole alias list."
+        "description": "Only the fields present in the request change.\n\n``status = left`` sets ``left_at`` to now unless ``left_at`` is given;\n``status = active`` clears it. ``aliases`` replaces the whole alias list.\n``manager_id`` sets the manager by hand (``manager_source = manual``, kept by syncs); null\nclears it, also as manual. A manager who already reports to this person, directly or through\nothers, is refused (400)."
+      },
+      "PlannedAction": {
+        "properties": {
+          "app": {
+            "$ref": "#/components/schemas/AppRef"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "write_mode": {
+            "$ref": "#/components/schemas/WriteMode",
+            "description": "automatic, writes_disabled or manual (a manual task)"
+          },
+          "profiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Profiles"
+          },
+          "monthly_cost": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MoneyAmount"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What the new seat adds per month, in the app's currency"
+          },
+          "monthly_cost_converted": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MoneyAmount"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "app",
+          "logo_url",
+          "role",
+          "write_mode",
+          "profiles",
+          "monthly_cost",
+          "monthly_cost_converted"
+        ],
+        "title": "PlannedAction"
       },
       "PriceIn": {
         "properties": {
@@ -16424,6 +21763,176 @@
           "free"
         ],
         "title": "PricingModel"
+      },
+      "ProfileAssign": {
+        "properties": {
+          "profile_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Profile Ids"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "title": "Dry Run",
+            "description": "Preview the actions and their cost without saving",
+            "default": false
+          },
+          "create_actions": {
+            "type": "boolean",
+            "title": "Create Actions",
+            "description": "False: only assign (the panel's Onboard page creates the accounts itself in one batch)",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "profile_ids"
+        ],
+        "title": "ProfileAssign"
+      },
+      "ProfileAssignResult": {
+        "properties": {
+          "person": {
+            "$ref": "#/components/schemas/PersonRef"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "title": "Dry Run"
+          },
+          "assigned": {
+            "items": {
+              "$ref": "#/components/schemas/ProfileRef"
+            },
+            "type": "array",
+            "title": "Assigned",
+            "description": "Profiles new to the person"
+          },
+          "planned": {
+            "items": {
+              "$ref": "#/components/schemas/PlannedAction"
+            },
+            "type": "array",
+            "title": "Planned"
+          },
+          "skipped": {
+            "items": {
+              "$ref": "#/components/schemas/OnboardSkipped"
+            },
+            "type": "array",
+            "title": "Skipped",
+            "description": "Apps of the profiles the person has, or that are being created"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings",
+            "description": "Two profiles give the same app different roles, and which one wins"
+          },
+          "monthly_cost": {
+            "items": {
+              "$ref": "#/components/schemas/MoneyAmount"
+            },
+            "type": "array",
+            "title": "Monthly Cost",
+            "description": "What the new seats add per month, per currency"
+          },
+          "monthly_cost_total": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MoneyAmount"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "batch_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batch Id",
+            "description": "Batch of the created actions; null for dry_run or no actions"
+          },
+          "actions": {
+            "items": {
+              "$ref": "#/components/schemas/ActionOut"
+            },
+            "type": "array",
+            "title": "Actions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "person",
+          "dry_run",
+          "assigned",
+          "planned",
+          "skipped",
+          "warnings",
+          "monthly_cost",
+          "monthly_cost_total",
+          "batch_id",
+          "actions"
+        ],
+        "title": "ProfileAssignResult",
+        "description": "With ``dry_run`` nothing is saved: ``planned`` is what saving would create, ``actions`` is empty.\n\nOtherwise the profiles are assigned and ``actions`` wait for approval as one batch\n(``POST /api/actions/batch/{batch_id}/approve``)."
+      },
+      "ProfileRef": {
+        "properties": {
+          "profile_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Profile Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "profile_id",
+          "name"
+        ],
+        "title": "ProfileRef"
+      },
+      "ProfileUnassignResult": {
+        "properties": {
+          "person": {
+            "$ref": "#/components/schemas/PersonRef"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/ProfileRef"
+          },
+          "suggested_removals": {
+            "items": {
+              "$ref": "#/components/schemas/SuggestedRemoval"
+            },
+            "type": "array",
+            "title": "Suggested Removals"
+          }
+        },
+        "type": "object",
+        "required": [
+          "person",
+          "profile",
+          "suggested_removals"
+        ],
+        "title": "ProfileUnassignResult",
+        "description": "The profile is removed from the person; nothing is deleted in apps.\n\n``suggested_removals``: accounts in apps that only this profile gave. Create ``delete_account``\nactions for the ones to remove (``POST /api/actions``)."
       },
       "RecipeFixList": {
         "properties": {
@@ -16586,32 +22095,52 @@
         ],
         "title": "RegisterRequest"
       },
-      "RequestState": {
+      "RequestFallbackReason": {
         "type": "string",
         "enum": [
-          "waiting_for_approval",
-          "in_progress",
-          "done",
-          "failed",
-          "cancelled"
+          "no_manager",
+          "manager_left",
+          "manager_no_access",
+          "manager_is_requester"
         ],
-        "title": "RequestState"
+        "title": "RequestFallbackReason",
+        "description": "Why a request skipped the manager step and went to an admin."
+      },
+      "RequestPolicy": {
+        "type": "string",
+        "enum": [
+          "off",
+          "automatic",
+          "manager",
+          "manager_then_admin",
+          "admin"
+        ],
+        "title": "RequestPolicy",
+        "description": "Who approves when a person asks for an account in the app (panel, Slack agent, API)."
       },
       "RequestableApp": {
         "properties": {
           "app": {
             "$ref": "#/components/schemas/AppRef"
           },
-          "needs_approval": {
-            "type": "boolean",
-            "title": "Needs Approval",
-            "description": "False: the account is created without waiting for an admin"
+          "policy": {
+            "$ref": "#/components/schemas/RequestPolicy",
+            "description": "Who approves: automatic, manager, manager_then_admin or admin"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Roles",
+            "description": "Roles of existing accounts in the app, as suggestions"
           }
         },
         "type": "object",
         "required": [
           "app",
-          "needs_approval"
+          "policy",
+          "roles"
         ],
         "title": "RequestableApp"
       },
@@ -16657,6 +22186,42 @@
           "password"
         ],
         "title": "ResetPasswordRequest"
+      },
+      "RoleMismatch": {
+        "properties": {
+          "account": {
+            "$ref": "#/components/schemas/AccountRef"
+          },
+          "app": {
+            "$ref": "#/components/schemas/AppRef"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role",
+            "description": "Role of the account"
+          },
+          "expected_role": {
+            "type": "string",
+            "title": "Expected Role",
+            "description": "Role the profiles give"
+          },
+          "profiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Profiles"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account",
+          "app",
+          "role",
+          "expected_role",
+          "profiles"
+        ],
+        "title": "RoleMismatch"
       },
       "ScanRunOut": {
         "properties": {
@@ -16817,16 +22382,6 @@
           "failed"
         ],
         "title": "ScanRunStatus"
-      },
-      "SelfServicePolicy": {
-        "type": "string",
-        "enum": [
-          "off",
-          "approval",
-          "automatic"
-        ],
-        "title": "SelfServicePolicy",
-        "description": "What the Slack agent does when a person asks for an account in the app."
       },
       "SetupRequest": {
         "properties": {
@@ -16998,6 +22553,23 @@
           "status"
         ],
         "title": "SignupResult"
+      },
+      "SkippedPerson": {
+        "properties": {
+          "person": {
+            "$ref": "#/components/schemas/PersonRef"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "person",
+          "reason"
+        ],
+        "title": "SkippedPerson"
       },
       "SlackAgentOut": {
         "properties": {
@@ -17298,6 +22870,39 @@
         ],
         "title": "StepState"
       },
+      "SuggestedRemoval": {
+        "properties": {
+          "account": {
+            "$ref": "#/components/schemas/AccountRef"
+          },
+          "app": {
+            "$ref": "#/components/schemas/AppRef"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "write_mode": {
+            "$ref": "#/components/schemas/WriteMode",
+            "description": "What a delete_account action would do in the app"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account",
+          "app",
+          "role",
+          "write_mode"
+        ],
+        "title": "SuggestedRemoval"
+      },
       "SyncRunOut": {
         "properties": {
           "id": {
@@ -17406,6 +23011,15 @@
             "title": "Version",
             "description": "Version of this installation; `dev` in the local stack"
           },
+          "install_method": {
+            "type": "string",
+            "enum": [
+              "compose",
+              "helm"
+            ],
+            "title": "Install Method",
+            "description": "How it was installed (OPEN_REVOKE_INSTALL_METHOD): `compose` updates with `open-revoke update`, `helm` with `helm upgrade`"
+          },
           "update_check": {
             "type": "boolean",
             "title": "Update Check",
@@ -17472,6 +23086,7 @@
         "type": "object",
         "required": [
           "version",
+          "install_method",
           "update_check",
           "latest_version",
           "latest_url",
@@ -17481,6 +23096,35 @@
           "security_update"
         ],
         "title": "SystemVersion"
+      },
+      "TeamMember": {
+        "properties": {
+          "person": {
+            "$ref": "#/components/schemas/PersonRef"
+          },
+          "apps": {
+            "items": {
+              "$ref": "#/components/schemas/AppRef"
+            },
+            "type": "array",
+            "title": "Apps",
+            "description": "Apps where the person has an account"
+          },
+          "requestable_apps": {
+            "items": {
+              "$ref": "#/components/schemas/RequestableApp"
+            },
+            "type": "array",
+            "title": "Requestable Apps"
+          }
+        },
+        "type": "object",
+        "required": [
+          "person",
+          "apps",
+          "requestable_apps"
+        ],
+        "title": "TeamMember"
       },
       "TotpDisableRequest": {
         "properties": {

@@ -1,73 +1,73 @@
 # open-revoke/backend/app/services/
 
-Logic between `app/api/`, `app/temporal/` activities and `app/models/`. Services raise `errors` subclasses (mapped to HTTP by `app.api.errors`) and call `audit.record` on writes. Activities only call these services.
+Logic used by `app/api/` and `app/temporal/` activities. Raise `errors` subclasses (HTTP codes in `app.api.errors`); call `audit.record` on writes.
 
 - `__init__.py`: empty.
-- `errors.py`: `DomainError` and subclasses (`NotFoundError`, `ConflictError`, ...).
+- `errors.py`: `DomainError`, `NotFoundError`, `ConflictError`, ...
 - `auth/`: own AGENTS.md. Sign-in, 2FA, sessions, invites.
 - `google_cloud_setup/`: own AGENTS.md. Browser-driven Google Cloud setup.
-- `access/`: own AGENTS.md. Access requests and approvals, managers, access profiles, My access.
-- `audit.py`: `record`, `list_events`; append-only log, also fills app and person of an event.
-- `presenters.py`: model to schema builders (`account_out`, `app_ref`, `app_logo_url`, `person_ref`, `money`), shared by services.
-- `apps.py`: app CRUD with seats (`seat_stats`); `add_app` (no audit, from `catalog_key` too), `used_categories`, `clean_category`.
-- `apps_bulk.py`: `create_apps` ("Add several apps": skip existing, one `app.bulk_created` event), `existing_apps`.
-- `app_logos.py`: uploaded logos: `set_logo` (type from bytes, SVG checks), `delete_logo`, `get_logo` (the only read of the deferred `app.logo`).
+- `access/`: own AGENTS.md. Access requests, approvals, access profiles, My access.
+- `audit.py`: `record`, `list_events`: append-only log.
+- `presenters.py`: shared schema builders (`account_out`, `app_ref`, `app_logo_url`, `person_ref`, `money`).
+- `apps.py`: CRUD, `seat_stats`, `add_app` (no audit, also from `catalog_key`), `used_categories`, `clean_category`.
+- `apps_bulk.py`: `create_apps` (skips existing, one `app.bulk_created` event), `existing_apps`.
+- `app_logos.py`: `set_logo` (type from bytes, SVG checks), `delete_logo`, `get_logo` (only read of the deferred `app.logo`).
 - `catalog_search.py`: `search` for "Add app" (already added, found by discovery), `discovered_untracked`.
 - `accounts.py`: `list_app_accounts`, `create_manual_account`, `update_account`, `set_owner`, `rematch_accounts`.
-- `accounts_import.py`: accounts in bulk for manual apps: `import_csv` (`create_apps`), `import_emails` (pasted), `add_people_accounts` (discovery); `dry_run` plans per row.
-- `matching.py`: account to person by e-mail, order manual, primary, alias (`resolve_match`, `match_email`, `EmailIndex`).
-- `people.py`: people CRUD with e-mail and code uniqueness checks; manager, department, job title, `no_manager` filter.
-- `people_managers.py`: reporting lines: `set_manager` (panel, manual), `creates_cycle`, `manager_map`, `reports_of`, `without_manager_clause`, `needs_manager_clause` (dashboard alert).
+- `accounts_import.py`: `import_csv` (`create_apps`), `import_emails` (pasted), `add_people_accounts` (discovery); `dry_run`.
+- `matching.py`: `resolve_match` (manual, then primary e-mail, then alias), `match_email`, `EmailIndex`.
+- `people.py`: CRUD, unique e-mail and code, `no_manager` filter.
+- `people_managers.py`: `set_manager` (panel), `creates_cycle`, `manager_map`, `reports_of`, `without_manager_clause`, `needs_manager_clause` (dashboard alert).
 - `people_import.py`: CSV import (`parse_csv`, `import_people` with `dry_run`).
-- `people_import_managers.py`: `resolve_managers`: `manager_email` column of the CSV import (stored person or row of the file, loops refused).
-- `people_sources.py`: `get_or_create_source`, `upsert_link`, `source_names` (where a person comes from).
-- `people_sync.py`: `apply_people` stores `RemotePerson`s from a people-source connection (department, job title, then managers in a second pass), called by `sync.run`.
-- `person_kind.py`: `classify` decides person or service account from address and name, returns a reason.
+- `people_import_managers.py`: `resolve_managers` for the CSV `manager_email` column (loops refused).
+- `people_sources.py`: `get_or_create_source`, `upsert_link`, `source_names`.
+- `people_sync.py`: `apply_people` stores `RemotePerson`s (managers in a second pass), from `sync.run`.
+- `person_kind.py`: `classify`: person or service account.
 - `connections.py`: connector `catalog`, `upsert_connection` (encrypts secrets), `check_connection`, `set_status`, `split_form`.
-- `connector_runtime.py`: `resolve_connector`, `parse_config`, `open_context` (secrets, HTTP client); every connector call.
+- `connector_runtime.py`: `resolve_connector`, `parse_config`, `open_context` ; every connector call.
 - `secret_box.py`: Fernet with `OPEN_REVOKE_SECRET_KEY`: `encrypt_secrets`, `decrypt_secrets`, `encrypt_value`, `decrypt_value`.
-- `connection_lock.py`: Redis lock, one sync or action per connection (`connection_lock`, `is_locked`, `ConnectionBusyError`).
+- `connection_lock.py`: `connection_lock` (Redis, one sync or action per connection), `is_locked`, `ConnectionBusyError`.
 - `capabilities.py`: `write_mode` (connector write vs `manual_task`), `connector_supports`, `delete_suspends`.
-- `sync.py`: `start_run`, `run`, `fail_run`: account sync of one connection (and billing); fetches first, stores in one transaction.
-- `sync_accounts.py`: `apply_accounts` upserts, matches, marks removed accounts.
+- `sync.py`: `start_run`, `run`, `fail_run`: one connection's sync; fetch first, store in one transaction.
+- `sync_accounts.py`: `apply_accounts` upserts, matches, marks removed.
 - `sync_rules.py`: `clean_accounts`, `exceeds_removal_threshold` (30% stop, `RemovalThresholdError`).
-- `sync_requests.py`: `request_sync` ("Sync now": creates `sync_run`, calls dispatcher).
+- `sync_requests.py`: `request_sync` ("Sync now").
 - `sync_dispatch.py`: `SyncDispatcher` protocol, `upsert_schedule_quietly`, `delete_schedule_quietly`.
-- `discovery_scan.py`: `start_run`, `run`, `fail_run`, `scan_lock`; app discovery scan, for `ScanConnectionWorkflow`.
+- `discovery_scan.py`: `start_run`, `run`, `fail_run`, `scan_lock` for `ScanConnectionWorkflow`.
 - `discovery_apply.py`: `apply_discovery` merges found apps, grants, directory state.
-- `discovery.py`: read side: `overview`, `list_discovered_apps`, `get_discovered_app`, `person_discovered_apps`, `apps_at_risk`, `grant_risk`.
-- `discovery_review.py`: `update_discovered_app` (ignore), `track_discovered_app` (becomes an app with its `catalog_key`; `create_accounts` adds accounts for active sign-ins).
-- `discovery_setup.py`: `setup_google_source` onboarding in one step: verifies the key and scope, then first sync and scan.
-- `discovery_sources.py`: connections able to scan (`discovery_connections`, `discovery_keys`).
+- `discovery.py`: `overview`, `list_discovered_apps`, `get_discovered_app`, `person_discovered_apps`, `apps_at_risk`, `grant_risk`.
+- `discovery_review.py`: `update_discovered_app` (ignore), `track_discovered_app` (`create_accounts`).
+- `discovery_setup.py`: `setup_google_source`: verify, first sync, scan.
+- `discovery_sources.py`: `discovery_connections`, `discovery_keys`.
 - `scan_requests.py`: `request_scan`, `resolve_source`.
 - `scan_dispatch.py`: `ScanDispatcher` protocol, `upsert_scan_schedule_quietly`.
-- `google_oauth.py`: Connect with Google: `start`, `finish` (saves the connection).
-- `actions.py`: action lifecycle: `create_action`, `advance`, `cancel`, `complete`, `can_transition`, `get_action`.
+- `google_oauth.py`: `start`, `finish`.
+- `actions.py`: `create_action`, `advance`, `cancel`, `complete`, `can_transition`, `get_action`.
 - `action_approval.py`: `approve`, `approve_batch`, `start_workflow`, `ensure_can_run`, `reveal_secret`.
-- `action_retry.py`: `retry` (failed write runs again, reading first), `do_by_hand` (becomes a `manual_task`).
-- `action_dispatch.py`: `ActionDispatcher` protocol (Temporal impl: `app/temporal/action_dispatcher.py`).
-- `action_execution.py`: workflow steps `start`, `precheck`, `write`, `verify`, `fail`, under `connection_lock`.
-- `action_flow.py`: `run_action_steps`, workflow step order.
-- `action_accounts.py`: `apply_created`, `apply_deleted`, `add_manual_account` after a verified write or a closed manual task.
+- `action_retry.py`: `retry` (reads first), `do_by_hand` (becomes a `manual_task`).
+- `action_dispatch.py`: `ActionDispatcher` protocol (impl `app/temporal/action_dispatcher.py`).
+- `action_execution.py`: workflow steps `start`, `precheck`, `write`, `verify`, `fail` under `connection_lock`.
+- `action_flow.py`: `run_action_steps`: step order.
+- `action_accounts.py`: `apply_created`, `apply_deleted`, `add_manual_account`.
 - `action_queries.py`: `list_actions`, `get_action_out`, `get_actions_out` (with `recipe_fixes`), `screenshot`.
-- `recipe_fixes.py`: recipe step fixes: `active_fixes`, `list_fixes`, `approve`, `reject` (reverts too).
-- `recipe_repair.py`: `RecipeRepairService`: AI repair of a recipe step.
-- `organization.py`: `get`, `update` (organization row; auto-approval needs a domain).
-- `onboarding.py`: `plan` (what onboarding would do per app, no writes; also the access profile preview), `onboardable_person`, `onboard_person` creates `create_account` actions with the role per app.
+- `recipe_fixes.py`: `active_fixes`, `list_fixes`, `approve`, `reject` (reverts too).
+- `recipe_repair.py`: `RecipeRepairService` (AI repair of a step).
+- `organization.py`: `get`, `update` (auto-approval needs a domain).
+- `onboarding.py`: `plan` (no writes; profile preview), `onboardable_person`, `onboard_person` (`create_account` actions with roles).
 - `offboarding.py`: `offboard_person` marks `left`, creates delete actions.
-- `billing.py`: `apply_billing` (stores `BillingInfo`, sets the app price), `stop_applying`, `use_billing`.
-- `costs.py`: pure cost rules (`monthly_price`, `app_monthly_cost`, `seat_monthly_cost`, `sum_by_currency`, `is_billable_seat`).
+- `billing.py`: `apply_billing`, `stop_applying`, `use_billing`.
+- `costs.py`: `monthly_price`, `app_monthly_cost`, `seat_monthly_cost`, `sum_by_currency`, `is_billable_seat`.
 - `conversion.py`: `Converter` via EUR rates.
 - `exchange_rates.py`: `refresh`, `store`, `load_converter`, `latest_info`.
 - `currencies.py`: `is_known`.
-- `dashboard.py`: `get_dashboard` (alerts include `profile_access_missing` per access profile).
-- `setup_checklist.py`: `overview`, `save_choices`, `dismiss` (welcome answers, computed checklist).
+- `dashboard.py`: `get_dashboard`.
+- `setup_checklist.py`: `overview`, `save_choices`, `dismiss`.
 - `timezones.py`: `known_timezones`, `is_known_timezone`.
-- `browser.py`: `browser_state`, `open_page` (Browser page, shared browser login).
-- `update_check.py`: `check` (latest release into Redis), `stored`, `enabled`, `is_newer`.
-- `system_info.py`: `version_overview` (`/api/system/version`).
+- `browser.py`: `browser_state`, `open_page`.
+- `update_check.py`: `check`, `stored`, `enabled`, `is_newer`.
+- `system_info.py`: `version_overview`.
 - `telemetry.py`: `report` after setup, `post`, `enabled`.
 - `maintenance.py`: `actions_in_flight` (for `app.ops`).
-- `ai_settings.py`: model settings `save`, `list_models` ("Connect"), `test`, `load_model`.
-- `slack_agent_setup.py`: Slack agent setup (`state`, `create_app`, OAuth, `save_tokens`).
+- `ai_settings.py`: `save`, `list_models` ("Connect"), `test`, `load_model`.
+- `slack_agent_setup.py`: `state`, `create_app`, OAuth, `save_tokens`.
 - `slack_agent_secrets.py`: `read`, `write`, `update`, `set_config_tokens`.
