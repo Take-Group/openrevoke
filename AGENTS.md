@@ -113,6 +113,7 @@ Procedures in `.agents/skills/` (Claude Code finds them through the
 | bug, error, stuck workflow, wrong data | [diagnose](.agents/skills/diagnose/SKILL.md) |
 | end of every change: checks, stack run, local commit | [verify](.agents/skills/verify/SKILL.md) |
 | `AGENTS.md`, folder map, skill, subagent, hook | [harness](.agents/skills/harness/SKILL.md) |
+| publish to GitHub: pull request, Macroscope review, merge (never push to `main`) | [ship](.agents/skills/ship/SKILL.md) |
 
 ## Skills
 
