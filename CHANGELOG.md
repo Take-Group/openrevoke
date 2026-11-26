@@ -13,6 +13,8 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-27
+
 ### Breaking
 
 - The MCP server moved from `/api/mcp` to `/mcp`. Change the address in your assistant, for
