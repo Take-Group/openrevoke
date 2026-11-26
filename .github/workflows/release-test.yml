@@ -217,7 +217,7 @@ jobs:
       - name: No earlier release to update from
         if: inputs.previous == ''
         run: |
-          echo "::notice::No earlier stable release, or this is a fix for an older line. The update test is skipped."
+          echo "- Update test skipped: no earlier stable release, or this is a fix for an older line." >> "$GITHUB_STEP_SUMMARY"
 
       # GitHub only: installs the previous release from this repository's GitHub Releases and
       # pulls its images from ghcr.io.

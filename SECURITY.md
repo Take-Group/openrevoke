@@ -96,7 +96,7 @@ Out of scope:
   Open Revoke PATCH releases.
 - **Verify what you download.** Every release lists SHA-256 sums of its files in `SHA256SUMS`.
   The release notes show how to check the `cosign` signatures of the images, the Helm chart and
-  `SHA256SUMS`, the SLSA Build Level 3 provenance of the images and files (`slsa-verifier`), and
+  `SHA256SUMS`, the SLSA Build Level 3 provenance of the images and files (`gh attestation verify`), and
   the GitHub release attestation (`gh release verify`). Releases are immutable: once published,
   their files and tag cannot change.
 
@@ -107,6 +107,7 @@ Out of scope:
 - Both images are scanned with Trivy before they are pushed. A CRITICAL vulnerability with a fixed
   version stops the release; accepted findings are listed with a reason in `.trivyignore`.
 - Images carry an SBOM and build provenance, are signed with `cosign` (keyless, Sigstore), and get
-  SLSA Build Level 3 provenance from `slsa-framework/slsa-github-generator`.
+  SLSA Build Level 3 provenance as GitHub artifact attestations, made by the isolated reusable
+  workflow `release-publish.yml`; the release files get the same.
 - Every workflow action is pinned to a commit SHA. CodeQL, zizmor, dependency review and OpenSSF
   Scorecard check the code and the workflows; Dependabot proposes dependency updates weekly.

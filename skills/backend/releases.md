@@ -1,8 +1,8 @@
 # Skill: releases, installer, updates
 
-What exists today and how to change it. The GitHub release workflow (`.github/workflows/release.yml`:
-multi-arch images, SBOM, signing, SLSA provenance; `release-test.yml`: Trivy scan, install,
-update and Kubernetes tests) runs only on GitHub.
+What exists today and how to change it. The GitHub release workflow (`.github/workflows/release.yml`;
+`release-test.yml`: Trivy scan, install, update and Kubernetes tests; `release-publish.yml`:
+multi-arch images, SBOM, signing, SLSA provenance) runs only on GitHub.
 
 ## What it does
 
@@ -140,19 +140,27 @@ OPEN_REVOKE_RELEASES_URL=file://$PWD/dist/releases \
 
 - **Actions are pinned to a commit SHA** with the version in a comment
   (`uses: actions/checkout@<sha> # v7.0.1`). Dependabot (`github-actions`) updates both. A new
-  action: resolve the SHA of a release tag, never a branch. Exception: the
-  `slsa-github-generator` workflows must be referenced by tag (`@v2.1.0`), they check their own ref.
+  action: resolve the SHA of a release tag, never a branch.
 - **Base images are pinned by digest** in the `Dockerfile` (`tag@sha256:...`); Dependabot (`docker`)
   moves tag and digest together. A Debian fix in a base image arrives with that update.
 - **Trivy** (`release-test.yml`) scans both images before anything is pushed. A CRITICAL with a
   fixed version fails the release: bump the package or base image, or add the CVE to
   `.trivyignore` with a reason and a date to check again. HIGH and CRITICAL go to the Security tab.
   The organization's daily Trivy scan of the repository (lockfiles and base images) is separate.
-- **SLSA provenance**: `provenance-app` and `provenance-browser` attest the multi-arch index
-  digests from `tag-and-sign`; `provenance-files` attests every line of `SHA256SUMS` and the
-  release job attaches `open-revoke-X.Y.Z.intoto.jsonl`.
-- **Immutable releases** are on in the repository settings: the generator must not upload to the
-  release (`upload-assets: false`), and a broken release is fixed by a new version, never by
+- **SLSA provenance** (Build Level 3): GitHub artifact attestations (`actions/attest`) made
+  inside the reusable workflow `release-publish.yml`, so they are signed with its identity and a
+  verifier pins it with `gh attestation verify --signer-workflow
+  Take-Group/openrevoke/.github/workflows/release-publish.yml` (GitHub docs: "Using artifact
+  attestations and reusable workflows to achieve SLSA v1 Build Level 3"). `tag-and-sign` attests
+  the multi-arch index digests and pushes the attestation to ghcr.io; `release-files` attests every
+  line of `SHA256SUMS`, and the release job attaches its bundle as
+  `open-revoke-X.Y.Z.provenance.sigstore.json` (offline check with `--bundle`). The images'
+  cosign identity is `release-publish.yml@refs/tags/vX.Y.Z`; SHA256SUMS and the chart are signed
+  by `release.yml`. Keep build and attestation in `release-publish.yml`: an attestation step in
+  `release.yml` would drop the provenance to Level 2. `slsa-github-generator` was dropped
+  after 0.1.0: it is unmaintained and ran on Node.js 20.
+- **Immutable releases** are on in the repository settings: no step may upload to the release
+  after it is created, and a broken release is fixed by a new version, never by
   replacing a file. The tag name of a deleted release cannot be used again.
 - **Checks on every push**: `codeql.yml`, `workflow-audit.yml` (zizmor, dependency review on pull
   requests), `scorecard.yml` (OpenSSF Scorecard, published to scorecard.dev). Lint workflows locally
