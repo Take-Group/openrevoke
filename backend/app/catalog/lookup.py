@@ -158,12 +158,9 @@ class AppCatalog:
         return [app for app in (self.get(slug) for slug in POPULAR) if app is not None]
 
     def logo_path(self, slug: str) -> Path | None:
-        if not _SLUG.match(slug):
-            return None
-        path = (LOGO_DIR / f"{slug}.png").resolve()
-        if path.parent != LOGO_DIR.resolve():
-            return None
-        return path if path.is_file() else None
+        """The logo file of a slug. Looked up among the files in the folder, so a request never
+        builds a path itself."""
+        return _logo_files().get(slug)
 
 
 def _parse(entry: dict) -> CatalogApp:
@@ -181,6 +178,11 @@ def _parse(entry: dict) -> CatalogApp:
         keys=tuple(sorted(key for key in keys if key)),
         client_ids=tuple(entry.get("google_client_ids", [])),
     )
+
+
+@cache
+def _logo_files() -> dict[str, Path]:
+    return {path.stem: path for path in LOGO_DIR.glob("*.png") if _SLUG.match(path.stem)}
 
 
 @cache
