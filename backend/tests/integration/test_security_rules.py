@@ -1,6 +1,7 @@
 """Security rules that need the database and Redis: 2FA tickets and limits, secrets bound to their URL,
 roles a requester picks for themselves."""
 
+import asyncio
 import uuid
 
 import pyotp
@@ -64,6 +65,15 @@ async def test_a_ticket_signs_in_once() -> None:
     await _complete(ticket, pyotp.TOTP(secret).now())
     with pytest.raises(AuthenticationError):
         await _complete(ticket, pyotp.TOTP(secret).now())
+
+
+async def test_one_code_signs_in_once_across_parallel_tickets() -> None:
+    user, secret = await _user_with_totp()
+    first, second = await tickets.issue(user.id), await tickets.issue(user.id)
+    code = pyotp.TOTP(secret).now()
+    results = await asyncio.gather(_complete(first, code), _complete(second, code), return_exceptions=True)
+    assert sum(r is None for r in results) == 1
+    assert sum(isinstance(r, AuthenticationError) for r in results) == 1
 
 
 async def test_a_settings_ticket_cannot_skip_two_factor_at_sign_in() -> None:
