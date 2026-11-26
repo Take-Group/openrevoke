@@ -100,6 +100,7 @@ jobs:
           PLATFORM: ${{ matrix.platform }}
         run: |
           if [ "$PLATFORM" = linux/amd64 ]; then key=$TESTED_KEY; else key=$(scripts/browser-packages-key.sh); fi
+          echo "$key" | grep -Eq '^[0-9a-f]{64}$' || { echo "::error::invalid browser packages key: '$key'"; exit 1; }
           echo "key=$key" >> "$GITHUB_OUTPUT"
 
       - name: OCI labels
@@ -166,7 +167,7 @@ jobs:
           BROWSER_LAYERS: ${{ inputs.browser-layers }}
         run: |
           layers() {
-            docker buildx imagetools inspect "$1" --format '{{json (index .Image "linux/amd64").RootFS.DiffIDs}}' \
+            docker buildx imagetools inspect "$1" --format '{{json .Image.RootFS.DiffIDs}}' \
               | jq -c . | sha256sum | cut -d' ' -f1
           }
           check() {
