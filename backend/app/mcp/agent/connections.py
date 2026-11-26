@@ -156,9 +156,10 @@ TOOLS = (
     AgentTool(
         name="check_connection",
         title="Check a connection",
-        description="Tests an app's connection: credentials, a signed-in browser session. Changes nothing.",
+        description="Tests an app's connection: credentials, a signed-in browser session. Changes no accounts.",
         input_schema=schema({"app": APP_ARG}, required=("app",)),
         handler=check_connection,
+        read_only=False,  # a POST: a read-only token cannot run it
     ),
     AgentTool(
         name="sync_app",

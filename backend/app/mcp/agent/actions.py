@@ -61,7 +61,7 @@ async def approve_actions(api: AgentApi, args: dict[str, Any]) -> dict[str, Any]
 async def cancel_actions(api: AgentApi, args: dict[str, Any]) -> dict[str, Any]:
     cancelled, kept = [], []
     for action in await _targets(api, args):
-        if action["status"] in FINISHED:
+        if action["status"] in {"done", "cancelled"}:  # a failed action can still be cancelled
             continue
         try:
             cancelled.append(await api.post(f"/actions/{action['id']}/cancel"))

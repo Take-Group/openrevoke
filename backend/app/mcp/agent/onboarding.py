@@ -70,7 +70,9 @@ async def assign_access_profile(api: AgentApi, args: dict[str, Any]) -> dict[str
         "warnings": result["warnings"],
         "monthly_cost": money(result.get("monthly_cost_total")),
         "batch_id": result.get("batch_id"),
-        "next": "Nothing changed. Call again with dry_run false to assign it." if dry_run else APPROVE_NEXT,
+        "next": "Nothing changed. Call again with dry_run false to assign it."
+        if dry_run
+        else (APPROVE_NEXT if result.get("batch_id") else "Assigned; the person already has every app of it."),
     }
 
 

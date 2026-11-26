@@ -2,6 +2,7 @@
 
 from typing import TYPE_CHECKING, Any
 
+from app.mcp.agent.api import PAGE_LIMIT
 from app.mcp.agent.base import APP_ARG, PERSON_ARG, AgentTool, schema
 from app.mcp.agent.views import name
 
@@ -23,25 +24,42 @@ def request_line(item: dict[str, Any]) -> dict[str, Any]:
         "justification": item.get("justification"),
         "channel": item.get("channel"),
         "created_at": item["created_at"],
+        "action_id": item.get("action_id") or (item.get("action") or {}).get("id"),
+        "action_status": item.get("action_status") or (item.get("action") or {}).get("status"),
     }
 
 
 async def list_access_requests(api: AgentApi, args: dict[str, Any]) -> dict[str, Any]:
     status = args.get("status")
-    page = await api.get("/access-requests", status=None if status == "open" else status, limit=200)
-    items = [i for i in page["items"] if status != "open" or i["status"] in OPEN] if status else page["items"]
-    return {"total": len(items), "requests": [request_line(item) for item in items]}
+    statuses = OPEN if status == "open" else (status,)  # the API filters one status at a time
+    total, items = 0, []
+    for one in statuses:
+        page = await api.get("/access-requests", status=one, limit=PAGE_LIMIT)
+        total += page["total"]
+        items += page["items"]
+    return {
+        "total": total,
+        "requests": [request_line(item) for item in items],
+        "note": f"Showing the newest {len(items)} of {total}." if len(items) < total else None,
+    }
 
 
 async def decide_access_request(api: AgentApi, args: dict[str, Any]) -> dict[str, Any]:
     verb = "approve" if args["decision"] == "approve" else "reject"
     result = await api.post(f"/access-requests/{args['request_id']}/{verb}", {"comment": args.get("comment")})
-    return {
-        "request": request_line(result),
-        "next": "An approved request becomes an account creation; follow it with list_pending_approvals."
-        if verb == "approve"
-        else None,
-    }
+    line = request_line(result)
+    return {"request": line, "next": _decision_next(line) if verb == "approve" else None}
+
+
+def _decision_next(line: dict[str, Any]) -> str:
+    if line["status"] == "pending_admin":
+        return "The request now waits for an admin's decision."
+    if line.get("action_id"):
+        return (
+            f"The account creation runs (action {line['action_id']}, {line['action_status']}): follow it with "
+            f"get_actions_status action_ids [{line['action_id']}]."
+        )
+    return "Approved."
 
 
 async def get_audit_log(api: AgentApi, args: dict[str, Any]) -> dict[str, Any]:
