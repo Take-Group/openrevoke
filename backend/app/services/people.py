@@ -299,6 +299,10 @@ async def update_person(
         await session.flush()
         await audit.record(session, "person.updated", "person", person.id, {"changes": changes})
         await rematch_accounts(session, touched_emails)
+        if {"manager_id", "status", "primary_email", "aliases"} & changes.keys():
+            from app.services.access.flow import reroute_pending  # late: flow imports the action services
+
+            await reroute_pending(session)  # requests waiting for a manager follow the change
     return await get_person(session, person.id)
 
 

@@ -155,11 +155,11 @@ async def _create_action(
     request: AccessRequest,
     person: Person,
     app: App,
-    dispatcher: ActionDispatcher,
+    dispatcher: ActionDispatcher | None,
     *,
     approver: ActorRef | None,
 ) -> RequestResult:
-    """Create the account action; ``approver`` set: approve it now, else it waits for an admin."""
+    """Create the account action; ``approver`` set: approve it now (needs ``dispatcher``), else it waits."""
     name = app.name  # approve() below expires the session's objects
     action = await create_action(
         session,
@@ -173,6 +173,7 @@ async def _create_action(
         _wait_for_admin(request)
         await session.flush()
         return RequestResult(Outcome.WAITING_FOR_APPROVAL, name, action_id)
+    assert dispatcher is not None
     request.status = R.APPROVED
     await session.flush()
     try:
@@ -208,6 +209,7 @@ async def decide(
     request = await session.scalar(select(AccessRequest).where(AccessRequest.id == request_id).with_for_update())
     if request is None:
         raise NotFoundError("Access request not found")
+    await refresh_approver(session, request)  # the manager may have changed or left since the request
     if decider.person_id is not None and decider.person_id == request.person_id:
         raise PermissionDeniedError("You cannot decide your own request. Another approver has to.")
     is_manager = decider.person_id is not None and decider.person_id == request.approver_person_id
@@ -282,3 +284,42 @@ async def _decide_admin_step(
     request.status = R.APPROVED
     await session.flush()
     await approve(session, action.id, dispatcher, approved_by=decider.actor)
+
+
+async def refresh_approver(session: AsyncSession, request: AccessRequest) -> None:
+    """A request that waits for a manager follows the person's current manager.
+
+    The manager changed: the new one decides (Slack message again). The manager left or can no longer
+    decide: the request goes to an admin with the reason, as a new request would.
+    """
+    if request.status != R.PENDING_MANAGER:
+        return
+    person = await session.get(Person, request.person_id)
+    app = await session.get(App, request.app_id)
+    if person is None or app is None:
+        return
+    manager, fallback = await _manager_who_decides(session, person)
+    new_id = manager.id if manager else None
+    if fallback is None and new_id == request.approver_person_id:
+        return
+    old_id = request.approver_person_id
+    request.approver_person_id = new_id
+    request.approvers_notified_at = None
+    data = {"from": str(old_id) if old_id else None, "to": str(new_id) if new_id else None}
+    if fallback is not None:
+        request.fallback_reason = fallback
+        data["fallback_reason"] = str(fallback)
+    await record_event(session, request, "access_request.rerouted", data)
+    if fallback is not None:
+        await _create_action(session, request, person, app, None, approver=None)
+    else:
+        await session.flush()
+
+
+async def reroute_pending(session: AsyncSession) -> None:
+    """Re-check every request that waits for a manager, after managers or people changed."""
+    rows = await session.scalars(
+        select(AccessRequest).where(AccessRequest.status == R.PENDING_MANAGER).with_for_update(skip_locked=True)
+    )
+    for request in list(rows):
+        await refresh_approver(session, request)

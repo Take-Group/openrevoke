@@ -125,6 +125,7 @@ async def import_people(session: AsyncSession, content: bytes, *, dry_run: bool)
         plan.decide()
     if not dry_run:
         await _apply(session, plans, directory)
+        await _reroute_requests(session)
     results = [_row_result(plan) for plan in plans]
     return ImportResult(
         dry_run=dry_run,
@@ -334,3 +335,10 @@ def _apply_managers(plans: list[RowPlan], directory: Directory) -> None:
         if manager is not None and plan.person.manager_id != manager.id:
             plan.person.manager_id = manager.id
             plan.person.manager_source = ManagerSource.MANUAL  # an admin's list: syncs keep it
+
+
+async def _reroute_requests(session: AsyncSession) -> None:
+    """Requests waiting for a manager follow the managers the file changed."""
+    from app.services.access.flow import reroute_pending  # late: flow imports the action services
+
+    await reroute_pending(session)

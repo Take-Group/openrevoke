@@ -81,6 +81,9 @@ async def offboard_person(session: AsyncSession, person_id: uuid.UUID) -> Offboa
         person.id,
         {"batch_id": str(batch_id), "actions": len(action_ids), "skipped": len(skipped)},
     )
+    from app.services.access.flow import reroute_pending  # late: flow imports the action services
+
+    await reroute_pending(session)  # requests that waited for this person as manager go elsewhere
     return OffboardResult(
         batch_id=batch_id,
         person=person_ref(person),

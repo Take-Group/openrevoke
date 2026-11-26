@@ -223,31 +223,31 @@ async def export_csv(session: AsyncSession, f: RequestFilter) -> str:
     for r in rows:
         person, manager = people[r.person_id], people.get(r.approver_person_id) if r.approver_person_id else None
         action = actions.get(r.action_id) if r.action_id else None
-        writer.writerow(
-            [
-                r.id,
-                r.created_at.isoformat(),
-                r.status,
-                f"{person.first_name} {person.last_name}",
-                person.primary_email,
-                apps.get(r.app_id, ""),
-                r.role or "",
-                _safe(r.justification),
-                r.requested_by or "",
-                "yes" if r.on_behalf else "no",
-                r.channel,
-                manager.primary_email if manager else "",
-                r.fallback_reason or "",
-                _safe("; ".join(decisions.get(r.id, []))),
-                action.status if action else "",
-                action.approved_by or "" if action else "",
-                r.closed_at.isoformat() if r.closed_at else "",
-            ]
-        )
+        cells = [
+            r.id,
+            r.created_at.isoformat(),
+            r.status,
+            f"{person.first_name} {person.last_name}",
+            person.primary_email,
+            apps.get(r.app_id, ""),
+            r.role,
+            r.justification,
+            r.requested_by,
+            "yes" if r.on_behalf else "no",
+            r.channel,
+            manager.primary_email if manager else "",
+            r.fallback_reason,
+            "; ".join(decisions.get(r.id, [])),
+            action.status if action else "",
+            action.approved_by if action else "",
+            r.closed_at.isoformat() if r.closed_at else "",
+        ]
+        writer.writerow([_safe(None if cell is None else str(cell)) for cell in cells])
     return out.getvalue()
 
 
 def _safe(value: str | None) -> str:
-    """Free text people typed: a leading = + - @ would run as a formula in a spreadsheet."""
+    """Every cell: names, roles and notes come from people, syncs and the Slack model. A leading
+    = + - @ (or a tab or carriage return before one) would run as a formula in a spreadsheet."""
     text = value or ""
-    return f"'{text}" if text[:1] in ("=", "+", "-", "@") else text
+    return f"'{text}" if text[:1] in ("=", "+", "-", "@", "\t", "\r") else text

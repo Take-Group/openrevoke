@@ -121,6 +121,10 @@ async def apply_people(session: AsyncSession, connection: Connection, people: li
     await session.flush()
     stats.managers_changed = await _apply_managers(session, connection, index, stored)
     await rematch_accounts(session, touched)
+    if stats.managers_changed or stats.inactive:
+        from app.services.access.flow import reroute_pending  # late: flow imports the action services
+
+        await reroute_pending(session)  # requests waiting for a manager follow the new managers
     return stats
 
 

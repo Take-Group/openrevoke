@@ -58,6 +58,15 @@ Open statuses (`OPEN_REQUEST_STATUSES`): `pending_manager`, `pending_admin`, `ap
 - A request that waits for nobody: 409. A manager on an `pending_admin` request: 409.
 - `approve` of a connector write with writes off: 400 before anything is recorded.
 
+### The manager changes while a request waits
+
+`flow.refresh_approver` re-checks a `pending_manager` request against the person's current manager:
+a new manager takes it over (Slack message again), a manager who left or can no longer decide sends
+it to an admin with `fallback_reason`. `decide` runs it first, so a former manager gets 403.
+`flow.reroute_pending` runs it for every waiting request after `people.update_person` (manager,
+status, e-mails), `offboarding`, the people CSV import and a people sync that changed managers.
+Audit event `access_request.rerouted`. The CSV export escapes every cell (`queries._safe`).
+
 ## API
 
 | Route | Who | What |
