@@ -5,7 +5,7 @@ import { MonitorOffIcon } from "lucide-react";
 import { EmptyState } from "@/components/common/empty-state";
 import { Panel } from "@/components/common/panel";
 import { cn } from "@/lib/utils";
-import type { BrowserState } from "@/lib/api/types";
+import type { BrowserState } from "@/lib/api/browser-types";
 
 /**
  * Address of the live view (docker/browser/live.html). `fit`: the browser display takes the size

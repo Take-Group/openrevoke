@@ -18,6 +18,7 @@ Pydantic request/response models of the panel API, one file per router in `app/a
 - `recipe_fixes.py`: `api/recipe_fixes.py` and `ActionOut.recipe_fixes`: `RecipeFixOut`, `RecipeFixList`.
 - `discovery.py`: `api/discovery.py`, `api/google_oauth.py`: `DiscoveryOverview` (`DiscoverySource`, `DiscoveryConnector`, `DiscoveryCounts`), `DiscoverySourceCreate`, `ScanRunOut`/`ScanRunPage`, `DiscoveredAppOut`/`Page`/`Detail`/`Update`/`Track`, `DiscoveredGrantOut`, `GoogleOAuthStart`/`StartOut`, `PersonDiscoveredAppPage`; `GrantRisk`.
 - `google_cloud_setup.py`: `api/google_cloud_setup.py`: `GoogleCloudSetupOut`, `GoogleCloudSetupStart`, `SetupStepOut`, enums `SetupStatus`, `SetupStep`, `StepState`.
+- `access_profiles.py`: `api/access_profiles.py`: `AccessProfileCreate`/`Update`/`Out`/`List`, `AccessProfileAppIn`/`Out`, `ProfileRef`, `AppRoleSuggestions`, drift (`AccessDrift`, `MissingAccess`, `ExtraAccess`, `RoleMismatch`, `PersonAccessDrift`, `AccessProfileMember`), assignment (`ProfileAssign`, `MembersAssign`, `PlannedAction`, `ProfileAssignResult`, `MembersAssignResult`, `SkippedPerson`), `ProfileUnassignResult`/`SuggestedRemoval`.
 - `dashboard.py`: GET `/dashboard`: `Dashboard`, `DashboardCounts`, `Alert` (`AlertKind`, `AlertSeverity`, `AlertEntityType`).
 - `setup_checklist.py`: `api/setup_checklist.py`: `OnboardingOut`, `OnboardingChoices`, `ChecklistItem`.
 - `browser.py`: `api/browser.py`: `BrowserState`, `BrowserTab`, `BrowserApp`, `BrowserPolicyOut`, `BrowserOpenRequest`.

@@ -5,14 +5,18 @@ the app's connector cannot create accounts. All actions wait for approval and
 share one ``batch_id``. Apps where the person already has an account, or an
 open creation, are skipped and reported. A person who has left cannot be
 onboarded: set them active first.
+
+A ``role`` per app (typed in the panel or given by an access profile) goes into the action's
+payload and from there into the connector's create request.
 """
 
 import uuid
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from sqlalchemy import and_, or_, select
 
-from app.models import Account, Action, App, Person
+from app.models import Account, Action, App, Connection, Person
 from app.models.enums import AccountStatus, ActionKind, ActionReason, PersonStatus
 from app.schemas.actions import (
     ActionCreate,
@@ -22,10 +26,12 @@ from app.schemas.actions import (
     OnboardSkipped,
     OnboardSkipReason,
     WriteKind,
+    WriteMode,
 )
 from app.services import audit
 from app.services.action_queries import get_actions_out
 from app.services.actions import OPEN_STATUSES, create_action
+from app.services.capabilities import write_mode
 from app.services.errors import InvalidInputError, NotFoundError
 from app.services.matching import is_valid_email, normalize_email
 from app.services.presenters import app_ref, person_ref
@@ -34,41 +40,79 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def onboard_person(session: AsyncSession, person_id: uuid.UUID, data: OnboardRequest) -> OnboardResult:
+@dataclass(frozen=True)
+class PlannedApp:
+    """One requested app: skipped (``skip``) or what its creation will do (``write_mode``)."""
+
+    app: App
+    role: str | None
+    skip: OnboardSkipReason | None
+    write_mode: WriteMode
+
+
+async def onboardable_person(session: AsyncSession, person_id: uuid.UUID) -> Person:
     person = await session.get(Person, person_id)
     if person is None:
         raise NotFoundError("Person not found")
     if person.status == PersonStatus.LEFT:
         raise InvalidInputError("The person has left. Set them active before onboarding")
+    return person
+
+
+async def plan(session: AsyncSession, person: Person, apps: list[OnboardApp]) -> list[PlannedApp]:
+    """What onboarding would do per app, in request order, without saving anything.
+
+    Used by ``onboard_person`` and by the access profile preview (``services.access.profile_assignment``).
+    """
+    requested = _unique(apps)
+    found = {app.id: app for app in await session.scalars(select(App).where(App.id.in_(requested)))}
+    missing = [str(app_id) for app_id in requested if app_id not in found]
+    if missing:
+        raise InvalidInputError(f"App not found: {', '.join(missing)}")
+    connections = {
+        connection.app_id: connection
+        for connection in await session.scalars(select(Connection).where(Connection.app_id.in_(requested)))
+    }
+    has_account = await apps_with_account(session, person.id, list(requested))
+    creating = await apps_with_open_creation(session, person.id, list(requested))
+    planned = []
+    for app_id, item in requested.items():
+        skip = None
+        if app_id in has_account:
+            skip = OnboardSkipReason.HAS_ACCOUNT
+        elif app_id in creating:
+            skip = OnboardSkipReason.ACTION_OPEN
+        role = (item.role or "").strip() or None
+        mode = write_mode(connections.get(app_id), WriteKind.CREATE_ACCOUNT)
+        planned.append(PlannedApp(app=found[app_id], role=role, skip=skip, write_mode=mode))
+    return planned
+
+
+async def onboard_person(
+    session: AsyncSession,
+    person_id: uuid.UUID,
+    data: OnboardRequest,
+    *,
+    audit_note: dict[str, object] | None = None,
+) -> OnboardResult:
+    """Creates the actions. Each carries the app's ``role`` from the request into its payload (and the
+    connector's create request). ``audit_note`` adds context to the ``person.onboarded`` event."""
+    person = await onboardable_person(session, person_id)
     email = normalize_email(data.email)
     if email is not None and not is_valid_email(email):
         raise InvalidInputError(f"Invalid email: {data.email!r}")
 
-    requested = _unique(data.apps)
-    apps = {app.id: app for app in await session.scalars(select(App).where(App.id.in_(requested)))}
-    missing = [str(app_id) for app_id in requested if app_id not in apps]
-    if missing:
-        raise InvalidInputError(f"App not found: {', '.join(missing)}")
-    has_account = await apps_with_account(session, person.id, list(requested))
-    creating = await apps_with_open_creation(session, person.id, list(requested))
-
     batch_id = uuid.uuid4()
     action_ids: list[uuid.UUID] = []
     skipped: list[OnboardSkipped] = []
-    for app_id, item in requested.items():
-        app = apps[app_id]
-        reason = None
-        if app_id in has_account:
-            reason = OnboardSkipReason.HAS_ACCOUNT
-        elif app_id in creating:
-            reason = OnboardSkipReason.ACTION_OPEN
-        if reason is not None:
-            skipped.append(OnboardSkipped(app=app_ref(app), reason=reason))
+    for item in await plan(session, person, data.apps):
+        if item.skip is not None:
+            skipped.append(OnboardSkipped(app=app_ref(item.app), reason=item.skip))
             continue
         action = await create_action(
             session,
             ActionCreate(
-                kind=WriteKind.CREATE_ACCOUNT, app_id=app_id, person_id=person.id, email=email, role=item.role
+                kind=WriteKind.CREATE_ACCOUNT, app_id=item.app.id, person_id=person.id, email=email, role=item.role
             ),
             reason=ActionReason.ONBOARDING,
             batch_id=batch_id,
@@ -81,7 +125,7 @@ async def onboard_person(session: AsyncSession, person_id: uuid.UUID, data: Onbo
         "person.onboarded",
         "person",
         person.id,
-        {"batch_id": str(batch_id), "actions": len(action_ids), "skipped": len(skipped)},
+        {"batch_id": str(batch_id), "actions": len(action_ids), "skipped": len(skipped), **(audit_note or {})},
     )
     return OnboardResult(
         batch_id=batch_id,

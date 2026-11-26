@@ -21,7 +21,8 @@ and the frontend takes its types from it.
 | `backend/app/services/people_managers.py`, `people_import_managers.py` | reporting lines: `set_manager`, `creates_cycle`, reports, `needs_manager_clause`; manager column of the CSV import |
 | `backend/app/services/apps.py` | apps, `seat_stats` (accounts, seats, without an owner) |
 | `backend/app/services/actions.py`, `offboarding.py`, `onboarding.py`, `capabilities.py` | actions, status transitions, offboarding, onboarding; execution and verification: `skills/backend/actions.md` |
-| `backend/app/services/dashboard.py` | counts, monthly cost, alerts |
+| `backend/app/services/access/profiles.py` and `profile_*.py` | access profiles: apps with roles, assignment, drift (`skills/backend/access-profiles.md`) |
+| `backend/app/services/dashboard.py` | counts, monthly cost, alerts (also `profile_access_missing` per access profile) |
 | `backend/app/services/audit.py` | `record()`: every write appends an `audit_event` (actor `local`, `app_id`, `person_id`) |
 | `backend/app/services/presenters.py` | builds response schemas from models |
 | `backend/app/services/errors.py`, `backend/app/api/errors.py` | domain errors and their mapping to 404, 409, 400 |

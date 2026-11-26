@@ -13,4 +13,8 @@ Access requests and who approves them, people's managers, access profiles, and t
 - `my_approvals.py`: `list_mine`, `detail`, `decide`: `/api/me/approvals` for a manager (403 outside their reports).
 - `slack_reach.py`: `bot_token`, `slack_user_id`: whether a person can decide or hear results on Slack.
 - `managers.py`: `manager_of`, `emails_of`, `panel_user_of`, `manager_panel_user` (the panel user who decides as a person's manager; None for no manager, a leaver, or no active account).
-- `profiles.py`: access profiles; `auto_approving_profile` (a profile of the person with the app and `auto_approve_requests`, so the request skips the manager).
+- `profiles.py`: access profile CRUD (`list_profiles`, `get_profile`, `create_profile`, `update_profile`, `delete_profile`, `get_profile_row`, `app_role_suggestions`) and `auto_approving_profile` (a profile of the person with the app and `auto_approve_requests`, so the request skips the manager). Skill `skills/backend/access-profiles.md`.
+- `profile_assignment.py`: `assign_to_person`, `assign_members`: assignment plus one onboarding batch per person with the profile's roles; `dry_run` preview with monthly cost.
+- `profile_members.py`: `person_profiles`, `person_drift`, `list_members`, `unassign` (returns `suggested_removals`, deletes nothing in apps).
+- `profile_data.py`: bulk loaders (`profile_apps`, `profiles_of`, `grants_of`, `accounts_of`, `creating_of`), `drift_of` (`DriftData.out`), `members_missing_by_profile` (also the dashboard alert), `seat_price`, `profile_app_out`.
+- `profile_drift.py`: pure drift rules: `resolve` (role per app from several profiles, `RoleConflict`), `compute` (`missing`, `extra`, `role_mismatch`).

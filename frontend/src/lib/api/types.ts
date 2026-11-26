@@ -67,9 +67,17 @@ export type AlertKind =
   | "action_failed"
   | "person_inactive_in_source"
   | "discovered_sign_ins_at_risk"
-  | "people_without_manager";
+  | "people_without_manager"
+  | "profile_access_missing";
 export type AlertSeverity = "critical" | "warning";
-export type AlertEntityType = "account" | "app" | "connection" | "action" | "person" | "discovered_app";
+export type AlertEntityType =
+  | "account"
+  | "app"
+  | "connection"
+  | "action"
+  | "person"
+  | "discovered_app"
+  | "access_profile";
 export type ImportRowAction = "create" | "update" | "unchanged" | "error";
 export type OffboardSkipReason = "service_account" | "action_open";
 export type OnboardSkipReason = "has_account" | "action_open";
@@ -543,42 +551,6 @@ export interface OnboardResult {
   person: PersonRef;
   actions: ActionOut[];
   skipped: OnboardSkipped[];
-}
-
-// --- Browser ---------------------------------------------------------------
-
-export interface BrowserTab {
-  id: string;
-  url: string;
-  title: string | null;
-  app_id: Uuid | null;
-}
-
-export interface BrowserApp {
-  app_id: Uuid;
-  name: string;
-  connector_key: string | null;
-  login_url: string | null;
-  /** needs_login: the admin has to log in again; null without a connection. */
-  connection_status: ConnectionStatus | null;
-  last_error: string | null;
-}
-
-export interface BrowserState {
-  available: boolean;
-  live_view_url: string | null;
-  tabs: BrowserTab[];
-  /** Chromium version, e.g. Chrome/156.0.8078.79. */
-  version: string | null;
-  /** Why the browser is not available. */
-  error: string | null;
-  /** Apps with a browser connector (or integration browser). */
-  apps: BrowserApp[];
-}
-
-export interface BrowserOpenRequest {
-  url?: string | null;
-  app_id?: Uuid | null;
 }
 
 // --- Audit -----------------------------------------------------------------

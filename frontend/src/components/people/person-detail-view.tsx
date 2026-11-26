@@ -15,6 +15,7 @@ import { PersonManagerSection } from "@/components/people/person-manager-section
 import { PersonDiscoveredApps } from "@/components/people/person-discovered-apps";
 import { PersonActivity } from "@/components/people/person-activity";
 import { PersonMoreMenu } from "@/components/people/person-more-menu";
+import { PersonProfilesSection } from "@/components/people/person-profiles-section";
 import { PersonSourcesTable } from "@/components/people/person-sources-table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePerson } from "@/hooks/use-people";
@@ -92,6 +93,7 @@ function PersonPage({ person, initialTab }: { person: PersonDetail; initialTab?:
         </Stat>
       </StatStrip>
       <PersonManagerSection person={person} />
+      <PersonProfilesSection person={person} />
       <Tabs value={tab} onValueChange={(value) => setTab(value as PersonTab)}>
         <TabsList variant="line" className="mb-3">
           <TabsTrigger value="accounts">

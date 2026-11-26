@@ -19,7 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { useBrowserState } from "@/hooks/use-browser";
 import { errorMessage, isNotImplemented } from "@/lib/api/client";
-import type { BrowserState } from "@/lib/api/types";
+import type { BrowserState } from "@/lib/api/browser-types";
 
 function OpenTabs({ state }: { state: BrowserState }) {
   if (state.tabs.length === 0) return null;

@@ -142,6 +142,7 @@ Backend (`skills/backend/`):
 - [timezone.md](skills/backend/timezone.md): time zone in backend services
 - [mcp.md](skills/backend/mcp.md): MCP server at `/api/mcp` (API operations as tools), personal API tokens, `/settings/api`
 - [access-requests.md](skills/backend/access-requests.md): access requests: request policy, manager and admin steps, decisions, `/me/approvals`, `/requests`, CSV export, Slack buttons by step
+- [access-profiles.md](skills/backend/access-profiles.md): access profiles (apps with roles), assignment with an onboarding batch and cost preview, missing and extra access, removal suggestions
 - [slack-agent.md](skills/backend/slack-agent.md): Slack bot for access requests, AI model settings (providers, keys), Socket Mode runner in the worker
 
 Frontend (`skills/frontend/`):

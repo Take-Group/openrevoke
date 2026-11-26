@@ -2,7 +2,7 @@
 
 The home page (`/`). `DashboardView` loads one `useDashboard` query and lays out the blocks below it; all are specific to this page.
 
-- `alerts-list.tsx`: `AlertsList` (alerts sorted critical first) and `alertHref` which maps an `Alert.kind` to the page that fixes it. Add a new alert kind there (the switch is exhaustive).
+- `alerts-list.tsx`: `AlertsList` (alerts sorted critical first) and `alertHref` which maps an `Alert.kind` to the page that fixes it. Add a new alert kind there (the switch is exhaustive; `profile_access_missing` goes to `/access-profiles/<id>`).
 - `apps-by-cost.tsx`: `AppsByCost` (totals, total): monthly cost per app with a share bar, in organization currency when converted, else in the app's own.
 - `dashboard-view.tsx`: `DashboardView`: `PageHeader`, `SetupChecklist`, then `QueryState` with `KpiCards`, `AlertsList`, `AppsByCost`.
 - `kpi-cards.tsx`: `KpiCards` (data) top strip of figures (label, value, caption).

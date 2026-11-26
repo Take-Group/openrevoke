@@ -26,6 +26,8 @@ export function alertHref(alert: Alert): string {
       return `/discovery/${alert.entity_id}`;
     case "people_without_manager":
       return "/people?no_manager=true";
+    case "profile_access_missing":
+      return `/access-profiles/${alert.entity_id}`;
   }
 }
 

@@ -31,6 +31,7 @@ FastAPI routers of the panel API: thin handlers that validate input with `app/sc
 - `ai.py`: GET/PUT `/ai-settings`, POST `/ai-settings/models` and `/test` (`services.ai_settings`).
 - `slack_agent.py`: GET/PATCH/DELETE `/slack-agent`, POST `/slack-agent/app`, `/avatar`, PUT `/slack-agent/tokens`, GET `/slack-agent/oauth/start` and `/oauth/callback` (back to `/settings/slack`). Service `slack_agent_setup`.
 - `access_requests.py`: GET `/access-requests` (filters), GET `/export` (CSV), GET `/{id}`, POST `/{id}/approve`, `/{id}/reject` (admin step or override) (`services.access.queries`, `access.flow`).
+- `access_profiles.py`: GET/POST `/access-profiles`, GET `/access-profiles/app-roles`, GET/PATCH/DELETE `/access-profiles/{id}`, GET/POST `/access-profiles/{id}/members`, GET/POST `/people/{id}/access-profiles`, DELETE `/people/{id}/access-profiles/{profile_id}`, GET `/people/{id}/access-drift`. Services `access.profiles`, `access.profile_assignment`, `access.profile_members`.
 - `catalog.py`: `public_router` (public) GET `/api/catalog/apps`, GET `/api/catalog/logos/{slug}.png` (`app.catalog.lookup`).
 - `currencies.py`: `public_router` GET `/api/currencies` (public); `router` POST `/exchange-rates/refresh` (admin). Service `exchange_rates`.
 - `system.py`: GET `/system/version` (admin): running version and the newest release (`services.system_info`).

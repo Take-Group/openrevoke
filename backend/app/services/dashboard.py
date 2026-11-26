@@ -6,7 +6,6 @@ from sqlalchemy import func, select
 
 from app.connectors.base import AuthKind
 from app.connectors.registry import UnknownConnectorError, get_connector
-from app.models import Account, Action, App, Connection, Person, PersonLink
 from app.models.enums import (
     AccountStatus,
     ActionStatus,
@@ -15,9 +14,11 @@ from app.models.enums import (
     PersonStatus,
     RequestPolicy,
 )
+from app.models import AccessProfile, Account, Action, App, Connection, Person, PersonLink
 from app.schemas.currencies import ExchangeRatesInfo
 from app.schemas.dashboard import Alert, AlertEntityType, AlertKind, AlertSeverity, Dashboard, DashboardCounts
 from app.services import exchange_rates
+from app.services.access.profile_data import members_missing_by_profile
 from app.services.accounts import unassigned_clause
 from app.services.apps import SeatStats, seat_stats
 from app.services.costs import app_monthly_cost, sum_by_currency
@@ -53,6 +54,7 @@ async def get_dashboard(session: AsyncSession) -> Dashboard:
         *await _inactive_in_source_alerts(session),
         *await _discovery_alerts(session),
         *await _no_manager_alerts(session, apps),
+        *await _profile_access_alerts(session),
     ]
     alerts.sort(key=lambda alert: alert.severity != AlertSeverity.CRITICAL)
     counts = DashboardCounts(
@@ -260,6 +262,29 @@ async def _no_manager_alerts(session: AsyncSession, apps: list[App]) -> list[Ale
             person_id=None,
             count=count,
         )
+async def _profile_access_alerts(session: AsyncSession) -> list[Alert]:
+    """One alert per access profile whose active members miss one of its apps."""
+    counts = await members_missing_by_profile(session)
+    if not counts:
+        return []
+    profiles = await session.scalars(
+        select(AccessProfile).where(AccessProfile.id.in_(counts)).order_by(AccessProfile.name)
+    )
+    return [
+        Alert(
+            kind=AlertKind.PROFILE_ACCESS_MISSING,
+            severity=AlertSeverity.WARNING,
+            message=(
+                f"{counts[profile.id]} {'person misses' if counts[profile.id] == 1 else 'people miss'} "
+                f"access from their profile {profile.name}"
+            ),
+            entity_type=AlertEntityType.ACCESS_PROFILE,
+            entity_id=profile.id,
+            app_id=None,
+            person_id=None,
+            count=counts[profile.id],
+        )
+        for profile in profiles
     ]
 
 

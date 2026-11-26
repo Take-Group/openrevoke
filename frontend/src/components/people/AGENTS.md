@@ -10,16 +10,17 @@ People (employees and service accounts): list, detail page, onboarding and offbo
 - `person-fields.tsx`: `PersonFields`, `PersonForm`, `ManagerChoice`, `EMPTY_PERSON`: fields shared by add and edit (manager with `PersonPicker`, department, job title).
 - `import-people-view.tsx`: `ImportPeopleView` (`/people/import`): Preview (dry run) first, then the real import (columns include `manager_email`, `department`, `job_title`). Hook `useImportPeople`.
 - `import-preview.tsx`: `ImportPreview`: rows the dry run would create or change.
-- `person-detail-view.tsx`: `PersonDetailView`: header and panels, links Add to app, Onboard, Offboard to their pages. Hook `usePerson`.
 - `person-manager-section.tsx`: `PersonManagerSection`: "Reporting line" panel: manager (auto or manual), department, job title, reports.
 - `person-requests-section.tsx`: `PersonRequestsSection` (personId): the person's access requests under the tabs, hidden without any; rows open `/requests/[id]`. Hook `useAccessRequests`.
+- `person-detail-view.tsx`: `PersonDetailView`: header, stats, `PersonProfilesSection` and panels, links Add to app, Onboard, Offboard to their pages. Hook `usePerson`.
 - `person-accounts-table.tsx`: `PersonAccountsTable`: accounts of the person, per-row action requests. Hooks `useApps`, `useCreateAction`.
 - `person-sources-table.tsx`: `PersonSourcesTable`: where the person was found (discovery or import).
 - `person-discovered-apps.tsx`: `PersonDiscoveredApps`: apps the person signed in to with Google (untracked ones need a manual check). Hook `usePersonDiscoveredApps`.
 - `person-activity.tsx`: `PersonActivity`: open actions and audit history. Hooks `useActions`, `useAudit`.
 - `person-more-menu.tsx`: `PersonMoreMenu`: edit (`/people/[id]/edit`), history, copy e-mail, delete (only without accounts and actions), service-account switch. Hooks `useDeletePerson`, `useSetPersonKind`.
 - `person-kind-badge.tsx`: `PersonKindBadge`: "Service account" with the reason; nothing for people.
-- `onboard-view.tsx`: `OnboardView` (`/people/[id]/onboard`): accounts in several apps as one batch awaiting approval, then goes to `/actions?batch=`; mirrors backend `services/onboarding.py`. Hooks `useActions`, `useApps`, `useChoices`, `useOnboardPerson`.
+- `onboard-view.tsx`: `OnboardView` (`/people/[id]/onboard`): access profiles on top tick their apps and set roles (`profileRoles`), then accounts in several apps as one batch awaiting approval with those roles, the chosen profiles assigned (`create_actions: false`), then goes to `/actions?batch=`; mirrors backend `services/onboarding.py`. Hooks `useActions`, `useApps`, `useChoices`, `useOnboardPerson`, `useAccessProfiles`, `useAssignPersonProfiles`.
+- `person-profiles-section.tsx`: `PersonProfilesSection` on `/people/[id]`: the person's access profiles (Add profile page, remove with confirmation, then suggested removals with "Create removal actions"), missing, not in any profile, other role. Hooks `usePersonAccessProfiles`, `usePersonAccessDrift`, `useUnassignPersonProfile`, `useCreateRemovals`.
 - `offboard-view.tsx`: `OffboardView` (`/people/[id]/offboard`): previews the plan, then offboards and goes to `/actions?batch=`. Hooks `useActions`, `useApps`, `usePlan`, `useOffboardPerson`.
 - `app-choice-list.tsx`: `AppChoiceList`, `AppChoiceRow`: app list on the two pages above.
 - `add-to-app-view.tsx`: `AddToAppView` (`/people/[id]/add-to-app`): one create_account action (or manual task), back to the person. Hooks `useApps`, `useCreateAction`.

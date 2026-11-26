@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { useApiMutation } from "@/hooks/use-api-mutation";
 import { ApiError, apiGet, apiSend } from "@/lib/api/client";
-import type { BrowserOpenRequest, BrowserState, BrowserTab } from "@/lib/api/types";
+import type { BrowserOpenRequest, BrowserState, BrowserTab } from "@/lib/api/browser-types";
 
 export function useBrowserState() {
   return useQuery({

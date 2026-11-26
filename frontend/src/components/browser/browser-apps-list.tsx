@@ -9,7 +9,8 @@ import { RecordLink } from "@/components/common/links";
 import { StatusBadge } from "@/components/common/status-badge";
 import { Button } from "@/components/ui/button";
 import { useOpenInBrowser } from "@/hooks/use-browser";
-import type { BrowserApp, BrowserTab, ConnectionStatus } from "@/lib/api/types";
+import type { ConnectionStatus } from "@/lib/api/types";
+import type { BrowserApp, BrowserTab } from "@/lib/api/browser-types";
 
 const LOGIN_LABEL: Record<ConnectionStatus, string> = {
   ok: "Logged in",
