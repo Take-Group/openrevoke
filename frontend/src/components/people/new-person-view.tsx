@@ -24,6 +24,9 @@ export function NewPersonView() {
         employee_code: emptyToNull(form.employee_code),
         notes: emptyToNull(form.notes),
         aliases: parseEmailList(form.aliases),
+        manager_id: form.manager?.id ?? null,
+        department: emptyToNull(form.department),
+        job_title: emptyToNull(form.job_title),
       },
       { onSuccess: (person) => router.push(`/people/${person.id}`) },
     );

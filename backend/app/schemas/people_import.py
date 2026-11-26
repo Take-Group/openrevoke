@@ -28,6 +28,9 @@ class ImportRowResult(BaseModel):
     last_name: str | None = Field(default=None, description="create rows: the new person's last name")
     employee_code: str | None = Field(default=None, description="create rows: the new person's employee code")
     aliases: list[str] = Field(default_factory=list, description="create rows: the new person's aliases")
+    manager_email: str | None = Field(default=None, description="create rows: the new person's manager")
+    department: str | None = Field(default=None, description="create rows: the new person's department")
+    job_title: str | None = Field(default=None, description="create rows: the new person's job title")
 
 
 class ImportResult(BaseModel):

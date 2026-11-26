@@ -176,8 +176,8 @@ class RequestPolicy(StrEnum):
 class ManagerSource(StrEnum):
     """Who set a person's manager. A manual choice wins: syncs never change it."""
 
-    AUTO = "auto"  # a people source (Google Workspace, CSV import)
-    MANUAL = "manual"  # an admin in the panel
+    AUTO = "auto"  # a people source (Google Workspace); the sync may change it
+    MANUAL = "manual"  # an admin in the panel or a CSV import
 
 
 class AccessRequestChannel(StrEnum):

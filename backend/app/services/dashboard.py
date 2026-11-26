@@ -7,7 +7,14 @@ from sqlalchemy import func, select
 from app.connectors.base import AuthKind
 from app.connectors.registry import UnknownConnectorError, get_connector
 from app.models import Account, Action, App, Connection, Person, PersonLink
-from app.models.enums import AccountStatus, ActionStatus, ConnectionStatus, PersonKind, PersonStatus
+from app.models.enums import (
+    AccountStatus,
+    ActionStatus,
+    ConnectionStatus,
+    PersonKind,
+    PersonStatus,
+    RequestPolicy,
+)
 from app.schemas.currencies import ExchangeRatesInfo
 from app.schemas.dashboard import Alert, AlertEntityType, AlertKind, AlertSeverity, Dashboard, DashboardCounts
 from app.services import exchange_rates
@@ -15,6 +22,7 @@ from app.services.accounts import unassigned_clause
 from app.services.apps import SeatStats, seat_stats
 from app.services.costs import app_monthly_cost, sum_by_currency
 from app.services.discovery import apps_at_risk
+from app.services.people_managers import needs_manager_clause
 from app.services.people_sources import source_names
 from app.services.presenters import money, money_list, price_of
 
@@ -22,6 +30,7 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 ACTIVE_SEAT_STATUSES = (AccountStatus.ACTIVE, AccountStatus.INVITED)
+MANAGER_POLICIES = (RequestPolicy.MANAGER, RequestPolicy.MANAGER_THEN_ADMIN)
 PROBLEM_STATUSES = (ConnectionStatus.NEEDS_LOGIN, ConnectionStatus.ERROR)
 
 
@@ -43,6 +52,7 @@ async def get_dashboard(session: AsyncSession) -> Dashboard:
         *await _unassigned_alerts(session),
         *await _inactive_in_source_alerts(session),
         *await _discovery_alerts(session),
+        *await _no_manager_alerts(session, apps),
     ]
     alerts.sort(key=lambda alert: alert.severity != AlertSeverity.CRITICAL)
     counts = DashboardCounts(
@@ -218,6 +228,38 @@ async def _discovery_alerts(session: AsyncSession) -> list[Alert]:
             count=count,
         )
         for app, count in await apps_at_risk(session)
+    ]
+
+
+async def _no_manager_alerts(session: AsyncSession, apps: list[App]) -> list[Alert]:
+    """Active people without a manager, only while an app sends requests to managers.
+
+    The top of each reporting line (no manager, but people report to them) is not counted.
+    """
+    if not any(app.request_policy in MANAGER_POLICIES for app in apps):
+        return []
+    rows = list(
+        await session.scalars(
+            select(Person.id).where(needs_manager_clause()).order_by(Person.last_name, Person.first_name, Person.id)
+        )
+    )
+    if not rows:
+        return []
+    count = len(rows)
+    return [
+        Alert(
+            kind=AlertKind.PEOPLE_WITHOUT_MANAGER,
+            severity=AlertSeverity.WARNING,
+            message=(
+                f"{'1 person has' if count == 1 else f'{count} people have'} no manager. "
+                "Their access requests go to an admin"
+            ),
+            entity_type=AlertEntityType.PERSON,
+            entity_id=rows[0],
+            app_id=None,
+            person_id=None,
+            count=count,
+        )
     ]
 
 

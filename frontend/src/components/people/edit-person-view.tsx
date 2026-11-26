@@ -20,6 +20,9 @@ function initialForm(person: PersonDetail): PersonForm {
     employee_code: person.employee_code ?? "",
     notes: person.notes ?? "",
     aliases: person.aliases.map((alias) => alias.email).join("\n"),
+    manager: person.manager && { ...person.manager, id: person.manager.person_id },
+    department: person.department ?? "",
+    job_title: person.job_title ?? "",
   };
 }
 
@@ -39,8 +42,13 @@ function EditPersonForm({ person }: { person: PersonDetail }) {
       employee_code: emptyToNull(form.employee_code),
       notes: emptyToNull(form.notes),
       aliases: parseEmailList(form.aliases),
+      department: emptyToNull(form.department),
+      job_title: emptyToNull(form.job_title),
     };
     if (status !== person.status) data.status = status;
+    // Sent only when changed: saving it marks the manager as set by hand, which syncs keep.
+    const managerId = form.manager?.id ?? null;
+    if (managerId !== (person.manager?.person_id ?? null)) data.manager_id = managerId;
     update.mutate(data, { onSuccess: () => router.push(backHref) });
   };
 

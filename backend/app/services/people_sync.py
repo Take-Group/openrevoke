@@ -11,6 +11,13 @@
 - Inactive in the source sets ``person_link.is_active = false``; the person's
   status never changes here. A person missing from the full list counts as
   inactive in the source.
+- Department and job title: the source's value replaces the stored one; an
+  empty value in the source keeps it (a CSV import may have filled it).
+- Manager: resolved by e-mail (primary or alias) in a second pass, once every
+  person of the list is stored. The source decides while ``manager_source =
+  auto``: no manager or an unknown e-mail in the source clears it. A manual
+  choice (panel, CSV import) is never changed. A self-manager or a manager that
+  would close a loop is ignored (no manager).
 """
 
 from dataclasses import dataclass
@@ -19,13 +26,16 @@ from typing import TYPE_CHECKING
 from sqlalchemy import select
 
 from app.models import Person, PersonEmail, PersonLink
-from app.models.enums import PersonKindSource, PersonLinkSource, PersonStatus
+from app.models.enums import ManagerSource, PersonKindSource, PersonLinkSource, PersonStatus
 from app.services import audit, person_kind
 from app.services.accounts import rematch_accounts
 from app.services.matching import EmailIndex, is_valid_email, load_email_index, normalize_email
+from app.services.people_managers import creates_cycle, manager_map
 from app.services.people_sources import upsert_link
 
 if TYPE_CHECKING:
+    import uuid
+
     from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.connectors.base import RemotePerson
@@ -39,6 +49,7 @@ class PeopleSyncStats:
     linked: int = 0
     skipped: int = 0
     inactive: int = 0
+    managers_changed: int = 0
 
 
 async def apply_people(session: AsyncSession, connection: Connection, people: list[RemotePerson]) -> PeopleSyncStats:
@@ -54,6 +65,7 @@ async def apply_people(session: AsyncSession, connection: Connection, people: li
     stats = PeopleSyncStats()
     seen: set[str] = set()
     touched: set[str] = set()
+    stored: list[tuple[Person, RemotePerson, bool]] = []
     for remote in people:
         email = normalize_email(remote.email)
         if not email or not is_valid_email(email) or not remote.external_id or remote.external_id in seen:
@@ -74,10 +86,15 @@ async def apply_people(session: AsyncSession, connection: Connection, people: li
         added = await _add_aliases(session, index, person, [email, *remote.aliases])
         code = await _fill_employee_code(session, person, remote.employee_code)
         kind = _apply_kind(person, remote, email)
+        org = _apply_org(person, remote)
         touched |= set(added)
-        if not created and (added or code or kind):
+        stored.append((person, remote, created))
+        if not created and (added or code or kind or org):
             changes = (
-                {"aliases_added": added} | ({"employee_code": code} if code else {}) | ({"kind": kind} if kind else {})
+                {"aliases_added": added}
+                | ({"employee_code": code} if code else {})
+                | ({"kind": kind} if kind else {})
+                | org
             )
             await audit.record(
                 session,
@@ -102,8 +119,59 @@ async def apply_people(session: AsyncSession, connection: Connection, people: li
             link.is_active = False
             stats.inactive += 1
     await session.flush()
+    stats.managers_changed = await _apply_managers(session, connection, index, stored)
     await rematch_accounts(session, touched)
     return stats
+
+
+def _apply_org(person: Person, remote: RemotePerson) -> dict[str, str]:
+    """Department and job title from the source; an empty value keeps the stored one. Returns the changes."""
+    changes: dict[str, str] = {}
+    for field in ("department", "job_title"):
+        value = (getattr(remote, field) or "").strip()[:200] or None
+        if value is not None and value != getattr(person, field):
+            setattr(person, field, value)
+            changes[field] = value
+    return changes
+
+
+async def _apply_managers(
+    session: AsyncSession, connection: Connection, index: EmailIndex, stored: list[tuple[Person, RemotePerson, bool]]
+) -> int:
+    """Second pass: the source's manager e-mails, now that every person of the list exists."""
+    managers = await manager_map(session)
+    changed = 0
+    for person, remote, created in stored:
+        if person.manager_source == ManagerSource.MANUAL:
+            continue
+        manager_id: uuid.UUID | None = index.lookup(remote.manager_email).person_id
+        if manager_id is not None and creates_cycle(managers, person.id, manager_id):
+            manager_id = None  # a self-manager or a loop in the source's data
+        if manager_id == person.manager_id:
+            continue
+        old = person.manager_id
+        person.manager_id = manager_id
+        managers[person.id] = manager_id
+        changed += 1
+        if not created:
+            await audit.record(
+                session,
+                "person.updated",
+                "person",
+                person.id,
+                {
+                    "changes": {"manager_id": {"old": _str(old), "new": _str(manager_id)}},
+                    "manager_email": remote.manager_email,
+                    "via": "connection",
+                    "connection_id": str(connection.id),
+                },
+            )
+    await session.flush()
+    return changed
+
+
+def _str(value: object) -> str | None:
+    return None if value is None else str(value)
 
 
 async def _find_person(session: AsyncSession, index: EmailIndex, link: PersonLink | None, email: str) -> Person | None:

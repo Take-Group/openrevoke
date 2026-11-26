@@ -19,9 +19,12 @@ const PAGE_SIZE = 100;
 
 type StatusFilter = PersonStatus | "all";
 
-export function PeopleView({ initialStatus }: { initialStatus?: PersonStatus }) {
+type ManagerFilter = "all" | "none";
+
+export function PeopleView({ initialStatus, initialNoManager }: { initialStatus?: PersonStatus; initialNoManager?: boolean }) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<StatusFilter>(initialStatus ?? "all");
+  const [manager, setManager] = useState<ManagerFilter>(initialNoManager ? "none" : "all");
   // Service accounts (shared mailboxes, technical accounts) have their own tab: they do not leave.
   const [kind, setKind] = useState<PersonKind>("human");
   const [offset, setOffset] = useState(0);
@@ -31,6 +34,7 @@ export function PeopleView({ initialStatus }: { initialStatus?: PersonStatus }) 
     q: q || undefined,
     status: status === "all" ? undefined : status,
     kind,
+    no_manager: manager === "none" || undefined,
     limit: PAGE_SIZE,
     offset,
   });
@@ -86,11 +90,23 @@ export function PeopleView({ initialStatus }: { initialStatus?: PersonStatus }) 
             { value: "left", label: "Left" },
           ]}
         />
+        <Segmented
+          label="Manager"
+          value={manager}
+          onChange={(value) => {
+            setManager(value);
+            setOffset(0);
+          }}
+          options={[
+            { value: "all", label: "Any manager" },
+            { value: "none", label: "No manager" },
+          ]}
+        />
       </Toolbar>
       <QueryState query={query} loading={<TableSkeleton rows={8} />}>
         {(page) => (
           <>
-            <PeopleTable people={page.items} filtered={Boolean(q || status !== "all")} />
+            <PeopleTable people={page.items} filtered={Boolean(q || status !== "all" || manager !== "all")} />
             <Pager total={page.total} limit={PAGE_SIZE} offset={offset} onOffsetChange={setOffset} />
           </>
         )}

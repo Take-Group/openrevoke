@@ -72,6 +72,11 @@ class RemotePerson:
     # For telling service accounts apart (app.services.person_kind); None when the source has no data.
     last_sign_in_at: datetime | None = None
     created_at: datetime | None = None
+    # Org data. ``manager_email`` is resolved to a person after the whole list is stored
+    # (``app.services.people_sync``); None means the source names no manager.
+    manager_email: str | None = None
+    department: str | None = None
+    job_title: str | None = None
 
 
 @dataclass

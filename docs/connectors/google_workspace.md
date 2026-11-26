@@ -142,6 +142,14 @@ and the dashboard shows an alert about rejected credentials.
   without the primary e-mail. The employee ID comes from `externalIds` with
   the type `organization` (the "Employee ID" field in the admin console).
   `active` = not suspended and not archived.
+- Org data: `manager_email` = `value` of the first `relations` entry with
+  `type = manager`; `department` and `job_title` = `department` and `title`
+  of the `organizations` entry marked `primary` (else the first one). These
+  are standard user fields: `projection=basic` leaves out only custom schema
+  fields, so `users.list` returns them without `projection=full`
+  (Directory API reference, `users.list`, checked 26.11.2026; not yet seen
+  on a real workspace). The sync resolves the manager's e-mail to a person
+  (`services/people_sync.py`).
 - `raw` keeps only selected fields (id, e-mail, admin flags, suspension,
   organizational unit, dates, 2SV). Phone numbers, addresses and recovery
   e-mails do not go into the database.

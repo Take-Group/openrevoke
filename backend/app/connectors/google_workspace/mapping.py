@@ -1,4 +1,8 @@
-"""Pure parsing of Admin SDK Directory API responses (``users.list``, ``users.insert``)."""
+"""Pure parsing of Admin SDK Directory API responses (``users.list``, ``users.insert``).
+
+``relations`` and ``organizations`` are standard user fields: ``users.list`` returns them with
+``projection=basic`` (which leaves out only custom schema fields) and ``viewType=admin_view``.
+"""
 
 from datetime import datetime
 from typing import Any
@@ -51,6 +55,7 @@ def user_to_account(user: dict[str, Any]) -> RemoteAccount:
 def user_to_person(user: dict[str, Any]) -> RemotePerson:
     user_id, email = _id_and_email(user)
     name = user.get("name") or {}
+    organization = primary_organization(user)
     return RemotePerson(
         external_id=user_id,
         email=email,
@@ -62,7 +67,24 @@ def user_to_person(user: dict[str, Any]) -> RemotePerson:
         raw=_raw(user),
         last_sign_in_at=_time(user.get("lastLoginTime")),
         created_at=_time(user.get("creationTime")),
+        manager_email=manager_email(user),
+        department=_clean(organization.get("department")),
+        job_title=_clean(organization.get("title")),
     )
+
+
+def manager_email(user: dict[str, Any]) -> str | None:
+    """The first ``relations`` entry of type ``manager`` (its ``value`` is the manager's e-mail)."""
+    for entry in user.get("relations") or []:
+        if isinstance(entry, dict) and entry.get("type") == "manager" and _clean(entry.get("value")):
+            return str(_clean(entry.get("value"))).lower()
+    return None
+
+
+def primary_organization(user: dict[str, Any]) -> dict[str, Any]:
+    """The ``organizations`` entry marked ``primary``, else the first one; {} without any."""
+    entries = [entry for entry in user.get("organizations") or [] if isinstance(entry, dict)]
+    return next((entry for entry in entries if entry.get("primary")), entries[0] if entries else {})
 
 
 def _time(value: object) -> datetime | None:

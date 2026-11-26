@@ -12,10 +12,12 @@ Logic between `app/api/`, `app/temporal/` activities and `app/models/`. Services
 - `apps.py`: app CRUD with seats (`seat_stats`).
 - `accounts.py`: `list_app_accounts`, `create_manual_account`, `update_account`, `set_owner`, `rematch_accounts`.
 - `matching.py`: account to person by e-mail, order manual, primary, alias (`resolve_match`, `match_email`, `EmailIndex`).
-- `people.py`: people CRUD with e-mail and code uniqueness checks.
+- `people.py`: people CRUD with e-mail and code uniqueness checks; manager, department, job title, `no_manager` filter.
+- `people_managers.py`: reporting lines: `set_manager` (panel, manual), `creates_cycle`, `manager_map`, `reports_of`, `without_manager_clause`, `needs_manager_clause` (dashboard alert).
 - `people_import.py`: CSV import (`parse_csv`, `import_people` with `dry_run`).
+- `people_import_managers.py`: `resolve_managers`: `manager_email` column of the CSV import (stored person or row of the file, loops refused).
 - `people_sources.py`: `get_or_create_source`, `upsert_link`, `source_names` (where a person comes from).
-- `people_sync.py`: `apply_people` stores `RemotePerson`s from a people-source connection, called by `sync.run`.
+- `people_sync.py`: `apply_people` stores `RemotePerson`s from a people-source connection (department, job title, then managers in a second pass), called by `sync.run`.
 - `person_kind.py`: `classify` decides person or service account from address and name, returns a reason.
 - `connections.py`: connector `catalog`, `upsert_connection` (encrypts secrets), `check_connection`, `set_status`, `split_form`.
 - `connector_runtime.py`: `resolve_connector`, `parse_config`, `open_context` (secrets, HTTP client); every connector call.

@@ -1,8 +1,17 @@
 "use client";
 
 import { FormField } from "@/components/common/form-field";
+import { PersonPicker } from "@/components/common/person-picker";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+
+/** The manager chosen in the form (from `PersonPicker` or `PersonDetail.manager`). */
+export interface ManagerChoice {
+  id: string;
+  first_name: string;
+  last_name: string;
+  primary_email: string;
+}
 
 export interface PersonForm {
   first_name: string;
@@ -11,6 +20,9 @@ export interface PersonForm {
   employee_code: string;
   aliases: string;
   notes: string;
+  manager: ManagerChoice | null;
+  department: string;
+  job_title: string;
 }
 
 export const EMPTY_PERSON: PersonForm = {
@@ -20,6 +32,9 @@ export const EMPTY_PERSON: PersonForm = {
   employee_code: "",
   aliases: "",
   notes: "",
+  manager: null,
+  department: "",
+  job_title: "",
 };
 
 /** Fields shared by "Add person" and "Edit person". */
@@ -52,6 +67,44 @@ export function PersonFields({
       <FormField label="Employee code" htmlFor={id("code")}>
         <Input id={id("code")} value={form.employee_code} onChange={set("employee_code")} />
       </FormField>
+      <FormField
+        label="Manager"
+        info="Approves this person's access requests. Set here, it is kept when a people source syncs."
+      >
+        <PersonPicker
+          variant="field"
+          allowClear
+          placeholder="No manager"
+          value={form.manager}
+          onChange={(person) =>
+            onChange({
+              ...form,
+              manager: person && {
+                id: person.id,
+                first_name: person.first_name,
+                last_name: person.last_name,
+                primary_email: person.primary_email,
+              },
+            })
+          }
+        />
+      </FormField>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <FormField
+          label="Department"
+          htmlFor={id("department")}
+          info="A people source (Google Workspace) replaces it on the next sync when it has a value."
+        >
+          <Input id={id("department")} maxLength={200} value={form.department} onChange={set("department")} />
+        </FormField>
+        <FormField
+          label="Job title"
+          htmlFor={id("title")}
+          info="A people source (Google Workspace) replaces it on the next sync when it has a value."
+        >
+          <Input id={id("title")} maxLength={200} value={form.job_title} onChange={set("job_title")} />
+        </FormField>
+      </div>
       <FormField
         label="Aliases"
         htmlFor={id("aliases")}

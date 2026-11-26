@@ -2,15 +2,16 @@
 
 People (employees and service accounts): list, detail page, onboarding and offboarding, CSV import. Hooks: `use-people.ts` (plus `use-actions`, `use-apps`, `use-audit`, `use-discovery`). Pages: `src/app/people/page.tsx` (`PeopleView`), `src/app/people/[id]/page.tsx` (`PersonDetailView`) and the form pages `/people/new`, `/people/import`, `/people/[id]/edit`, `/people/[id]/add-to-app`, `/people/[id]/onboard`, `/people/[id]/offboard`. Every form is its own page (`FormPage`), not a side panel or dialog.
 
-- `people-view.tsx`: `PeopleView`: search, list, links "Import" and "Add person". Hooks `usePeople`, `useDebouncedValue`.
-- `people-table.tsx`: `PeopleTable`: rows, links to detail and `/audit?person=`.
+- `people-view.tsx`: `PeopleView`: search, kind, status and "No manager" filters (`?no_manager=true`), list, links "Import" and "Add person". Hooks `usePeople`, `useDebouncedValue`.
+- `people-table.tsx`: `PeopleTable`: rows (department and job title column), links to detail and `/audit?person=`.
 - `new-person-view.tsx`: `NewPersonView` (`/people/new`): create, then goes to `/people/[id]`. Hook `useCreatePerson`.
 - `edit-person-view.tsx`: `EditPersonView` (`/people/[id]/edit`): edit, back to the person. Hook `useUpdatePerson`.
 - `person-query.tsx`: `PersonQuery` (id, render-prop children): loads the person for the pages under `/people/[id]/`. Hook `usePerson`.
-- `person-fields.tsx`: `PersonFields`, `PersonForm`, `EMPTY_PERSON`: fields shared by add and edit.
-- `import-people-view.tsx`: `ImportPeopleView` (`/people/import`): Preview (dry run) first, then the real import. Hook `useImportPeople`.
+- `person-fields.tsx`: `PersonFields`, `PersonForm`, `ManagerChoice`, `EMPTY_PERSON`: fields shared by add and edit (manager with `PersonPicker`, department, job title).
+- `import-people-view.tsx`: `ImportPeopleView` (`/people/import`): Preview (dry run) first, then the real import (columns include `manager_email`, `department`, `job_title`). Hook `useImportPeople`.
 - `import-preview.tsx`: `ImportPreview`: rows the dry run would create or change.
 - `person-detail-view.tsx`: `PersonDetailView`: header and panels, links Add to app, Onboard, Offboard to their pages. Hook `usePerson`.
+- `person-manager-section.tsx`: `PersonManagerSection`: "Reporting line" panel: manager (auto or manual), department, job title, reports.
 - `person-accounts-table.tsx`: `PersonAccountsTable`: accounts of the person, per-row action requests. Hooks `useApps`, `useCreateAction`.
 - `person-sources-table.tsx`: `PersonSourcesTable`: where the person was found (discovery or import).
 - `person-discovered-apps.tsx`: `PersonDiscoveredApps`: apps the person signed in to with Google (untracked ones need a manual check). Hook `usePersonDiscoveredApps`.

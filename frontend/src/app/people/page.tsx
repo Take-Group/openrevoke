@@ -5,8 +5,15 @@ import type { PersonStatus } from "@/lib/api/types";
 
 export const metadata: Metadata = { title: "People" };
 
-export default async function PeoplePage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
-  const { status } = await searchParams;
+export default async function PeoplePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string; no_manager?: string }>;
+}) {
+  const { status, no_manager } = await searchParams;
   const initialStatus: PersonStatus | undefined = status === "active" || status === "left" ? status : undefined;
-  return <PeopleView key={status} initialStatus={initialStatus} />;
+  const initialNoManager = no_manager === "true";
+  return (
+    <PeopleView key={`${status}-${no_manager}`} initialStatus={initialStatus} initialNoManager={initialNoManager} />
+  );
 }

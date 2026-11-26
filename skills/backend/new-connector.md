@@ -43,7 +43,9 @@ calls the connector and stores the result.
    saved by `services/billing.py`). Limit 20 minutes.
 4. `NeedsLogin`: the run and the connection are `needs_login`. Any other connector error: the run is
    `failed`, the connection is `error`. Accounts do not change in either case.
-5. Write in one transaction: people (`people_sync.py`), then accounts
+5. Write in one transaction: people (`people_sync.py`; `RemotePerson.manager_email`
+   is resolved to a person in a second pass, `department` and `job_title` are
+   stored as they come), then accounts
    (`sync_accounts.py`). Too many vanished accounts (more than 30% of the accounts other
    than `removed`) roll back the whole transaction; `?force=true` skips the threshold.
 6. Audit: `account.discovered`, `account.reappeared`,
