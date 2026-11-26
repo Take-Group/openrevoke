@@ -79,8 +79,9 @@ Authenticator and any other TOTP app).
 | `backend/app/services/auth/tickets.py` | second-step ticket in Redis |
 | `backend/app/services/auth/sessions.py` | sessions: random token in the `open_revoke_session` cookie, only SHA-256 in the database |
 | `backend/app/services/auth/tokens.py` | one-time links (invite, reset), SHA-256 in the database |
-| `backend/app/services/auth/rate_limit.py` | counters in Redis: 10 sign-ins / 15 min per e-mail, 5 sign-ups / h, 5 attempts to turn off 2FA / 15 min |
-| `backend/app/services/auth/sign_in.py` | setup, sign-in, TOTP step, sign-up from an invite |
+| `backend/app/services/auth/rate_limit.py` | counters in Redis. Sign-in per 15 min: 10 per e-mail from one address, 50 per address, 100 per e-mail from anywhere (a stranger cannot lock an owner out). 5 sign-ups / h, 5 attempts to turn off 2FA / 15 min |
+| `backend/app/api/client_ip.py` | `client_ip`: last `X-Forwarded-For` entry (the proxy's view), else the peer; for rate limits and the audit log |
+| `backend/app/services/auth/sign_in.py` | setup, sign-in, TOTP step, sign-up from an invite; `record_failed_sign_in` writes `user.sign_in_failed` (e-mail, address, `password` or `totp`) in its own transaction |
 | `backend/app/services/auth/two_factor.py` | 2FA in settings: `start`, `enable`, `disable` |
 | `backend/app/services/auth/signup.py` | self sign-up, confirmation link, auto-approve by domain, `sign_in_blocker` |
 | `backend/app/services/organization.py` | reading and changing the organization with sign-up rules |
@@ -92,7 +93,7 @@ Authenticator and any other TOTP app).
 | `backend/app/services/auth/api_tokens.py` | personal API tokens (Bearer) for the REST API and MCP: skill `mcp.md` |
 | `backend/app/api/auth.py` | `/api/auth/*`, public |
 | `backend/app/api/users.py` | `/api/users`, `/api/invites`, `/api/organization` |
-| `backend/app/cli.py` | `list-users`, `reset-2fa`, `reset-link`, `set-password` |
+| `backend/app/cli.py` | `list-users`, `reset-2fa`, `reset-link`, `set-password`, `setup-link`, `rotate-secrets` |
 
 ## Flow
 

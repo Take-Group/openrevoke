@@ -19,6 +19,13 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
   file, and stop on a fixable CRITICAL vulnerability found by Trivy in either image. The release
   notes show how to verify each of them.
 - PostgreSQL 18.7: fixes in the base image's Kerberos libraries (CVE-2026-107364 and others).
+- `open-revoke rotate-key` replaces `OPEN_REVOKE_SECRET_KEY` and re-encrypts every stored secret;
+  the key can also come from a file (`OPEN_REVOKE_SECRET_KEY_FILE`).
+- The audit log is append-only in the database, records failed sign-ins with the address, and
+  exports to CSV or JSON Lines (Audit page, `GET /api/audit/export`).
+- Sign-in limits per address and per e-mail from one address: a stranger can no longer lock an
+  account out with ten wrong passwords. Your own reverse proxy must set `X-Forwarded-For`
+  (docs/self-hosting.md).
 
 ### Added
 

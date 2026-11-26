@@ -10,7 +10,7 @@ React Query hooks, one file per API resource; components never `fetch`. Reads: `
 - `use-ai-settings.ts`: `useAiSettings` key `["ai-settings"]`; `useSaveAiSettings`, `useAiModels` (Connect, no toast), `useSavedAiModels`, `useTestAi`.
 - `use-api-tokens.ts`: `useApiTokens` key `["api-tokens"]`; `useCreateApiToken`, `useRevokeApiToken`.
 - `use-apps.ts`: `useApps(params)` key `["apps", params]` (`categories`, filter `category`); `useApp(id)` key `["app", id]`; `useCreateApp`, `useCreateApps` (bulk), `useAppLogo()` (PUT/DELETE logo), `useUpdateApp(id)`, `useDeleteApp(id)`.
-- `use-audit.ts`: `useAudit(params)` key `["audit", params]`, filters `q`, `entity_type`, `entity_id`, `event`, `app_id`, `person_id`.
+- `use-audit.ts`: `useAudit(params)` key `["audit", params]`, filters `q`, `entity_type`, `entity_id`, `event`, `app_id`, `person_id`; `auditExportUrl(filters, csv | jsonl)` (download link).
 - `use-auth.ts`: `useAuthState` key `["auth"]` (who is signed in, setup needed, organization); `useSetup`, `useLogin`, `useRegister` (enter the panel on `done`), `useVerifyTotp`, `useSkipTotp`, `useEnterPanel`, `useStartTwoFactor`, `useSetTwoFactor`, `useSignup`, `useResetPassword`, `useChangePassword`, `useLogout`, all with `meta.authFlow` (a 401 does not reset the state); `useInviteInfo(token)`, `useSetupTokenCheck(token)`, `useRestartAtLogin()`. Sign-in and logout clear every cache except `auth`.
 - `use-browser.ts`: `useBrowserState` key `["browser"]` (polls 15 s, not after a 4xx); `useOpenInBrowser`.
 - `use-catalog.ts`: `useAppCatalog()` key `["catalog"]` (public, never stale): lookup by catalog slug or app name (`keys`); `useCatalogSearch(q, limit, enabled)` key `["apps", "catalog-search", ...]` (refreshed with apps).

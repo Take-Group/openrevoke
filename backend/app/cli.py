@@ -7,6 +7,7 @@ In Docker::
     docker compose exec app /app/backend/.venv/bin/python -m app.cli reset-link admin@example.com
     docker compose exec -it app /app/backend/.venv/bin/python -m app.cli set-password admin@example.com
     docker compose exec app /app/backend/.venv/bin/python -m app.cli setup-link
+    docker compose exec app /app/backend/.venv/bin/python -m app.cli rotate-secrets
 """
 
 import argparse
@@ -19,7 +20,7 @@ from sqlalchemy import select
 from app.database import async_session, engine
 from app.models import User
 from app.redis import redis_client
-from app.services import audit
+from app.services import audit, secret_rotation
 from app.services.auth import passwords, passwords_flow, sessions, setup_link, sign_in
 from app.services.auth.actor import current_actor
 from app.services.errors import InvalidInputError
@@ -75,6 +76,18 @@ async def _setup_link() -> int:
     return 0
 
 
+async def _rotate_secrets() -> int:
+    """Re-encrypt every stored secret with OPEN_REVOKE_SECRET_KEY (key rotation, SECURITY.md)."""
+    current_actor.set("cli")
+    async with async_session() as session, session.begin():
+        result = await secret_rotation.rotate_stored_secrets(session)
+    for label, count in result.rotated.items():
+        print(f"{label}: {count} re-encrypted")
+    for label, ids in result.unreadable.items():
+        print(f"{label}: {len(ids)} unreadable with every key, left as they are: {', '.join(ids)}", file=sys.stderr)
+    return 0 if result.ok else 1
+
+
 def _read_password() -> str:
     first = getpass.getpass("New password: ")
     if first != getpass.getpass("Repeat it: "):
@@ -89,6 +102,8 @@ async def _main(args: argparse.Namespace) -> int:
             return await _list_users()
         if args.command == "setup-link":
             return await _setup_link()
+        if args.command == "rotate-secrets":
+            return await _rotate_secrets()
         if args.command == "reset-link":
             return await _reset_link(args.email)
         if args.command == "reset-2fa":
@@ -107,6 +122,10 @@ def main() -> None:
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("list-users", help="list panel users")
     commands.add_parser("setup-link", help="print a new link for the first-run setup (fresh installation only)")
+    commands.add_parser(
+        "rotate-secrets",
+        help="re-encrypt stored secrets with OPEN_REVOKE_SECRET_KEY (old key in OPEN_REVOKE_SECRET_KEY_PREVIOUS)",
+    )
     for name, text in (
         ("reset-2fa", "turn 2FA off; the next sign-in sets it up again"),
         ("reset-link", "print a one-time link to set a new password (no e-mail needed)"),

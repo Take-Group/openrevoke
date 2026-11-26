@@ -7,7 +7,7 @@ The FastAPI app and the Temporal worker. Layers: `api/` (endpoints) calls `servi
 - `database.py`: async `engine`, `async_session`, `Base` (naming convention), `get_session` dependency.
 - `redis.py`: `redis_client`.
 - `logging.py`: `setup_logging(debug)` (structlog).
-- `cli.py`: `python -m app.cli list-users | reset-2fa | reset-link | set-password | setup-link` for panel users (`reset-link` prints a one-time password link, no e-mail; `setup-link` a new first-run setup link).
+- `cli.py`: `python -m app.cli list-users | reset-2fa | reset-link | set-password | setup-link | rotate-secrets` for panel users (`reset-link` prints a one-time password link, no e-mail; `setup-link` a new first-run setup link; `rotate-secrets` re-encrypts stored secrets after a key change).
 - `ops.py`: `python -m app.ops version | preflight | in-flight`: JSON for the host command `open-revoke` (install, update; `deploy/`), run inside the app image.
 - `__init__.py`: empty.
 - `api/`: own AGENTS.md. HTTP endpoints under `/api`.

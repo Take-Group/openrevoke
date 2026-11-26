@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import func, select, text
 
+from app.database import async_session
 from app.models import Organization, User
 from app.models.enums import UserRole, UserTokenKind
 from app.services import audit
@@ -30,7 +31,12 @@ WRONG_CREDENTIALS = "Wrong e-mail or password."
 WRONG_CODE = "Wrong code. Check the time on your phone and try the newest code."
 # Any number: one advisory lock for the first-run setup, so two browsers cannot both create an admin.
 SETUP_LOCK_ID = 7_412_001
+# Sign-in attempts per 15 minutes: one e-mail from one address, one address for any e-mail, one
+# e-mail from anywhere. The per-account limit is high, so a stranger who knows an e-mail cannot
+# lock its owner out with a few wrong passwords.
 LOGIN_LIMIT = 10
+LOGIN_IP_LIMIT = 50
+LOGIN_ACCOUNT_LIMIT = 100
 LOGIN_WINDOW_SECONDS = 15 * 60
 
 
@@ -94,17 +100,41 @@ async def setup(
     return PendingStep(ticket=await tickets.issue(user.id, secret), enrollment=totp.enrollment(secret, user.email))
 
 
-async def login(session: AsyncSession, *, email: str, password: str, user_agent: str | None) -> SignInResult:
-    await rate_limit.enforce("login", email, limit=LOGIN_LIMIT, window_seconds=LOGIN_WINDOW_SECONDS)
+async def login(
+    session: AsyncSession, *, email: str, password: str, user_agent: str | None, client_ip: str
+) -> SignInResult:
+    window = LOGIN_WINDOW_SECONDS
+    await rate_limit.enforce("login-ip", client_ip, limit=LOGIN_IP_LIMIT, window_seconds=window)
+    await rate_limit.enforce("login", _login_subject(email, client_ip), limit=LOGIN_LIMIT, window_seconds=window)
+    await rate_limit.enforce("login-account", email, limit=LOGIN_ACCOUNT_LIMIT, window_seconds=window)
     user = await session.scalar(select(User).where(User.email == email))
     if not passwords.verify_password(user.password_hash if user else None, password) or user is None:
+        await record_failed_sign_in(email, user.id if user else None, client_ip, "password")
         raise AuthenticationError(WRONG_CREDENTIALS)
     if blocker := signup.sign_in_blocker(user):
         raise PermissionDeniedError(blocker)
-    return await _next_step(session, user, user_agent)
+    return await _next_step(session, user, user_agent, client_ip)
 
 
-async def complete(session: AsyncSession, *, ticket: str, code: str, user_agent: str | None) -> SignedIn:
+async def record_failed_sign_in(email: str, user_id: uuid.UUID | None, client_ip: str, reason: str) -> None:
+    """Audit a failed sign-in in its own transaction: the request's own one is rolled back."""
+    token = current_actor.set("anonymous")
+    try:
+        async with async_session() as own, own.begin():
+            await audit.record(
+                own, "user.sign_in_failed", "user", user_id, {"email": email, "ip": client_ip, "reason": reason}
+            )
+    finally:
+        current_actor.reset(token)
+
+
+def _login_subject(email: str, client_ip: str) -> str:
+    return f"{email}|{client_ip}"
+
+
+async def complete(
+    session: AsyncSession, *, ticket: str, code: str, user_agent: str | None, client_ip: str | None = None
+) -> SignedIn:
     """Check the TOTP code of a ticket and open a session."""
     pending = await tickets.load(ticket)
     user = await session.get(User, pending.user_id)
@@ -120,6 +150,7 @@ async def complete(session: AsyncSession, *, ticket: str, code: str, user_agent:
         raise AuthenticationError(tickets.EXPIRED)
     step = totp.matching_step(secret, code, after_step=user.totp_last_step)
     if step is None:
+        await record_failed_sign_in(user.email, user.id, client_ip or "unknown", "totp")
         raise AuthenticationError(WRONG_CODE)
     await tickets.discard(ticket)
     current_actor.set(user.email)
@@ -127,7 +158,7 @@ async def complete(session: AsyncSession, *, ticket: str, code: str, user_agent:
         user.totp_secret_encrypted = encrypt_value(secret)
         await audit.record(session, "user.totp_enabled", "user", user.id)
     user.totp_last_step = step
-    return await _open_session(session, user, user_agent)
+    return await _open_session(session, user, user_agent, client_ip)
 
 
 async def skip_enrollment(session: AsyncSession, *, ticket: str, user_agent: str | None) -> SignedIn:
@@ -145,11 +176,16 @@ async def skip_enrollment(session: AsyncSession, *, ticket: str, user_agent: str
     return await _open_session(session, user, user_agent)
 
 
-async def _open_session(session: AsyncSession, user: User, user_agent: str | None) -> SignedIn:
-    await rate_limit.reset("login", user.email)
+async def _open_session(
+    session: AsyncSession, user: User, user_agent: str | None, client_ip: str | None = None
+) -> SignedIn:
+    await rate_limit.reset("login-account", user.email)
+    if client_ip:
+        await rate_limit.reset("login", _login_subject(user.email, client_ip))
+    current_actor.set(user.email)
     user.last_login_at = datetime.now(UTC)
     new_session = await sessions.create(session, user, user_agent=user_agent)
-    await audit.record(session, "user.signed_in", "user", user.id)
+    await audit.record(session, "user.signed_in", "user", user.id, {"ip": client_ip} if client_ip else None)
     return SignedIn(user=user, session_token=new_session.token)
 
 
@@ -188,8 +224,10 @@ async def _create_user(session: AsyncSession, *, email: str, name: str, password
     return user
 
 
-async def _next_step(session: AsyncSession, user: User, user_agent: str | None) -> SignInResult:
+async def _next_step(
+    session: AsyncSession, user: User, user_agent: str | None, client_ip: str | None = None
+) -> SignInResult:
     """With 2FA: a ticket for the code step. Without: the session right away."""
     if user.totp_secret_encrypted is not None:
         return PendingStep(ticket=await tickets.issue(user.id), enrollment=None)
-    return await _open_session(session, user, user_agent)
+    return await _open_session(session, user, user_agent, client_ip)

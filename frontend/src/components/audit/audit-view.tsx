@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { DownloadIcon } from "lucide-react";
 
 import { AuditTable } from "@/components/audit/audit-table";
 import { InfoTip } from "@/components/common/info-tip";
@@ -11,7 +12,8 @@ import { SearchInput, Toolbar } from "@/components/common/search-input";
 import { Pager } from "@/components/common/table-shell";
 import { OptionSelect } from "@/components/common/option-select";
 import { TableSkeleton } from "@/components/common/page-skeletons";
-import { useAudit } from "@/hooks/use-audit";
+import { buttonVariants } from "@/components/ui/button";
+import { auditExportUrl, useAudit } from "@/hooks/use-audit";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 const PAGE_SIZE = 100;
@@ -48,21 +50,32 @@ export function AuditView(props: AuditViewProps) {
   const [search, setSearch] = useState("");
   const [offset, setOffset] = useState(0);
   const q = useDebouncedValue(search.trim(), 300);
-  const query = useAudit({
+  const filters = {
     entity_type: entityType || undefined,
     entity_id: entityId,
     app_id: appId,
     person_id: personId,
     q: q || undefined,
-    limit: PAGE_SIZE,
-    offset,
-  });
+  };
+  const query = useAudit({ ...filters, limit: PAGE_SIZE, offset });
   const scope = scopeText(props);
 
   return (
     <>
       <PageHeader
         title="Audit"
+        actions={
+          <>
+            <a href={auditExportUrl(filters, "csv")} download className={buttonVariants({ variant: "outline", size: "sm" })}>
+              <DownloadIcon />
+              <span className="max-md:sr-only">Export CSV</span>
+            </a>
+            <a href={auditExportUrl(filters, "jsonl")} download className={buttonVariants({ variant: "outline", size: "sm" })}>
+              <DownloadIcon />
+              <span className="max-md:sr-only">JSON Lines</span>
+            </a>
+          </>
+        }
         meta={
           <>
             <InfoTip>Every change in Open Revoke, newest first. Entries are never edited or deleted.</InfoTip>

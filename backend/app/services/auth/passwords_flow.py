@@ -45,7 +45,7 @@ async def reset(session: AsyncSession, *, token: str, password: str) -> None:
     if user is None:
         raise InvalidInputError(INVALID_LINK)
     await _set_password(session, user, password, keep_session=None)
-    await rate_limit.reset("login", user.email)
+    await rate_limit.reset("login-account", user.email)
 
 
 async def change(

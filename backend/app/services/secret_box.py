@@ -1,13 +1,17 @@
-"""Encryption of connector secrets with Fernet and ``OPEN_REVOKE_SECRET_KEY``.
+"""Encryption of stored secrets with Fernet and ``OPEN_REVOKE_SECRET_KEY``.
 
-Secrets are stored as one encrypted JSON object per connection
+Connector secrets are stored as one encrypted JSON object per connection
 (``connection.secrets_encrypted``). The API never returns them; it shows
 only the names of the fields that are set.
+
+During a key rotation the keys in ``OPEN_REVOKE_SECRET_KEY_PREVIOUS`` still
+decrypt (``MultiFernet``), while new values are always encrypted with the
+current key. ``services/secret_rotation.py`` re-encrypts everything stored.
 """
 
 import json
 
-from cryptography.fernet import Fernet, InvalidToken
+from cryptography.fernet import Fernet, InvalidToken, MultiFernet
 
 from app.config import settings
 
@@ -22,8 +26,9 @@ class SecretsUnreadableError(Exception):
         )
 
 
-def _fernet() -> Fernet:
-    return Fernet(settings.open_revoke_secret_key.get_secret_value().encode())
+def _fernet() -> MultiFernet:
+    keys = [settings.open_revoke_secret_key.get_secret_value(), *settings.previous_secret_keys]
+    return MultiFernet([Fernet(key.encode()) for key in keys])
 
 
 def encrypt_secrets(values: dict[str, str]) -> bytes | None:
@@ -61,5 +66,13 @@ def encrypt_value(value: str) -> bytes:
 def decrypt_value(token: bytes) -> str:
     try:
         return _fernet().decrypt(token).decode()
+    except InvalidToken as exc:
+        raise SecretsUnreadableError from exc
+
+
+def rotate_token(token: bytes) -> bytes:
+    """Re-encrypt one stored token with the current key; it may be encrypted with a previous one."""
+    try:
+        return _fernet().rotate(token)
     except InvalidToken as exc:
         raise SecretsUnreadableError from exc

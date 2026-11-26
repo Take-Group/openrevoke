@@ -3,6 +3,7 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, status
 
 from app.api.auth_deps import CurrentSessionDep, OptionalSessionDep, require_client_header
+from app.api.client_ip import client_ip
 from app.api.deps import SessionDep
 from app.api.errors import ERROR_RESPONSES, RATE_LIMITED_RESPONSE
 from app.config import settings
@@ -115,7 +116,11 @@ async def setup(data: SetupRequest, session: SessionDep, background: BackgroundT
 async def login(data: LoginRequest, request: Request, response: Response, session: SessionDep) -> AuthStep:
     """``done`` with the session cookie, or ``totp`` when the account has 2FA on."""
     result = await sign_in.login(
-        session, email=data.email, password=data.password, user_agent=request.headers.get("user-agent")
+        session,
+        email=data.email,
+        password=data.password,
+        user_agent=request.headers.get("user-agent"),
+        client_ip=client_ip(request),
     )
     return _answer(result, response)
 
@@ -124,7 +129,11 @@ async def login(data: LoginRequest, request: Request, response: Response, sessio
 async def verify_totp(data: TotpRequest, request: Request, response: Response, session: SessionDep) -> UserOut:
     """Second step of a sign-in with 2FA (or of the first-run setup): a TOTP code for the ticket. Sets the cookie."""
     signed_in = await sign_in.complete(
-        session, ticket=data.ticket, code=data.code, user_agent=request.headers.get("user-agent")
+        session,
+        ticket=data.ticket,
+        code=data.code,
+        user_agent=request.headers.get("user-agent"),
+        client_ip=client_ip(request),
     )
     _set_cookie(response, signed_in.session_token)
     return UserOut.model_validate(signed_in.user)

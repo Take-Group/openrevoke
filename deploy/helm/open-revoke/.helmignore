@@ -1,0 +1,6 @@
+# Agent docs live next to the chart files but are not part of the chart (helm lint --strict
+# refuses a .md file in templates/, and the package would carry them).
+AGENTS.md
+CLAUDE.md
+*/AGENTS.md
+*/CLAUDE.md

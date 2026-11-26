@@ -44,7 +44,7 @@ projects when the stack joins a shared network (a local reverse proxy).
   `open-revoke-dev-password`, no 2FA) and sample apps; people come from the
   Google Workspace connection (`seed_google.py`, `SEED_GOOGLE_*`). Extend it
   when a feature needs data in the panel.
-- Queries by hand: `dc exec postgres psql -U postgres -d open_revoke -c "select ..."`, console `dc exec postgres psql -U postgres -d open_revoke`.
+- Queries by hand: `dc exec postgres psql -U postgres -d open_revoke`.
 
 The self-hosting image (`docker/entrypoint.sh`) runs `python -m app.db migrate`
 at start; `open-revoke update` backs the database up before.
@@ -55,7 +55,7 @@ at start; `open-revoke update` backs the database up before.
 The dev stack sets them in `../compose.dev.yaml`.
 
 - `OPEN_REVOKE_SECRET_KEY`: Fernet key for connector secrets, required, from
-  `../.env`.
+  `../.env` or `_FILE`; `_PREVIOUS` only during `open-revoke rotate-key`.
 - `OPEN_REVOKE_ENABLE_FAKE_CONNECTOR`, `OPEN_REVOKE_DEV_PREFILL`: test
   connector and one-click sign-in form fill; on in the local stack.
 - `SYNC_INTERVAL_HOURS` (6), `ACTION_VERIFY_*`, `ACTION_LOCK_WAIT_SECONDS`:

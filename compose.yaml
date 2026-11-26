@@ -115,6 +115,8 @@ services:
       TEMPORAL_HOST: temporal:7233
       TEMPORAL_TASK_QUEUE: open-revoke
       OPEN_REVOKE_SECRET_KEY: ${OPEN_REVOKE_SECRET_KEY:?set it in .env, see .env.example}
+      # The old key during `open-revoke rotate-key` only; empty otherwise.
+      OPEN_REVOKE_SECRET_KEY_PREVIOUS: ${OPEN_REVOKE_SECRET_KEY_PREVIOUS:-}
       # Hourly check of GitHub for a newer stable release; false for servers without internet.
       OPEN_REVOKE_UPDATE_CHECK: ${OPEN_REVOKE_UPDATE_CHECK:-true}
       OPEN_REVOKE_UPDATE_URL: ${OPEN_REVOKE_UPDATE_URL:-https://api.github.com/repos/Take-Group/openrevoke/releases/latest}

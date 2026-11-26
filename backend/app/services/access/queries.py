@@ -19,6 +19,7 @@ from app.schemas.access_requests import (
 )
 from app.services.access.decisions import last_rejection, people_by_id
 from app.services.costs import monthly_price
+from app.services.csv_cells import safe_cell
 from app.services.errors import NotFoundError
 from app.services.presenters import app_ref, money, person_ref, price_of
 
@@ -242,12 +243,5 @@ async def export_csv(session: AsyncSession, f: RequestFilter) -> str:
             action.approved_by if action else "",
             r.closed_at.isoformat() if r.closed_at else "",
         ]
-        writer.writerow([_safe(None if cell is None else str(cell)) for cell in cells])
+        writer.writerow([safe_cell(None if cell is None else str(cell)) for cell in cells])
     return out.getvalue()
-
-
-def _safe(value: str | None) -> str:
-    """Every cell: names, roles and notes come from people, syncs and the Slack model. A leading
-    = + - @ (or a tab or carriage return before one) would run as a formula in a spreadsheet."""
-    text = value or ""
-    return f"'{text}" if text[:1] in ("=", "+", "-", "@", "\t", "\r") else text

@@ -71,7 +71,9 @@ Leave the profile off (`docker compose up -d --build`). The panel listens on
 `127.0.0.1:18410`; point the proxy there. It must:
 
 - pass the original `Host` header (the API checks it against `PUBLIC_URL`),
-- pass WebSocket upgrades: the live view uses `/api/browser/live/websockify`.
+- pass WebSocket upgrades: the live view uses `/api/browser/live/websockify`,
+- add the client's address to `X-Forwarded-For`: sign-in rate limits and the audit log use its
+  last entry. Without it every sign-in counts as coming from the proxy.
 
 nginx:
 
@@ -80,6 +82,7 @@ location / {
     proxy_pass http://127.0.0.1:18410;
     proxy_http_version 1.1;
     proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection $connection_upgrade;  # map $http_upgrade in the http block
     proxy_read_timeout 1h;                             # the live view stays open
@@ -137,3 +140,19 @@ Admins see a notice in the panel when a newer release is out (the app asks GitHu
 A backup holds `.env` with `OPEN_REVOKE_SECRET_KEY`: without it the stored connector secrets
 cannot be read, so keep backups like passwords. Database migrations run when the new version
 starts; `open-revoke update` takes a backup first, and `open-revoke rollback` restores it.
+
+## Rotating the encryption key
+
+```bash
+open-revoke rotate-key              # backup, new key, every stored secret re-encrypted, restart
+```
+
+Use it when the key may have leaked (a copied `.env`, a former admin) or by your own policy. The
+command keeps the old key as `OPEN_REVOKE_SECRET_KEY_PREVIOUS` while it re-encrypts, then removes
+it; interrupted, run it again to finish. Store the new key in your password manager. Backups made
+before the rotation hold the old key and are restored with it.
+
+Kubernetes: put the new key into the Secret as `OPEN_REVOKE_SECRET_KEY` and the old one as
+`OPEN_REVOKE_SECRET_KEY_PREVIOUS`, restart the app, run
+`kubectl exec deploy/<release>-open-revoke-app -c app -- python -m app.cli rotate-secrets`, then
+remove the old key and restart again.

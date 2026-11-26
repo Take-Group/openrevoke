@@ -80,7 +80,11 @@ Out of scope:
 - **`OPEN_REVOKE_SECRET_KEY` encrypts the connector secrets** in the database. Anyone with the key
   and a database dump can read every stored token. Keep `.env` at mode `600` (the installer does
   this) and store a copy of the key in a password manager, apart from your database backups. If you
-  lose the key, the stored secrets cannot be read and you have to enter them again.
+  lose the key, the stored secrets cannot be read and you have to enter them again. Replace a key
+  that may have leaked with `open-revoke rotate-key`: it re-encrypts every stored secret.
+- **The audit log is append-only.** Every change, sign-in and failed sign-in (with the address) is
+  recorded; the database refuses to update or delete entries. Export it from the Audit page or
+  `GET /api/audit/export` (CSV or JSON Lines) into your own archive or SIEM.
 - **Bind the panel to `127.0.0.1`** and put an HTTPS proxy in front of it (the bundled Caddy with
   `--proxy caddy`, your own proxy, Cloudflare or Tailscale). Do not expose plain HTTP to the
   internet.

@@ -7,7 +7,9 @@ Logic used by `app/api/` and `app/temporal/` activities. Raise `errors` subclass
 - `auth/`: own AGENTS.md. Sign-in, 2FA, sessions, invites.
 - `google_cloud_setup/`: own AGENTS.md. Browser-driven Google Cloud setup.
 - `access/`: own AGENTS.md. Access requests, approvals, access profiles, My access.
-- `audit.py`: `record`, `list_events`: append-only log.
+- `audit.py`: `record`, `list_events`, `filtered`: append-only log (DB trigger).
+- `audit_export.py`: `export` CSV or JSON Lines.
+- `csv_cells.py`: `safe_cell` for CSV exports.
 - `presenters.py`: shared schema builders (`account_out`, `app_ref`, `app_logo_url`, `person_ref`, `money`).
 - `apps.py`: CRUD, `seat_stats`, `add_app` (no audit, also from `catalog_key`), `used_categories`, `clean_category`.
 - `apps_bulk.py`: `create_apps` (skips existing, one `app.bulk_created` event), `existing_apps`.
@@ -19,22 +21,23 @@ Logic used by `app/api/` and `app/temporal/` activities. Raise `errors` subclass
 - `people.py`: CRUD, unique e-mail and code, `no_manager` filter.
 - `people_managers.py`: `set_manager` (panel), `creates_cycle`, `manager_map`, `reports_of`, `without_manager_clause`, `needs_manager_clause` (dashboard alert).
 - `people_import.py`: CSV import (`parse_csv`, `import_people` with `dry_run`).
-- `people_import_managers.py`: `resolve_managers` for the CSV `manager_email` column (loops refused).
+- `people_import_managers.py`: `resolve_managers` (CSV `manager_email`).
 - `people_sources.py`: `get_or_create_source`, `upsert_link`, `source_names`.
 - `people_sync.py`: `apply_people` stores `RemotePerson`s (managers in a second pass), from `sync.run`.
 - `person_kind.py`: `classify`: person or service account.
 - `connections.py`: connector `catalog`, `upsert_connection` (encrypts secrets), `check_connection`, `set_status`, `split_form`.
 - `connector_runtime.py`: `resolve_connector`, `parse_config`, `open_context` ; every connector call.
-- `secret_box.py`: Fernet with `OPEN_REVOKE_SECRET_KEY`: `encrypt_secrets`, `decrypt_secrets`, `encrypt_value`, `decrypt_value`.
+- `secret_box.py`: MultiFernet, `OPEN_REVOKE_SECRET_KEY` (+ `_PREVIOUS`): `encrypt_*`, `decrypt_*`, `rotate_token`.
+- `secret_rotation.py`: `rotate_stored_secrets` over `ENCRYPTED_COLUMNS` (add new encrypted columns).
 - `connection_lock.py`: `connection_lock` (Redis, one sync or action per connection), `is_locked`, `ConnectionBusyError`.
 - `capabilities.py`: `write_mode` (connector write vs `manual_task`), `connector_supports`, `delete_suspends`.
 - `sync.py`: `start_run`, `run`, `fail_run`: one connection's sync; fetch first, store in one transaction.
 - `sync_accounts.py`: `apply_accounts` upserts, matches, marks removed.
-- `sync_rules.py`: `clean_accounts`, `exceeds_removal_threshold` (30% stop, `RemovalThresholdError`).
+- `sync_rules.py`: `clean_accounts`, `exceeds_removal_threshold` (30%).
 - `sync_requests.py`: `request_sync` ("Sync now").
 - `sync_dispatch.py`: `SyncDispatcher` protocol, `upsert_schedule_quietly`, `delete_schedule_quietly`.
 - `discovery_scan.py`: `start_run`, `run`, `fail_run`, `scan_lock` for `ScanConnectionWorkflow`.
-- `discovery_apply.py`: `apply_discovery` merges found apps, grants, directory state.
+- `discovery_apply.py`: `apply_discovery`.
 - `discovery.py`: `overview`, `list_discovered_apps`, `get_discovered_app`, `person_discovered_apps`, `apps_at_risk`, `grant_risk`.
 - `discovery_review.py`: `update_discovered_app` (ignore), `track_discovered_app` (`create_accounts`).
 - `discovery_setup.py`: `setup_google_source`: verify, first sync, scan.

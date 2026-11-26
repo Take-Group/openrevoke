@@ -27,7 +27,8 @@ FastAPI routers: thin handlers that validate with `app/schemas/`, call one `app/
 - `google_cloud_setup.py`: GET/POST `/discovery/google-cloud-setup` (browser automation).
 - `browser.py`: GET `/browser`, POST `/browser/open`; `public_router` GET `/api/browser/policy` (no sign-in: the browser container polls which password manager to install).
 - `browser_live.py`: `/api/browser/live/{path}` (noVNC) and WebSocket `/websockify`; admin only, reads the cookie itself, checks same origin.
-- `audit.py`: GET `/audit`.
+- `audit.py`: GET `/audit`, `/audit/export` (`csv`, `jsonl`).
+- `client_ip.py`: `client_ip(request)`.
 - `ai.py`: GET/PUT `/ai-settings`, POST `/models`, `/test`.
 - `slack_agent.py`: `/slack-agent` GET/PATCH/DELETE, POST `/app`, `/avatar`, PUT `/tokens`, GET `/oauth/start|callback` (back to `/settings/slack`). Service `slack_agent_setup`.
 - `access_requests.py`: GET `/access-requests` (filters), `/export` (CSV), `/{id}`, POST `/{id}/approve|reject` (admin step or override). Services `access.queries`, `access.flow`.

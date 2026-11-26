@@ -9,7 +9,7 @@ data (see ``_subjects``).
 import uuid
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import func, select
+from sqlalchemy import Select, func, select
 
 from app.models import Account, Action, AuditEvent, Connection
 from app.services.auth.actor import current_actor
@@ -89,6 +89,22 @@ async def list_events(
     limit: int,
     offset: int,
 ) -> tuple[list[AuditEvent], int]:
+    query = filtered(entity_type=entity_type, entity_id=entity_id, event=event, app_id=app_id, person_id=person_id, q=q)
+    total = await session.scalar(select(func.count()).select_from(query.subquery()))
+    rows = await session.scalars(query.order_by(AuditEvent.at.desc(), AuditEvent.id.desc()).limit(limit).offset(offset))
+    return list(rows), total or 0
+
+
+def filtered(
+    *,
+    entity_type: str | None = None,
+    entity_id: uuid.UUID | None = None,
+    event: str | None = None,
+    app_id: uuid.UUID | None = None,
+    person_id: uuid.UUID | None = None,
+    q: str | None = None,
+) -> Select[tuple[AuditEvent]]:
+    """Events matching the filters of the panel's log, unordered."""
     query = select(AuditEvent)
     if entity_type:
         query = query.where(AuditEvent.entity_type == entity_type)
@@ -102,6 +118,4 @@ async def list_events(
         query = query.where(AuditEvent.person_id == person_id)
     if q:
         query = query.where(AuditEvent.event.ilike(f"%{q}%"))
-    total = await session.scalar(select(func.count()).select_from(query.subquery()))
-    rows = await session.scalars(query.order_by(AuditEvent.at.desc(), AuditEvent.id.desc()).limit(limit).offset(offset))
-    return list(rows), total or 0
+    return query

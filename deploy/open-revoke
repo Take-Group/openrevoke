@@ -24,6 +24,8 @@ ASSUME_YES=0
 . "$INSTALL_DIR/lib/backup.sh"
 # shellcheck source=lib/update.sh
 . "$INSTALL_DIR/lib/update.sh"
+# shellcheck source=lib/rotate.sh
+. "$INSTALL_DIR/lib/rotate.sh"
 
 usage() {
     cat << 'EOF'
@@ -35,6 +37,7 @@ Usage: open-revoke <command>
   rollback                   undo the last update (files and database from before it)
   backup [--with-browser]    database and .env into backups/ (+ signed-in browser sessions)
   restore <file>             put a backup back (asks first)
+  rotate-key                 new OPEN_REVOKE_SECRET_KEY, stored secrets re-encrypted with it
   doctor                     check address, certificate, disk, clock and containers
   logs [service] [lines]     last lines of the logs (default: all services, 100)
   setup-link                 new link to create the first admin of a fresh installation
@@ -42,7 +45,7 @@ Usage: open-revoke <command>
   start | stop | restart     the whole stack
   uninstall [--purge]        stop and remove containers; --purge also deletes all data
 
-Options for update, rollback, restore and uninstall: --yes (do not ask).
+Options for update, rollback, restore, rotate-key and uninstall: --yes (do not ask).
 EOF
 }
 
@@ -161,6 +164,7 @@ case $command in
     rollback) cmd_rollback "$@" ;;
     backup) cmd_backup "$@" ;;
     restore) cmd_restore "$@" ;;
+    rotate-key) cmd_rotate_key "$@" ;;
     doctor) cmd_doctor ;;
     logs) cmd_logs "$@" ;;
     setup-link) app_python app.cli setup-link ;;

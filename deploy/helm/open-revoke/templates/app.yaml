@@ -112,6 +112,13 @@ spec:
                 secretKeyRef:
                   name: {{ include "open-revoke.secretName" . }}
                   key: OPEN_REVOKE_SECRET_KEY
+            # Only during a key rotation (docs/self-hosting.md): the old key, added to the Secret by hand.
+            - name: OPEN_REVOKE_SECRET_KEY_PREVIOUS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "open-revoke.secretName" . }}
+                  key: OPEN_REVOKE_SECRET_KEY_PREVIOUS
+                  optional: true
             - name: OPEN_REVOKE_UPDATE_CHECK
               value: {{ .Values.app.updateCheck | quote }}
             - name: OPEN_REVOKE_UPDATE_URL

@@ -1,8 +1,9 @@
-from typing import Literal
+from pathlib import Path
+from typing import Any, Literal
 from urllib.parse import urlsplit
 
 from cryptography.fernet import Fernet
-from pydantic import Field, SecretStr, field_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -43,7 +44,13 @@ class Settings(BaseSettings):
 
     # Security: Fernet key that encrypts connector secrets. Required, the app
     # refuses to start without it. Generate one with the command in .env.example.
+    # OPEN_REVOKE_SECRET_KEY_FILE reads it from a file instead (Docker or Kubernetes secrets).
     open_revoke_secret_key: SecretStr
+    open_revoke_secret_key_file: str | None = None
+    # Earlier keys, comma-separated, during a key rotation: they only decrypt, the key above
+    # encrypts. `python -m app.cli rotate-secrets` re-encrypts everything with the current key;
+    # then this is emptied again. `open-revoke rotate-key` on the host does all of it.
+    open_revoke_secret_key_previous: SecretStr = SecretStr("")
 
     # Sync
     sync_interval_hours: int = Field(default=6, ge=1)
@@ -170,17 +177,42 @@ class Settings(BaseSettings):
     def _strip_trailing_slash(cls, value: str) -> str:
         return value.rstrip("/")
 
+    @property
+    def previous_secret_keys(self) -> list[str]:
+        value = self.open_revoke_secret_key_previous.get_secret_value()
+        return [key.strip() for key in value.split(",") if key.strip()]
+
+    @model_validator(mode="before")
+    @classmethod
+    def _secret_key_from_file(cls, data: Any) -> Any:
+        path = data.get("open_revoke_secret_key_file") if isinstance(data, dict) else None
+        if path and not data.get("open_revoke_secret_key"):
+            data["open_revoke_secret_key"] = Path(path).read_text(encoding="utf-8").strip()
+        return data
+
     @field_validator("open_revoke_secret_key")
     @classmethod
     def _must_be_fernet_key(cls, value: SecretStr) -> SecretStr:
-        try:
-            Fernet(value.get_secret_value().encode())
-        except ValueError as exc:
-            raise ValueError(
-                "OPEN_REVOKE_SECRET_KEY must be a Fernet key (32 url-safe base64-encoded bytes). "
-                "Generate one with the command in .env.example."
-            ) from exc
+        _check_fernet_key(value.get_secret_value(), "OPEN_REVOKE_SECRET_KEY")
         return value
+
+    @field_validator("open_revoke_secret_key_previous")
+    @classmethod
+    def _must_be_fernet_keys(cls, value: SecretStr) -> SecretStr:
+        for key in value.get_secret_value().split(","):
+            if key.strip():
+                _check_fernet_key(key.strip(), "OPEN_REVOKE_SECRET_KEY_PREVIOUS")
+        return value
+
+
+def _check_fernet_key(key: str, name: str) -> None:
+    try:
+        Fernet(key.encode())
+    except ValueError as exc:
+        raise ValueError(
+            f"{name} must hold Fernet keys (32 url-safe base64-encoded bytes). "
+            "Generate one with the command in .env.example."
+        ) from exc
 
 
 settings = Settings()

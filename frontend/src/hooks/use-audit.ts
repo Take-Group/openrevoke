@@ -2,7 +2,7 @@
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
-import { apiGet } from "@/lib/api/client";
+import { apiGet, buildQuery } from "@/lib/api/client";
 import type { AuditEventOut, Page } from "@/lib/api/types";
 
 export interface AuditParams {
@@ -22,4 +22,9 @@ export function useAudit(params: AuditParams = {}) {
     queryFn: () => apiGet<Page<AuditEventOut>>("/api/audit", { ...params }),
     placeholderData: keepPreviousData,
   });
+}
+
+/** Export of the log with the same filters, oldest first (a plain link; the browser sends the session cookie). */
+export function auditExportUrl(params: Omit<AuditParams, "limit" | "offset">, format: "csv" | "jsonl"): string {
+  return `/api/audit/export${buildQuery({ ...params, format })}`;
 }
