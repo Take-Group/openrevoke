@@ -15,7 +15,7 @@ multi-arch images, SBOM, signing, SLSA provenance) runs only on GitHub.
   `[Unreleased]`. `scripts/release.sh` turns the section into `## [X.Y.Z] - date`, commits
   `Release X.Y.Z` and tags `vX.Y.Z` (no push). Its checks run in the dev stack's containers when the
   stack is up (the host `node_modules` may be stale), else on the host after `bun install`.
-- **Release bundle.** `scripts/build-release.sh X.Y.Z` builds `ghcr.io/take-group/open-revoke`
+- **Release bundle.** `scripts/build-release.sh X.Y.Z` builds `ghcr.io/take-group/openrevoke`
   and `open-revoke-browser` for this machine's platform and writes
   `dist/releases/download/vX.Y.Z/` (bundle tar.gz, `install.sh`, `SHA256SUMS`, `VERSION`) plus
   `dist/releases/latest/download/VERSION`: the same paths as GitHub Releases, so the scripts
@@ -88,7 +88,7 @@ Try it locally (kind, Helm and kubeconform from Homebrew):
 ```bash
 scripts/build-release.sh 0.0.0-helm --out /tmp/or-releases
 kind create cluster --name or-helm
-kind load docker-image --name or-helm ghcr.io/take-group/open-revoke:0.0.0-helm ghcr.io/take-group/open-revoke-browser:0.0.0-helm
+kind load docker-image --name or-helm ghcr.io/take-group/openrevoke:0.0.0-helm ghcr.io/take-group/openrevoke-browser:0.0.0-helm
 helm install or deploy/helm/open-revoke -n or --create-namespace --set app.image.tag=0.0.0-helm \
   --set browser.image.tag=0.0.0-helm --set app.telemetry=false --wait --timeout 15m
 kubectl -n or port-forward svc/or-open-revoke-app 18410:3000
@@ -164,7 +164,10 @@ OPEN_REVOKE_RELEASES_URL=file://$PWD/dist/releases \
   verifier pins it with `gh attestation verify --signer-workflow
   Take-Group/openrevoke/.github/workflows/release-publish.yml` (GitHub docs: "Using artifact
   attestations and reusable workflows to achieve SLSA v1 Build Level 3"). `tag-and-sign` attests
-  the multi-arch index digests and pushes the attestation to ghcr.io; `release-files` attests every
+  the multi-arch index digests and pushes the attestation to ghcr.io, then copies both indexes
+  unchanged (same digests, same tags) to Docker Hub `docker.io/takegroup/openrevoke[-browser]`
+  and signs them there with cosign (login: variable `DOCKERHUB_USERNAME`, secret
+  `DOCKERHUB_TOKEN`, a Read & Write access token of the Docker Hub account); `release-files` attests every
   line of `SHA256SUMS`, and the release job attaches its bundle as
   `open-revoke-X.Y.Z.provenance.sigstore.json` (offline check with `--bundle`). The images'
   cosign identity is `release-publish.yml@refs/tags/vX.Y.Z`; SHA256SUMS and the chart are signed

@@ -14,7 +14,7 @@
 #   <out>/download/v0.1.0/VERSION
 #   <out>/latest/download/VERSION                    newest final release (not for -rc builds)
 #
-# Images are tagged ghcr.io/take-group/open-revoke[-browser]:<version> and stay local; pushing,
+# Images are tagged ghcr.io/take-group/openrevoke[-browser]:<version> and stay local; pushing,
 # multi-arch builds and signing come with the GitHub workflow.
 set -eu
 
@@ -42,8 +42,8 @@ echo "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$' || {
     echo "not a SemVer version: $VERSION" >&2
     exit 1
 }
-IMAGE=${OPEN_REVOKE_IMAGE:-ghcr.io/take-group/open-revoke}
-BROWSER_IMAGE=${OPEN_REVOKE_BROWSER_IMAGE:-ghcr.io/take-group/open-revoke-browser}
+IMAGE=${OPEN_REVOKE_IMAGE:-ghcr.io/take-group/openrevoke}
+BROWSER_IMAGE=${OPEN_REVOKE_BROWSER_IMAGE:-ghcr.io/take-group/openrevoke-browser}
 
 if [ "$SKIP_IMAGES" = 0 ]; then
     set -- # docker build options

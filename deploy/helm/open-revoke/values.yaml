@@ -38,7 +38,7 @@ secrets:
 # One replica: the API, the worker and its schedules run in it.
 app:
   image:
-    repository: ghcr.io/take-group/open-revoke
+    repository: ghcr.io/take-group/openrevoke
     # -- Default: the chart's appVersion. Never `latest`: every version may migrate the database.
     tag: ""
     pullPolicy: IfNotPresent
@@ -104,7 +104,7 @@ ingress:
 # PVC holds signed-in admin sessions of SaaS panels: whoever reads it has those sessions.
 browser:
   image:
-    repository: ghcr.io/take-group/open-revoke-browser
+    repository: ghcr.io/take-group/openrevoke-browser
     # -- Default: the chart's appVersion.
     tag: ""
     pullPolicy: IfNotPresent

@@ -52,8 +52,11 @@ defaults:
     shell: bash
 
 env:
-  IMAGE: ghcr.io/take-group/open-revoke
-  BROWSER_IMAGE: ghcr.io/take-group/open-revoke-browser
+  IMAGE: ghcr.io/take-group/openrevoke
+  BROWSER_IMAGE: ghcr.io/take-group/openrevoke-browser
+  # Docker Hub mirror of both images (same digests), pushed after ghcr.io.
+  HUB_IMAGE: docker.io/takegroup/openrevoke
+  HUB_BROWSER_IMAGE: docker.io/takegroup/openrevoke-browser
 
 jobs:
   publish:
@@ -259,19 +262,43 @@ jobs:
           publish "$IMAGE" "$RUNNER_TEMP/digests/app" app-digest
           publish "$BROWSER_IMAGE" "$RUNNER_TEMP/digests/browser" browser-digest
 
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Docker Hub gets a copy of the signed ghcr.io index: same digest, same tags, its own
+      # cosign signature (signatures live next to the image in each registry).
+      - name: Mirror to Docker Hub
+        env:
+          APP_DIGEST: ${{ steps.tags.outputs.app-digest }}
+          BROWSER_DIGEST: ${{ steps.tags.outputs.browser-digest }}
+        run: |
+          mirror() {
+            source=$1
+            target=$2
+            args=()
+            for tag in $TAGS; do args+=(--tag "$target:$tag"); done
+            docker buildx imagetools create "${args[@]}" "$source"
+            cosign sign --yes "$target@${source#*@}"
+            echo "- \`$target@${source#*@}\` ($TAGS)" >> "$GITHUB_STEP_SUMMARY"
+          }
+          mirror "$IMAGE@$APP_DIGEST" "$HUB_IMAGE"
+          mirror "$BROWSER_IMAGE@$BROWSER_DIGEST" "$HUB_BROWSER_IMAGE"
+
       # SLSA build provenance of the multi-arch index, stored by GitHub and pushed next to the
       # image in ghcr.io. `with` cannot read job `env`, hence the literal image names.
       - name: Attest the app image
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
-          subject-name: ghcr.io/take-group/open-revoke
+          subject-name: ghcr.io/take-group/openrevoke
           subject-digest: ${{ steps.tags.outputs.app-digest }}
           push-to-registry: true
 
       - name: Attest the browser image
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
-          subject-name: ghcr.io/take-group/open-revoke-browser
+          subject-name: ghcr.io/take-group/openrevoke-browser
           subject-digest: ${{ steps.tags.outputs.browser-digest }}
           push-to-registry: true
 

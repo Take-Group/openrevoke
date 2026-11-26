@@ -36,9 +36,9 @@ annotations:
       url: https://github.com/Take-Group/openrevoke/issues
   artifacthub.io/images: |
     - name: open-revoke
-      image: ghcr.io/take-group/open-revoke:0.1.0
+      image: ghcr.io/take-group/openrevoke:0.1.0
     - name: open-revoke-browser
-      image: ghcr.io/take-group/open-revoke-browser:0.1.0
+      image: ghcr.io/take-group/openrevoke-browser:0.1.0
     - name: postgres
       image: postgres:18.7
     - name: redis

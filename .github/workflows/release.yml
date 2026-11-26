@@ -40,8 +40,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  IMAGE: ghcr.io/take-group/open-revoke
-  BROWSER_IMAGE: ghcr.io/take-group/open-revoke-browser
+  IMAGE: ghcr.io/take-group/openrevoke
+  BROWSER_IMAGE: ghcr.io/take-group/openrevoke-browser
   # Helm chart (deploy/helm/open-revoke, docs/kubernetes.md): oci://ghcr.io/take-group/charts/open-revoke
   CHART_REGISTRY: ghcr.io/take-group/charts
   CHART: ghcr.io/take-group/charts/open-revoke

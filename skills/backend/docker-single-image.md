@@ -34,7 +34,7 @@ and Redis from the official images.
   `frontend-build` (`bun run build`, standalone mode), `backend-build`
   (`uv sync` without dev dependencies).
 - `compose.yaml`: the self-hosting stack on release images
-  (`ghcr.io/take-group/open-revoke[-browser]:${OPEN_REVOKE_VERSION}`): `postgres`, `redis`,
+  (`ghcr.io/take-group/openrevoke[-browser]:${OPEN_REVOKE_VERSION}`): `postgres`, `redis`,
   `temporal-schema-setup`, `temporal`, `temporal-create-namespace`,
   `browser`, `app`, and in the `https` profile also `caddy`
   (`docker/caddy/Caddyfile`, site address = `PUBLIC_URL`, Let's Encrypt).
