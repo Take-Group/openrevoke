@@ -1,7 +1,7 @@
 # Open Revoke (product): agent instructions
 
-Rules: no automated tests yet: check a change by running it (checks below,
-then the dev stack). A model change needs an Alembic revision
+Rules: backend tests in `backend/tests` (pytest; policy in `CONTRIBUTING.md`),
+none in the panel; check every change by running it too (checks below, then the dev stack). A model change needs an Alembic revision
 (`skills/backend/new-model.md`). Development data is fictional
 (`backend/app/db/seed.py`). English code and docs; max 600 lines per file.
 A workspace that holds this repo may add rules in `../AGENTS.md`.

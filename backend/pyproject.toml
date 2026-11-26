@@ -70,7 +70,17 @@ runtime-evaluated-base-classes = [
 [tool.ruff.lint.isort]
 known-first-party = ["app"]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+# One event loop for the whole run: app.database keeps one async engine for the process.
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+markers = ["integration: needs a migrated PostgreSQL (DATABASE_URL) and Redis (REDIS_URL)"]
+
 [dependency-groups]
 dev = [
+    "pytest>=9.2.0",
+    "pytest-asyncio>=1.5.0",
     "ruff>=0.17.6",
 ]

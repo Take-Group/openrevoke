@@ -14,7 +14,7 @@ Git). This skill is that step.
 
    | Area | Check |
    | --- | --- |
-   | `open-revoke/backend` | `dc exec api ruff check .` and `dc exec api ruff format --check .` |
+   | `open-revoke/backend` | `dc exec api ruff check .`, `dc exec api ruff format --check .` and the tests (`CONTRIBUTING.md`, Tests) |
    | `open-revoke/frontend` | `dc exec web bun run lint` and `dc exec web bun run typecheck` |
    | endpoint or schema | refresh `open-revoke/docs/openapi.json` and `frontend/src/lib/api/types.ts` (`open-revoke/AGENTS.md`, Checks) |
    | model | `dc exec api python -m app.db reset`, then the seeded data shows in the panel |

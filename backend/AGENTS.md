@@ -80,6 +80,7 @@ Admin CLI for panel users: `dc exec api python -m app.cli list-users`
 ```bash
 dc exec api ruff check .
 dc exec api ruff format --check .
+dc exec api python -m pytest -m "not integration"   # all: ../CONTRIBUTING.md
 ```
 
 Then check by hand: `curl` the endpoint on http://localhost:18411
@@ -105,7 +106,8 @@ cookie from `POST /api/auth/login`), or run the workflow and read
 - `alembic.ini`: Alembic config (URL from the settings, ruff on new revisions).
 - `migrations/`, no map: `env.py` (async engine; uses the connection `app.db migrate` passes), `script.py.mako`, `versions/` (one revision per schema change, first the baseline).
 - `uv.lock`: locked dependencies; change it with `uv add --no-sync`, never by hand.
+- `tests/`: own AGENTS.md. pytest.
 - `.env.example`: every env variable with a description (read by `app/config.py`).
 - `.dockerignore`, `.gitignore`: ignore `.venv/`, caches and `.env`.
-- `scripts/`, no map: `export_openapi.py` (prints the OpenAPI schema; command in its docstring writes `../docs/openapi.json`), `fetch_catalog_logos.py` (downloads app logos into `app/catalog/logos/`), `probe_google_sign_in.py` (reads Google OAuth client ids from apps' sign-in pages); both run on the host.
+- `scripts/`, no map: `export_openapi.py` (OpenAPI schema), `fetch_catalog_logos.py` (app logos into `app/catalog/logos/`), `probe_google_sign_in.py` (Google OAuth client ids from sign-in pages); run on the host.
 - `temporal/`, no map: `dynamicconfig/development-sql.yaml` (Temporal dev server config), `scripts/create-namespace.sh` (creates the namespace), `scripts/setup-postgres.sh` (prepares the Temporal databases); used by the compose setup jobs.

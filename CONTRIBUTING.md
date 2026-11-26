@@ -56,9 +56,22 @@ Shell scripts in `deploy/` and `scripts/` are POSIX sh. Check them with
 docker run --rm -v "$PWD:/mnt" -w /mnt koalaman/shellcheck:stable -s sh -x deploy/install.sh deploy/open-revoke deploy/lib/*.sh scripts/*.sh
 ```
 
-There are no automated tests of the application logic yet. Check your change by hand in the running
-stack as well: call the endpoint, run the sync or the action, open the page. Say in the pull
-request what you checked.
+### Tests
+
+Backend tests live in `backend/tests` (pytest) and run in CI. The policy: a change to
+security-relevant behaviour (sign-in, sessions, permissions, secrets and their encryption, the
+audit log, rate limits, the safety checks of write actions) adds or updates a test, and so does
+every major new feature. Plain functions get unit tests; tests that need the database and Redis
+are marked `integration` and run against a migrated database:
+
+```bash
+docker compose -f compose.dev.yaml exec postgres psql -U postgres -c "create database open_revoke_test"   # once
+docker compose -f compose.dev.yaml exec api sh -c 'export DATABASE_URL=${DATABASE_URL%/*}/open_revoke_test REDIS_URL=${REDIS_URL%/*}/15; python -m app.db migrate && python -m pytest'
+docker compose -f compose.dev.yaml exec api python -m pytest -m "not integration"   # no database needed
+```
+
+The panel has no automated tests. Check every change by hand in the running stack as well: call the
+endpoint, run the sync or the action, open the page. Say in the pull request what you checked.
 
 ## Add a connector
 
