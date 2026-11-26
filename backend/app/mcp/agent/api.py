@@ -21,8 +21,15 @@ class AgentApi:
         clean = {name: value for name, value in params.items() if value is not None}
         return await self._request("GET", path, params=clean)
 
-    async def post(self, path: str, body: dict[str, Any] | None = None) -> Any:
-        return await self._request("POST", path, json=body)
+    async def post(self, path: str, body: dict[str, Any] | None = None, **params: Any) -> Any:
+        clean = {name: value for name, value in params.items() if value is not None}
+        return await self._request("POST", path, json=body, params=clean)
+
+    async def patch(self, path: str, body: dict[str, Any]) -> Any:
+        return await self._request("PATCH", path, json=body)
+
+    async def put(self, path: str, body: dict[str, Any]) -> Any:
+        return await self._request("PUT", path, json=body)
 
     async def _request(self, method: str, path: str, **kwargs: Any) -> Any:
         response = await self.client.request(method, f"/api{path}", headers=self.headers, **kwargs)
@@ -55,18 +62,28 @@ class AgentApi:
         return await self.get(f"/people/{matches[0]['id']}")
 
     async def app(self, reference: str) -> dict[str, Any]:
-        reference = reference.strip()
-        if _is_uuid(reference):
-            return await self.get(f"/apps/{reference}")
-        apps = await self.apps()
-        wanted = reference.lower()
-        exact = [a for a in apps if wanted in (a["name"].lower(), a["slug"].lower())]
-        matches = exact or [a for a in apps if wanted in a["name"].lower()]
-        if not matches:
-            raise ToolError(f"No app matches {reference!r}. Call get_spend_by_app for the list of apps.")
-        if len(matches) > 1:
-            raise ToolError(f"Several apps match {reference!r}: {', '.join(a['name'] for a in matches[:10])}.")
-        return await self.get(f"/apps/{matches[0]['id']}")
+        if _is_uuid(reference.strip()):
+            return await self.get(f"/apps/{reference.strip()}")
+        return await self.get(f"/apps/{match_app(await self.apps(), reference)['id']}")
+
+    async def discovered_app(self, reference: str) -> dict[str, Any]:
+        """A discovered app by id or name, with its users (grants)."""
+        if not _is_uuid(reference.strip()):
+            page = await self.get("/discovery/apps", q=reference.strip(), limit=50)
+            reference = match_app(page["items"], reference, hint="list_discovered_apps")["id"]
+        return await self.get(f"/discovery/apps/{reference.strip()}")
+
+
+def match_app(apps: list[dict[str, Any]], reference: str, hint: str = "get_spend_by_app") -> dict[str, Any]:
+    """One app of ``apps`` by id, name or slug; a part of the name works when it is unique."""
+    wanted = reference.strip().lower()
+    exact = [a for a in apps if wanted in (a.get("id", ""), a["name"].lower(), (a.get("slug") or "").lower())]
+    matches = exact or [a for a in apps if wanted in a["name"].lower()]
+    if not matches:
+        raise ToolError(f"No app matches {reference!r}. Call {hint} for the list.")
+    if len(matches) > 1:
+        raise ToolError(f"Several apps match {reference!r}: {', '.join(a['name'] for a in matches[:10])}.")
+    return matches[0]
 
 
 def _full_name(person: dict[str, Any]) -> str:

@@ -20,10 +20,13 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
 
 ### Added
 
-- MCP task tools for AI assistants: overview, access per person and app, people who left with
-  open accounts, cost per app, discovered apps, and offboarding in steps (plan, start, approve,
-  status). Every API operation as a tool stays available with `?toolset=api`.
-- Any MCP client can connect and list the tools without a token; a tool call without one gets 401.
+- MCP task tools for AI assistants, one per task of the panel (about 40): overview and costs,
+  people, offboarding and onboarding in steps (plan, create actions, approve, follow), access
+  profiles, manual tasks, unassigned accounts, connecting and syncing apps, discovered apps,
+  access requests and the audit log; members get their own access, requests and approvals.
+  Every API operation as a tool stays available with `?toolset=api`.
+- Any MCP client can connect and list the tools without a token; a tool call without one answers
+  how to add a token.
 
 ### Changed
 

@@ -1,11 +1,14 @@
-"""MCP without a token: connect and list the tools, never call one (``app/mcp/server.py``)."""
+"""MCP without a token: connect and list the tools; a tool call is a tool error (``app/mcp/server.py``)."""
 
 import json
 from typing import Any
 
+import mcp_types as types
 import pytest
+from fastapi import FastAPI
 
-from app.mcp.server import McpEndpoint, _listing_only
+from app.mcp.caller import anonymous, current_caller
+from app.mcp.server import McpEndpoint, OpenRevokeMcp, _listing_only
 
 
 def _rpc(method: str, **extra: Any) -> dict[str, Any]:
@@ -18,6 +21,7 @@ def _rpc(method: str, **extra: Any) -> dict[str, Any]:
         _rpc("initialize", params={}),
         _rpc("tools/list"),
         _rpc("ping"),
+        _rpc("tools/call", params={"name": "get_overview"}),
         {"jsonrpc": "2.0", "method": "notifications/initialized"},
         [_rpc("initialize"), {"jsonrpc": "2.0", "method": "notifications/initialized"}],
     ],
@@ -29,9 +33,8 @@ def test_listing_messages_pass(payload: Any) -> None:
 @pytest.mark.parametrize(
     "body",
     [
-        json.dumps(_rpc("tools/call", params={"name": "get_overview"})).encode(),
-        json.dumps([_rpc("tools/list"), _rpc("tools/call", params={"name": "start_offboarding"})]).encode(),
         json.dumps(_rpc("resources/read")).encode(),
+        json.dumps([_rpc("tools/list"), _rpc("prompts/get")]).encode(),
         json.dumps(_rpc(["tools/list"])).encode(),
         json.dumps([]).encode(),
         json.dumps(["tools/list"]).encode(),
@@ -80,11 +83,31 @@ async def test_anonymous_tool_list_reaches_the_server_with_its_body() -> None:
     assert mcp.manager.handled == [body]
 
 
-async def test_anonymous_tool_call_gets_401_and_never_reaches_the_server() -> None:
+async def test_anonymous_resource_read_gets_401_and_never_reaches_the_server() -> None:
     mcp = _Mcp()
-    body = json.dumps(_rpc("tools/call", params={"name": "approve_offboarding", "arguments": {}})).encode()
+    body = json.dumps(_rpc("resources/read", params={"uri": "x"})).encode()
     assert await _post(McpEndpoint(mcp), body) == 401  # type: ignore[arg-type]
     assert mcp.manager.handled == []
+
+
+async def test_anonymous_tool_call_is_a_tool_error_without_an_api_request() -> None:
+    server = OpenRevokeMcp(FastAPI())
+    requests: list[object] = []
+    server.dispatcher.client.request = lambda *a, **k: requests.append(a)  # type: ignore[method-assign]
+    reset = current_caller.set(anonymous(None, None))
+    try:
+        for name in ("get_overview", "approve_actions", "start_offboarding"):
+            result = await server._call_tool(None, types.CallToolRequestParams(name=name, arguments={}))
+            assert result.is_error
+            assert "API token" in result.content[0].text  # type: ignore[union-attr]
+    finally:
+        current_caller.reset(reset)
+    assert requests == []
+
+
+async def test_anonymous_listing_shows_admin_and_member_tools() -> None:
+    names = {tool.name for tool in OpenRevokeMcp(FastAPI()).tools_for(anonymous(None, None))}
+    assert {"get_overview", "start_offboarding", "approve_actions", "get_my_access"} <= names
 
 
 async def test_large_anonymous_body_gets_401() -> None:
