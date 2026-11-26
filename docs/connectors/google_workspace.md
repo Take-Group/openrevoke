@@ -111,7 +111,7 @@ it is set, otherwise the OAuth refresh token (`oauth.py`, the access token
 stays in process memory until one minute before it expires). The key path:
 
 The connector signs a JWT with the private key of the service account
-(library `google-auth`, `google.auth.crypt` and `google.auth.jwt`) with the
+(RS256, signed with `cryptography`; no Google client library) with the
 fields `iss` (the service account's e-mail), `sub` (the admin), `scope`,
 `aud` (the token address from the key file, by default
 `https://oauth2.googleapis.com/token`). It exchanges the JWT for an access

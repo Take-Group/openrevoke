@@ -1,15 +1,17 @@
 """Access tokens for Google APIs: service account with domain-wide delegation, or OAuth (oauth.py).
 
-google-auth signs the JWT assertion (RS256, the service account's private
-key), httpx exchanges it at the token endpoint. This is the OAuth 2.0
-JWT bearer flow google-auth runs itself, without pulling in ``requests``.
+The JWT assertion (RS256, the service account's private key) is signed with
+``cryptography``, httpx exchanges it at the token endpoint: the OAuth 2.0 JWT
+bearer flow (RFC 7523) without google-auth and its ASN.1 dependencies.
 """
 
+import base64
 import json
 import time
 from typing import TYPE_CHECKING, Any
 
-from google.auth import crypt, jwt
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
 from app.connectors.base import ConnectorError, NeedsLogin
 from app.connectors.google_workspace import oauth
@@ -40,9 +42,26 @@ def parse_service_account(value: str) -> dict[str, Any]:
     return info
 
 
+def _b64url(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
+
+
+def _segment(value: dict[str, Any]) -> str:
+    return _b64url(json.dumps(value, separators=(",", ":")).encode())
+
+
+def sign_rs256(private_key_pem: str, header: dict[str, Any], payload: dict[str, Any]) -> str:
+    """A compact JWS with RS256. ValueError when the key is not an RSA private key in PEM."""
+    key = serialization.load_pem_private_key(private_key_pem.encode(), password=None)
+    if not isinstance(key, rsa.RSAPrivateKey):
+        raise ValueError("not an RSA private key")
+    signing_input = f"{_segment({'typ': 'JWT', 'alg': 'RS256', **header})}.{_segment(payload)}"
+    signature = key.sign(signing_input.encode(), padding.PKCS1v15(), hashes.SHA256())
+    return f"{signing_input}.{_b64url(signature)}"
+
+
 def build_assertion(info: dict[str, Any], subject: str, scopes: list[str], now: int | None = None) -> str:
     issued = int(time.time()) if now is None else now
-    signer = crypt.RSASigner.from_service_account_info(info)
     payload = {
         "iss": info["client_email"],
         "sub": subject,
@@ -51,8 +70,8 @@ def build_assertion(info: dict[str, Any], subject: str, scopes: list[str], now: 
         "iat": issued,
         "exp": issued + TOKEN_LIFETIME_SECONDS,
     }
-    assertion = jwt.encode(signer, payload)
-    return assertion.decode() if isinstance(assertion, bytes) else assertion
+    header = {"kid": info["private_key_id"]} if info.get("private_key_id") else {}
+    return sign_rs256(info["private_key"], header, payload)
 
 
 async def fetch_access_token(http: httpx.AsyncClient, info: dict[str, Any], subject: str, scopes: list[str]) -> str:

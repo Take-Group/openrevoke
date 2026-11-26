@@ -4,7 +4,7 @@ Google Workspace: Admin SDK Directory API (accounts, people, create, suspend) an
 
 - `__init__.py`: empty.
 - `connector.py`: `GoogleWorkspaceConnector`, `GoogleWorkspaceConfig`; all five capabilities; `delete_suspends = True`; picks service account or OAuth credentials per call.
-- `auth.py`: service account path: `parse_service_account`, `build_assertion` (RS256 JWT), `fetch_access_token`, `access_token(ctx, scope)`.
+- `auth.py`: service account path: `parse_service_account`, `sign_rs256`, `build_assertion` (RS256 JWT signed with `cryptography`), `fetch_access_token`, `access_token(ctx, scope)`.
 - `oauth.py`: OAuth path with PKCE: `authorization_url`, `exchange_code`, `refreshed_token`, `fetch_email`. Each installation uses its own OAuth client. Revoked admin means `needs_login`.
 - `scopes.py`: `SCOPE_READ`, `SCOPE_WRITE`, `SCOPE_AUDIT`, `SCOPE_TOKENS`, `is_granted` (write covers read).
 - `mapping.py`: pure parsing of `users.list` and `users.insert`: `parse_users_page`, `user_to_account`, `user_to_person`, `user_aliases`, `employee_id`, `manager_email` (`relations` type manager), `primary_organization` (department, title).

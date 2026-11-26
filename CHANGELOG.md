@@ -13,6 +13,12 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
 
 ## [Unreleased]
 
+### Changed
+
+- Fewer third-party packages: the Google service account token is signed with `cryptography`
+  (no `google-auth`), the API runs on plain `uvicorn` (no uvloop, httptools, PyYAML), and the panel
+  no longer installs the shadcn CLI (about 110 packages fewer).
+
 ### Security
 
 - A saved connector token (SCIM, GitHub Enterprise) or AI key is no longer sent to a changed base URL:

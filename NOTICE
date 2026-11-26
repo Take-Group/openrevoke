@@ -10,3 +10,8 @@ trademarks of their owners. Open Revoke is not affiliated with, endorsed by
 or sponsored by any of them. The MIT license of this repository does not
 cover these names and logos. To have a logo removed or changed, open an
 issue on GitHub.
+
+Vendored code
+
+frontend/src/app/shadcn.css is copied from the shadcn package
+(https://github.com/shadcn-ui/ui), MIT License, Copyright (c) 2023 shadcn.

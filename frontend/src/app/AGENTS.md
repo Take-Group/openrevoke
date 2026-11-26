@@ -4,6 +4,7 @@ App Router of the panel. Every `page.tsx` is a thin server component: it reads `
 
 - `layout.tsx`: root layout; Geist fonts, metadata title template, reads cookie `sidebar_state`, wraps children in `Providers` and `AuthGate`.
 - `globals.css`: Tailwind 4 import, theme tokens (`@theme inline`), light and dark CSS variables, animations.
+- `shadcn.css`: vendored `shadcn/tailwind.css` (data-state variants, `no-scrollbar`, `scroll-fade`, `shimmer`): the shadcn package is not a dependency; its CLI runs with `bunx shadcn@latest`.
 - `icon.svg`, `apple-icon.png`: the logo's door as the browser and home screen icon (same files as openrevoke.com).
 - `not-found.tsx`: 404 page (`EmptyState` with a button back).
 - `page.tsx`: `/` renders `DashboardView`.
