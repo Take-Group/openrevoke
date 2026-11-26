@@ -105,7 +105,10 @@ jobs:
       # comes from the cache; a newer Chromium or any other Debian fix: a new key, a fresh layer.
       - name: Browser packages key
         id: packages
-        run: echo "key=$(scripts/browser-packages-key.sh)" >> "$GITHUB_OUTPUT"
+        run: |
+          key=$(scripts/browser-packages-key.sh)
+          echo "$key" | grep -Eq '^[0-9a-f]{64}$' || { echo "::error::invalid browser packages key: '$key'"; exit 1; }
+          echo "key=$key" >> "$GITHUB_OUTPUT"
 
       - name: Build browser image (amd64, local)
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
