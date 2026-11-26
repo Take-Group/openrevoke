@@ -12,6 +12,7 @@ People (employees and service accounts): list, detail page, onboarding and offbo
 - `import-preview.tsx`: `ImportPreview`: rows the dry run would create or change.
 - `person-detail-view.tsx`: `PersonDetailView`: header and panels, links Add to app, Onboard, Offboard to their pages. Hook `usePerson`.
 - `person-manager-section.tsx`: `PersonManagerSection`: "Reporting line" panel: manager (auto or manual), department, job title, reports.
+- `person-requests-section.tsx`: `PersonRequestsSection` (personId): the person's access requests under the tabs, hidden without any; rows open `/requests/[id]`. Hook `useAccessRequests`.
 - `person-accounts-table.tsx`: `PersonAccountsTable`: accounts of the person, per-row action requests. Hooks `useApps`, `useCreateAction`.
 - `person-sources-table.tsx`: `PersonSourcesTable`: where the person was found (discovery or import).
 - `person-discovered-apps.tsx`: `PersonDiscoveredApps`: apps the person signed in to with Google (untracked ones need a manual check). Hook `usePersonDiscoveredApps`.

@@ -171,6 +171,16 @@ const columns: DataColumn<ActionOut>[] = [
     cell: ({ row }) => <ActionStatus action={row.original} />,
   },
   {
+    id: "approved_by",
+    header: "Approved by",
+    cell: ({ row: { original: action } }) => (
+      <span className="block truncate text-muted-foreground" title={action.created_by ? `Asked by ${action.created_by}` : undefined}>
+        {action.approved_by ?? "—"}
+      </span>
+    ),
+    meta: { className: "hidden xl:table-cell max-w-48" },
+  },
+  {
     accessorKey: "created_at",
     header: ({ column }) => <SortHeader column={column} title="Created" />,
     cell: ({ row }) => <RelativeTime value={row.original.created_at} />,

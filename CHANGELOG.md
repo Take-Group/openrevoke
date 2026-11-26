@@ -34,6 +34,15 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
   shows the reporting line, the people list a Department column and a "No manager" filter, and the
   dashboard warns about people without a manager while an app sends requests to managers.
 
+- Access requests approved by the person's manager: each app's "Who approves requests" policy
+  (automatic, manager, manager then admin, admin) routes a request to the manager on
+  "Approvals" (`/me/approvals`) or Slack, then to an admin when needed; no manager who can decide
+  sends it to an admin with the reason. A justification is required, a rejection needs a comment,
+  nobody decides their own request.
+- Request history: `/requests` with filters, Export CSV, and `/requests/<id>` with the timeline of
+  every decision (who, when, via panel, API or Slack, comment); admins can decide for the manager.
+- Managers can ask for access for their reports; "Approved by" on actions.
+
 ### Changed
 
 - The first admin is created only with the setup link printed on the server

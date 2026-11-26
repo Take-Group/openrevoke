@@ -14,11 +14,11 @@ App Router of the panel. Every `page.tsx` is a thin server component: it reads `
 - `discovery/`: `/discovery` renders `DiscoveryView`; `[id]/` is `/discovery/<id>` and renders `DiscoveredAppView`.
 - `forgot-password/`: `/forgot-password` renders `ForgotPasswordView`.
 - `login/`: `/login` renders `LoginView`.
-- `me/`: `/me` renders `MyAccessView` (home of a `user`); `request/` is `/me/request?app=` (`RequestAccessView`).
+- `me/`: `/me` renders `MyAccessView` (home of a `user`); `request/` is `/me/request?app=` (`RequestAccessView`); `approvals/` is `/me/approvals` (`ApprovalsView`), `approvals/[id]/` `/me/approvals/<id>` (`ApprovalDetailView`).
 - `people/`: `/people` renders `PeopleView` (`?status=`); `new/` (`NewPersonView`) and `import/` (`ImportPeopleView`); `[id]/` is `/people/<id>` and renders `PersonDetailView` (`?tab=`), with form pages `[id]/edit/`, `[id]/add-to-app/`, `[id]/onboard/`, `[id]/offboard/`.
 - `register/`: `/register?token=` renders `RegisterView` (accepting an invite).
 - `signup/`: `/signup` renders `SignupView` (self sign-up).
-- `requests/`: `/requests` renders `RequestsView` (access requests from Slack and My access).
+- `requests/`: `/requests` renders `RequestsView` (access requests with filters and CSV export); `[id]/` is `/requests/<id>` (`RequestDetailView`).
 - `reset-password/`: `/reset-password?token=` renders `ResetPasswordView`.
 - `settings/`: own AGENTS.md. `/settings` and its sub-pages (users, two-factor, AI model, Slack).
 - `setup/`: `/setup?token=` renders `SetupView` (first admin of a new installation, from the setup link printed on the server).

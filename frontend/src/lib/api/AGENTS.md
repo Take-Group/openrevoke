@@ -6,10 +6,10 @@ The only place that talks HTTP to the API, plus the response types, written by h
 - `types.ts`: main contract types (`Page<T>`, `MoneyAmount`, people, apps, accounts, connections, actions, audit, dashboard, currencies). Near the 600-line limit: put new groups in a separate `*-types.ts`.
 - `auth-types.ts`: sign-in, sign-up, users, invites and the organization (`UserRole`, `UserStatus`, `UserOut`, `AuthState`, `OrganizationSettingsOut`, `SignupRequest`, `SignupResult`, `ResetLinkOut`, ...).
 - `api-token-types.ts`: API tokens and the MCP URL (`ApiTokenScope`, `ApiTokenOut`, `ApiTokenList`, `ApiTokenCreate`, `ApiTokenCreated`).
-- `me-types.ts`: `/api/me` (`MyAccess`, `MyAccount`, `MyRequest`, `RequestableApp`, `RequestOutcome`).
+- `me-types.ts`: `/api/me` (`MyAccess`, `MyAccount`, `MyRequest`, `RequestableApp`, `RequestOutcome`, `MyAccessRequestCreate`, `MyTeam`, `TeamMember`).
 - `ai-types.ts`: AI model settings (`AiProvider`, `AiReasoningEffort`, `AiSettingsOut`, `AiSettingsUpdate`, `AiModelOut`, `AiModelList`, `AiTestResult`).
 - `slack-types.ts`: Slack bot setup (`SlackAgentStatus`, `SlackAgentOut`, `SlackAppCreate`, `SlackTokensUpdate`).
-- `access-request-types.ts`: access requests (`AccessRequestStatus`, `AccessRequestOut`, `AccessRequestPage`).
+- `access-request-types.ts`: access requests and decisions (`AccessRequestStatus`, `WaitingFor`, `RequestFallbackReason`, `AccessRequestOut`, `AccessRequestDetail`, `AccessRequestDecisionOut`, `AccessRequestPage`, `AccessRequestFilters`, `MyApprovals`).
 - `discovery-types.ts`: app discovery (`DiscoveryOverview`, `DiscoveredAppOut`, `DiscoveredAppDetail`, Google Cloud setup, scan runs).
 - `billing-types.ts`: `AppBillingOut` (`AppDetail.billing`: plan and price read from the app's billing).
 - `recipe-fix-types.ts`: click recipe fixes (`RecipeFixStatus`, `RecipeFixOut`, `RecipeFixList`; `ActionOut.recipe_fixes`).

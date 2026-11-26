@@ -36,7 +36,7 @@ sizes in rem (Tailwind classes), not in px.
 | `/people` | `components/people/people-view.tsx` | `usePeople`, `useCreatePerson`, `useImportPeople` | `status`, `no_manager=true` |
 | `/people/new` | `components/people/new-person-view.tsx` | `useCreatePerson` | - |
 | `/people/import` | `components/people/import-people-view.tsx` | `useImportPeople` | - |
-| `/people/[id]` | `components/people/person-detail-view.tsx` | `usePerson`, `useDeletePerson`, `useSetPersonKind`, `useCreateAction`, `useActions`, `useApps` | - |
+| `/people/[id]` | `components/people/person-detail-view.tsx` (access requests under the tabs: `person-requests-section.tsx`) | `usePerson`, `useDeletePerson`, `useSetPersonKind`, `useCreateAction`, `useActions`, `useApps`, `useAccessRequests` | - |
 | `/people/[id]/edit` | `components/people/edit-person-view.tsx` | `usePerson`, `useUpdatePerson` | - |
 | `/people/[id]/add-to-app` | `components/people/add-to-app-view.tsx` | `usePerson`, `useApps`, `useCreateAction` | - |
 | `/people/[id]/onboard` | `components/people/onboard-view.tsx` | `usePerson`, `useApps`, `useActions`, `useOnboardPerson` | - |
@@ -52,7 +52,12 @@ sizes in rem (Tailwind classes), not in px.
 | `/browser` | `components/browser/browser-view.tsx` | `useBrowserState`, `useOpenInBrowser` | - |
 | `/settings/ai` | `components/ai/ai-settings-view.tsx` | `useAiSettings`, `useSaveAiSettings`, `useAiModels`, `useTestAi` | - |
 | `/settings/slack` | `components/slack/slack-view.tsx` | `useSlackAgent`, `useCreateSlackApp`, `useSaveSlackTokens`, `useUpdateSlackAgent`, `useSetSlackAvatar`, `useRemoveSlackAgent` | `installed`, `error` (return from Slack OAuth) |
-| `/requests` | `components/requests/requests-view.tsx` | `useAccessRequests` | - |
+| `/requests` | `components/requests/requests-view.tsx` (filters: status, app, person; Export CSV is a link to `/api/access-requests/export` with the same filters) | `useAccessRequests`, `useApps` | - |
+| `/requests/[id]` | `components/requests/request-detail-view.tsx` (facts, decision timeline, admin decision or "Decide for the manager") | `useAccessRequest`, `useDecideAccessRequest` | - |
+| `/me` | `components/me/my-access-view.tsx` (a `user`'s home: accounts, requests with status, who decides, rejection comment) | `useMyAccess` | - |
+| `/me/request` | `components/me/request-access-view.tsx` (app, justification required, role suggestions, "For" a report when the user manages people) | `useMyAccess`, `useMyTeam`, `useRequestAccess` | `app` |
+| `/me/approvals` | `components/me/approvals-view.tsx` (requests waiting for the user as manager; "Approvals" in the sidebar with a count, shown when the user has reports or pending approvals) | `useMyApprovals` | - |
+| `/me/approvals/[id]` | `components/me/approval-detail-view.tsx` (who, what, why, seat cost, Approve / Reject with a comment on the page) | `useMyApproval`, `useDecideMyApproval` | - |
 | `/audit` | `components/audit/audit-view.tsx` | `useAudit` | `entity` and `id` (one entity), `app` or `person` (the full history of an app or a person) |
 
 A page with URL parameters reads them in a server component

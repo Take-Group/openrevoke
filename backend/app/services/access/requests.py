@@ -1,37 +1,21 @@
-"""Access requests: a person asks for an account in an app, in Slack (the agent) or on the panel.
+"""Access requests: a person asks for an account in an app, in Slack (the agent), on the panel or through the API.
 
-The request becomes a ``create_account`` action (or a manual task) with reason
-``self_service``. The app's ``request_policy`` decides what happens next:
-``off`` refuses, ``automatic`` approves it at once, the other policies leave the
-action for an admin (the manager step comes with ``access_flow``). A connector write still needs "Allow writes" on the
-connection; without it the action waits for an admin like with ``approval``.
+``request_access`` checks the request and stores it; ``flow.route`` sends it to its first step (the
+manager, an admin, or nobody), by the app's ``request_policy``. Reading is in ``queries.py``.
 """
 
-import enum
-from dataclasses import dataclass
-from datetime import UTC, datetime
+import dataclasses
 from typing import TYPE_CHECKING
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 
-from app.models import AccessRequest, Action, App, Person
-from app.models.enums import (
-    AccessRequestChannel,
-    AccessRequestStatus,
-    ActionKind,
-    ActionReason,
-    ActionStatus,
-    PersonStatus,
-    RequestPolicy,
-)
-from app.schemas.actions import ActionCreate, WriteKind
-from app.schemas.slack_agent import AccessRequestOut, AccessRequestPage
-from app.services import audit
-from app.services.action_approval import approve
-from app.services.actions import create_action
-from app.services.errors import InvalidInputError
+from app.models import AccessRequest, App, Person
+from app.models.enums import OPEN_REQUEST_STATUSES, AccessRequestChannel, PersonStatus, RequestPolicy
+from app.services.access import flow
+from app.services.access.decisions import record_event
+from app.services.access.outcomes import Outcome, RequestResult, SlackOrigin
+from app.services.errors import ConflictError, InvalidInputError
 from app.services.onboarding import apps_with_account, apps_with_open_creation
-from app.services.presenters import app_ref, person_ref
 
 if TYPE_CHECKING:
     import uuid
@@ -40,142 +24,74 @@ if TYPE_CHECKING:
 
     from app.services.action_dispatch import ActionDispatcher
 
-
-class Outcome(enum.StrEnum):
-    IN_PROGRESS = "in_progress"  # approved, the connector is creating the account now
-    WAITING_FOR_APPROVAL = "waiting_for_approval"
-    WAITING_FOR_ADMIN = "waiting_for_admin"  # approved manual task: an admin creates the account by hand
-    ALREADY_HAS_ACCOUNT = "already_has_account"
-    ALREADY_REQUESTED = "already_requested"
-    NOT_AVAILABLE = "not_available"  # the app's policy is off
+JUSTIFICATION_NEEDED = "Say why you need it: the approver reads it next to the request."
 
 
-@dataclass(frozen=True)
-class RequestResult:
-    outcome: Outcome
-    app_name: str
-    action_id: uuid.UUID | None = None
-    note: str | None = None
+@dataclasses.dataclass(frozen=True)
+class NewRequest:
+    """What the person asks for and who asks (``requested_by``: panel user e-mail, "e-mail (Slack)", token)."""
 
-
-@dataclass(frozen=True)
-class SlackOrigin:
-    user_id: str
-    channel_id: str
-    message: str | None
+    justification: str | None
+    requested_by: str
+    role: str | None = None
+    on_behalf: bool = False  # the person's manager asks for them
+    origin: SlackOrigin | None = None  # asked in Slack: the agent answers there
+    message: str | None = None
 
 
 async def request_access(
-    session: AsyncSession,
-    *,
-    person: Person,
-    app: App,
-    role: str | None,
-    dispatcher: ActionDispatcher,
-    origin: SlackOrigin | None = None,
-    message: str | None = None,
+    session: AsyncSession, *, person: Person, app: App, new: NewRequest, dispatcher: ActionDispatcher
 ) -> RequestResult:
-    """``origin`` set: asked in Slack (the agent answers there). None: asked on the panel, ``message`` is the note."""
+    """Store the request and route it. 400: a leaver or no justification; 409: a request is already open."""
     if person.status == PersonStatus.LEFT:
         raise InvalidInputError("The person has left the company")
-    name = app.name  # approve() below expires the session's objects
+    name = app.name
     if app.request_policy == RequestPolicy.OFF:
         return RequestResult(Outcome.NOT_AVAILABLE, name)
+    justification = (new.justification or "").strip()
+    if not justification:
+        raise InvalidInputError(JUSTIFICATION_NEEDED)
     if app.id in await apps_with_account(session, person.id, [app.id]):
         return RequestResult(Outcome.ALREADY_HAS_ACCOUNT, name)
+    if await open_request(session, person.id, app.id) is not None:
+        raise ConflictError(f"A request for {name} is already open. Wait for its decision.")
     if app.id in await apps_with_open_creation(session, person.id, [app.id]):
         return RequestResult(Outcome.ALREADY_REQUESTED, name)
 
-    action = await create_action(
-        session,
-        ActionCreate(kind=WriteKind.CREATE_ACCOUNT, app_id=app.id, person_id=person.id, role=role),
-        reason=ActionReason.SELF_SERVICE,
-    )
-    note = origin.message if origin else message
+    origin = new.origin
     request = AccessRequest(
         person_id=person.id,
         app_id=app.id,
-        action_id=action.id,
         channel=AccessRequestChannel.SLACK if origin else AccessRequestChannel.PANEL,
         slack_user_id=origin.user_id if origin else None,
         slack_channel_id=origin.channel_id if origin else None,
-        message=(note or "")[:2000] or None,
-        status=AccessRequestStatus.APPROVED
-        if app.request_policy == RequestPolicy.AUTOMATIC
-        else AccessRequestStatus.PENDING_ADMIN,
+        message=((origin.message if origin else new.message) or "")[:2000] or None,
+        justification=justification[:2000],
+        role=(new.role or "").strip()[:100] or None,
+        requested_by=new.requested_by[:320],
+        on_behalf=new.on_behalf,
     )
     session.add(request)
     await session.flush()
-    await audit.record(
+    request_id = request.id
+    await record_event(
         session,
+        request,
         "access_request.created",
-        "access_request",
-        request.id,
-        {"action_id": str(action.id), "policy": str(app.request_policy), "channel": str(request.channel)},
-        app_id=app.id,
-        person_id=person.id,
+        {"policy": str(app.request_policy), "channel": str(request.channel), "on_behalf": new.on_behalf},
     )
-    if app.request_policy != RequestPolicy.AUTOMATIC:
-        return RequestResult(Outcome.WAITING_FOR_APPROVAL, name, action.id)
-    action_id, kind = action.id, action.kind
-    try:
-        await approve(session, action_id, dispatcher)  # commits; a connector write starts its workflow
-    except InvalidInputError as exc:
-        return RequestResult(Outcome.WAITING_FOR_APPROVAL, name, action_id, exc.message)
-    if kind == ActionKind.MANUAL_TASK:
-        return RequestResult(Outcome.WAITING_FOR_ADMIN, name, action_id)
-    return RequestResult(Outcome.IN_PROGRESS, name, action_id)
+    result = await flow.route(session, request, person, app, dispatcher)
+    return dataclasses.replace(result, request_id=request_id)
 
 
-async def list_requests(
-    session: AsyncSession, *, status: AccessRequestStatus | None, limit: int, offset: int
-) -> AccessRequestPage:
-    query = select(AccessRequest)
-    if status is not None:
-        query = query.where(AccessRequest.status == status)
-    total = await session.scalar(select(func.count()).select_from(query.subquery())) or 0
-    rows = list(
-        await session.scalars(
-            query.order_by(AccessRequest.created_at.desc(), AccessRequest.id.desc()).limit(limit).offset(offset)
+async def open_request(session: AsyncSession, person_id: uuid.UUID, app_id: uuid.UUID) -> AccessRequest | None:
+    """The person's unfinished request for the app, if any."""
+    return await session.scalar(
+        select(AccessRequest)
+        .where(
+            AccessRequest.person_id == person_id,
+            AccessRequest.app_id == app_id,
+            AccessRequest.status.in_(OPEN_REQUEST_STATUSES),
         )
+        .limit(1)
     )
-    people = {p.id: p for p in await session.scalars(select(Person).where(Person.id.in_({r.person_id for r in rows})))}
-    apps = {a.id: a for a in await session.scalars(select(App).where(App.id.in_({r.app_id for r in rows})))}
-    action_ids = {r.action_id for r in rows if r.action_id}
-    statuses = dict((await session.execute(select(Action.id, Action.status).where(Action.id.in_(action_ids)))).all())
-    items = [
-        AccessRequestOut(
-            id=row.id,
-            person=person_ref(people[row.person_id]),
-            app=app_ref(apps[row.app_id]),
-            action_id=row.action_id,
-            action_status=statuses.get(row.action_id) if row.action_id else None,
-            channel=row.channel,
-            status=row.status,
-            message=row.message,
-            created_at=row.created_at,
-            closed_at=row.closed_at,
-            notified_at=row.notified_at,
-        )
-        for row in rows
-    ]
-    return AccessRequestPage(items=items, total=total)
-
-
-CLOSING_STATUS = {
-    ActionStatus.DONE: AccessRequestStatus.DONE,
-    ActionStatus.FAILED: AccessRequestStatus.FAILED,
-    ActionStatus.CANCELLED: AccessRequestStatus.CANCELLED,
-}
-
-
-def closing_status(action_status: ActionStatus | None) -> AccessRequestStatus:
-    """How a request ends for the status of its action; a deleted action counts as cancelled."""
-    if action_status is None:
-        return AccessRequestStatus.CANCELLED
-    return CLOSING_STATUS.get(action_status, AccessRequestStatus.CANCELLED)
-
-
-def close(request: AccessRequest, status: AccessRequestStatus) -> None:
-    request.status = status
-    request.closed_at = datetime.now(UTC)

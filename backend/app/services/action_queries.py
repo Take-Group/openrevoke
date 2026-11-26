@@ -124,6 +124,8 @@ def _out(
         account=account_ref(account),
         payload=ActionPayload.model_validate(action.payload or {}),
         approved_at=action.approved_at,
+        approved_by=action.approved_by,
+        created_by=action.created_by,
         started_at=action.started_at,
         finished_at=action.finished_at,
         result=action.result,

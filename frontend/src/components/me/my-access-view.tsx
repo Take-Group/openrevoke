@@ -10,10 +10,12 @@ import { Panel } from "@/components/common/panel";
 import { QueryState } from "@/components/common/query-state";
 import { RelativeTime } from "@/components/common/relative-time";
 import { StatusBadge } from "@/components/common/status-badge";
+import { FALLBACK_TEXT, RequestStatusBadge, waitingText } from "@/components/requests/request-parts";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useMyAccess } from "@/hooks/use-me";
 import type { MyAccount, MyRequest } from "@/lib/api/me-types";
 import type { AppRef } from "@/lib/api/types";
+import { cn } from "@/lib/utils";
 
 function AppCell({ app }: { app: AppRef }) {
   return (
@@ -66,6 +68,12 @@ function Accounts({ accounts }: { accounts: MyAccount[] }) {
   );
 }
 
+function requestNote(request: MyRequest): string {
+  if (request.rejection_comment) return request.rejection_comment;
+  if (request.fallback_reason && request.waiting_for === "admin") return FALLBACK_TEXT[request.fallback_reason];
+  return request.justification ?? "—";
+}
+
 function Requests({ requests }: { requests: MyRequest[] }) {
   if (requests.length === 0) return null;
   return (
@@ -74,7 +82,8 @@ function Requests({ requests }: { requests: MyRequest[] }) {
         <TableHeader>
           <TableRow>
             <TableHead>App</TableHead>
-            <TableHead>State</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="max-md:hidden">Waiting for</TableHead>
             <TableHead className="max-md:hidden">Note</TableHead>
             <TableHead className="max-md:hidden">Asked</TableHead>
           </TableRow>
@@ -86,9 +95,15 @@ function Requests({ requests }: { requests: MyRequest[] }) {
                 <AppCell app={request.app} />
               </TableCell>
               <TableCell>
-                <StatusBadge status={request.state} />
+                <RequestStatusBadge status={request.status} />
               </TableCell>
-              <TableCell className="max-w-64 truncate text-muted-foreground max-md:hidden">{request.message ?? "—"}</TableCell>
+              <TableCell className="whitespace-nowrap text-muted-foreground max-md:hidden">{waitingText(request)}</TableCell>
+              <TableCell
+                className={cn("max-w-64 truncate max-md:hidden", request.rejection_comment ? "text-destructive" : "text-muted-foreground")}
+                title={requestNote(request)}
+              >
+                {requestNote(request)}
+              </TableCell>
               <TableCell className="max-md:hidden">
                 <RelativeTime value={request.created_at} />
               </TableCell>

@@ -6,6 +6,7 @@ import {
   KeyRoundIcon,
   LayoutDashboardIcon,
   ListChecksIcon,
+  ListTodoIcon,
   PlugIcon,
   ScanSearchIcon,
   SettingsIcon,
@@ -68,6 +69,9 @@ export const NAV_USER: NavItem[] = [
   { title: "Settings", href: "/settings", icon: SettingsIcon },
   { title: "API and MCP", href: "/settings/api", icon: PlugIcon },
 ];
+
+/** Requests a manager decides; shown only to users with reports or pending approvals (`AppSidebar`). */
+export const NAV_APPROVALS: NavItem = { title: "Approvals", href: "/me/approvals", icon: ListTodoIcon };
 
 export function isActive(pathname: string, href: string): boolean {
   return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);

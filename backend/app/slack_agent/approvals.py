@@ -1,7 +1,10 @@
-"""Requests waiting for approval go to the admins on Slack with Approve and Reject buttons.
+"""Requests waiting for a decision go to the approver on Slack with Approve and Reject buttons.
 
-Admins are panel users with the admin role whose e-mail has a Slack account.
-A click is accepted only from such an admin; the audit log names them.
+By step, whatever the channel the person asked on: a request waiting for the manager goes to the
+manager (found by their e-mails with ``users.lookupByEmail``), one waiting for an admin goes to every
+admin with a Slack account except the person who asked. A click is checked by ``flow.decide``: the
+manager (by the e-mail of their Slack profile) or an admin; a rejection from Slack has no comment
+and is recorded "Rejected in Slack". The decision is ``via=slack``, by "e-mail (Slack)".
 """
 
 import uuid
@@ -13,16 +16,18 @@ from sqlalchemy import select
 
 from app.config import settings
 from app.database import async_session
-from app.models import AccessRequest, Action, App, Person, User
-from app.models.enums import OPEN_REQUEST_STATUSES, ActionStatus, UserRole
-from app.services.action_approval import approve
-from app.services.actions import cancel
-from app.services.auth.actor import current_actor
+from app.models import AccessRequest, App, Person, User
+from app.models.enums import AccessRequestStatus, DecisionOutcome, DecisionVia, UserRole, UserStatus
+from app.services.access import flow, managers
+from app.services.auth.actor import ActorRef, set_actor
 from app.services.errors import DomainError
+from app.services.matching import match_email
 from app.slack_agent import identity, texts, web_api
 from app.slack_agent.web_api import SlackApiError
 
 if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
+
     from app.slack_agent.runtime import SlackRuntime
 
 logger = structlog.get_logger()
@@ -30,6 +35,7 @@ logger = structlog.get_logger()
 APPROVE = "open_revoke_approve"
 REJECT = "open_revoke_reject"
 BATCH = 20
+WAITING = (AccessRequestStatus.PENDING_MANAGER, AccessRequestStatus.PENDING_ADMIN)
 
 
 async def notify_pending(rt: SlackRuntime) -> None:
@@ -37,14 +43,9 @@ async def notify_pending(rt: SlackRuntime) -> None:
         rows = (
             await session.execute(
                 select(AccessRequest, Person, App)
-                .join(Action, Action.id == AccessRequest.action_id)
                 .join(Person, Person.id == AccessRequest.person_id)
                 .join(App, App.id == AccessRequest.app_id)
-                .where(
-                    AccessRequest.status.in_(OPEN_REQUEST_STATUSES),
-                    AccessRequest.approvers_notified_at.is_(None),
-                    Action.status == ActionStatus.PENDING_APPROVAL,
-                )
+                .where(AccessRequest.status.in_(WAITING), AccessRequest.approvers_notified_at.is_(None))
                 .order_by(AccessRequest.created_at)
                 .limit(BATCH)
                 .with_for_update(of=AccessRequest, skip_locked=True)
@@ -52,23 +53,59 @@ async def notify_pending(rt: SlackRuntime) -> None:
         ).all()
         if not rows:
             return
-        admin_emails = list(await session.scalars(select(User.email).where(User.role == UserRole.ADMIN)))
-        admin_ids = [user_id for email in admin_emails if (user_id := await identity.slack_user_for_email(rt, email))]
+        admins: list[tuple[str, str]] | None = None  # (e-mail, Slack id), read once per poll
         for request, person, app in rows:
+            for_manager = request.status == AccessRequestStatus.PENDING_MANAGER
+            try:
+                if for_manager:
+                    recipients = await _manager_ids(session, rt, request)
+                else:
+                    admins = admins if admins is not None else await _admin_ids(session, rt)
+                    own = set(await managers.emails_of(session, person))
+                    recipients = [slack_id for email, slack_id in admins if email not in own]
+            except SlackApiError as exc:
+                logger.warning("slack_agent_approver_lookup_failed", error=str(exc))
+                continue  # the next poll tries again
             text = texts.approval_request(
-                f"{person.first_name} {person.last_name}", person.primary_email, app.name, request.message
+                person_name=f"{person.first_name} {person.last_name}",
+                person_email=person.primary_email,
+                app_name=app.name,
+                justification=request.justification or request.message,
+                role=request.role,
+                for_manager=for_manager,
+                requested_by=request.requested_by if request.on_behalf else None,
             )
-            for admin_id in admin_ids:
+            path = f"/me/approvals/{request.id}" if for_manager else f"/requests/{request.id}"
+            for slack_id in recipients:
                 try:
                     await web_api.call(
                         "chat.postMessage",
                         rt.bot_token,
-                        json={"channel": admin_id, "text": text, "blocks": _blocks(text, request.action_id)},
+                        json={"channel": slack_id, "text": text, "blocks": _blocks(text, request.id, path)},
                     )
                 except SlackApiError as exc:
                     logger.warning("slack_agent_approval_post_failed", error=str(exc))
-            request.approvers_notified_at = datetime.now(UTC)  # also without admins on Slack: no retry loop
+            request.approvers_notified_at = datetime.now(UTC)  # also without anyone on Slack: no retry loop
         await session.commit()
+
+
+async def _manager_ids(session: AsyncSession, rt: SlackRuntime, request: AccessRequest) -> list[str]:
+    manager = await session.get(Person, request.approver_person_id) if request.approver_person_id else None
+    if manager is None:
+        return []
+    for email in await managers.emails_of(session, manager):
+        if slack_id := await identity.slack_user_for_email(rt.bot_token, email):
+            return [slack_id]
+    return []
+
+
+async def _admin_ids(session: AsyncSession, rt: SlackRuntime) -> list[tuple[str, str]]:
+    emails = await session.scalars(
+        select(User.email).where(User.role == UserRole.ADMIN, User.status == UserStatus.ACTIVE)
+    )
+    return [
+        (email, slack_id) for email in emails if (slack_id := await identity.slack_user_for_email(rt.bot_token, email))
+    ]
 
 
 async def handle_click(rt: SlackRuntime, payload: dict[str, Any]) -> None:
@@ -80,27 +117,30 @@ async def handle_click(rt: SlackRuntime, payload: dict[str, Any]) -> None:
     message = payload.get("message") or {}
     user_id = (payload.get("user") or {}).get("id")
     try:
-        action_id = uuid.UUID(str(clicked.get("value")))
+        request_id = uuid.UUID(str(clicked.get("value")))
     except ValueError:
         return
+    email = await identity.slack_email(rt, user_id) if user_id else None
+    if email is None:
+        await web_api.call("chat.postMessage", rt.bot_token, json={"channel": channel, "text": texts.UNKNOWN_DECIDER})
+        return
     async with async_session() as session:
-        admin = await identity.find_admin(session, rt, user_id) if user_id else None
-        if admin is None:
-            await web_api.call("chat.postMessage", rt.bot_token, json={"channel": channel, "text": texts.ADMIN_ONLY})
-            return
-        admin_name = admin.name  # approve() expires the session's objects
-        current_actor.set(f"{admin.email} (Slack)")
+        decider = await _decider(session, email)
+        set_actor(decider.actor.label, decider.actor.user_id, DecisionVia.SLACK)
+        outcome = DecisionOutcome.APPROVED if kind == APPROVE else DecisionOutcome.REJECTED
         try:
-            if kind == APPROVE:
-                await approve(session, action_id, rt.dispatcher)
-                outcome = f":white_check_mark: Approved by {admin_name}."
-            else:
-                await cancel(session, action_id)
-                outcome = f":no_entry_sign: Rejected by {admin_name}."
+            await flow.decide(
+                session, request_id, decider=decider, outcome=outcome, comment=None, dispatcher=rt.dispatcher
+            )
             await session.commit()
+            result = (
+                f":white_check_mark: Approved by {email}."
+                if outcome == DecisionOutcome.APPROVED
+                else f":no_entry_sign: Rejected by {email}."
+            )
         except DomainError as exc:
             await session.rollback()
-            outcome = f":warning: Not done: {exc.message}"
+            result = f":warning: Not done: {exc.message}"
     original = _original_text(message)
     await web_api.call(
         "chat.update",
@@ -108,14 +148,22 @@ async def handle_click(rt: SlackRuntime, payload: dict[str, Any]) -> None:
         json={
             "channel": channel,
             "ts": message.get("ts"),
-            "text": f"{original}\n{outcome}",
-            "blocks": [_section(original), {"type": "context", "elements": [{"type": "mrkdwn", "text": outcome}]}],
+            "text": f"{original}\n{result}",
+            "blocks": [_section(original), {"type": "context", "elements": [{"type": "mrkdwn", "text": result}]}],
         },
     )
 
 
-def _blocks(text: str, action_id: uuid.UUID | None) -> list[dict[str, Any]]:
-    value = str(action_id)
+async def _decider(session: AsyncSession, email: str) -> flow.Decider:
+    """The Slack user as a decider: their panel account (if any) and the person with their e-mail."""
+    user = await session.scalar(select(User).where(User.email == email, User.status == UserStatus.ACTIVE))
+    person_id = (await match_email(session, email)).person_id
+    actor = ActorRef(f"{email} (Slack)", user.id if user else None, DecisionVia.SLACK)
+    return flow.Decider(actor=actor, person_id=person_id, is_admin=user is not None and user.role == UserRole.ADMIN)
+
+
+def _blocks(text: str, request_id: uuid.UUID, path: str) -> list[dict[str, Any]]:
+    value = str(request_id)
     return [
         _section(text),
         {
@@ -126,7 +174,7 @@ def _blocks(text: str, action_id: uuid.UUID | None) -> list[dict[str, Any]]:
                 {
                     "type": "button",
                     "text": {"type": "plain_text", "text": "Open in Open Revoke"},
-                    "url": f"{settings.public_url}/actions?tab=pending",
+                    "url": f"{settings.public_url}{path}",
                     "action_id": "open_revoke_link",
                 },
             ],

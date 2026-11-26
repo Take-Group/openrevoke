@@ -29,19 +29,23 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.services.action_dispatch import ActionDispatcher
+    from app.services.auth.actor import ActorRef
 
 logger = structlog.get_logger()
 S = ActionStatus
 
 
-async def approve(session: AsyncSession, action_id: uuid.UUID, dispatcher: ActionDispatcher) -> None:
+async def approve(
+    session: AsyncSession, action_id: uuid.UUID, dispatcher: ActionDispatcher, *, approved_by: ActorRef | None = None
+) -> None:
+    """``approved_by``: who the action names as approver; default the current actor (the signed-in user)."""
     # Row lock until the commit: a second approval waits, then sees "approved" and gets 409.
     action = await get_action(session, action_id, lock=True)
     if not can_transition(action, S.APPROVED):
         raise ConflictError(f"Only a pending action can be approved (this one is {action.status})")
     if action.kind != ActionKind.MANUAL_TASK:
         await ensure_can_run(session, action)
-    await advance(session, action.id, S.APPROVED)
+    await advance(session, action.id, S.APPROVED, approved_by=approved_by)
     if action.kind != ActionKind.MANUAL_TASK:
         await session.commit()  # the worker reads the approved action
         await start_workflow(session, action, dispatcher)

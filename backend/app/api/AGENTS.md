@@ -13,7 +13,7 @@ FastAPI routers of the panel API: thin handlers that validate input with `app/sc
 - `auth.py`: prefix `/api/auth`, public. GET `/state`, POST `/setup` (needs the setup token; then `services.telemetry.report` in the background), `/setup/check`, `/login`, `/totp`, `/totp/skip`, `/register`, `/signup`, `/2fa/setup`, `/2fa/enable`, `/2fa/disable`, `/password/reset`, `/password/change`, `/logout`, GET `/invites/{token}`. Services: `services.auth.sign_in`, `passwords_flow`, `sessions`. Sets the session cookie.
 - `users.py`: admins only. GET/PATCH/DELETE `/users`, POST `/users/{id}/approve`, `/reset-link` and `/reset-totp`, GET/POST/DELETE `/invites`, GET/PATCH `/organization` (with sign-up rules). Services: `services.auth.users`, `invites`, `services.organization`.
 - `api_tokens.py`: GET/POST `/api-tokens`, DELETE `/api-tokens/{id}`: the signed-in user's API tokens and the MCP URL; cookie only (`services.auth.api_tokens`).
-- `me.py`: GET `/me/access`, POST `/me/access-requests`: the signed-in user's own accounts and requests; the only API a `user` reaches. Service `access.my_access`.
+- `me.py`: GET `/me/access`, POST `/me/access-requests`, GET `/me/team`, GET `/me/approvals`, GET `/me/approvals/{id}`, POST `.../approve`, `.../reject`: own accounts and requests, reports, manager decisions; the only API a `user` reaches. Services `access.my_access`, `access.my_approvals`.
 - `dashboard.py`: GET `/dashboard` (`services.dashboard.get_dashboard`).
 - `setup_checklist.py`: GET `/onboarding`, PUT `/onboarding/choices`, POST `/onboarding/dismiss` (`services.setup_checklist`).
 - `people.py`: `/people` list/create, POST `/people/import`, GET/PATCH/DELETE `/people/{id}`, POST `/people/{id}/offboard` and `/onboard`. Services: `people`, `people_import`, `offboarding`, `onboarding`.
@@ -30,7 +30,7 @@ FastAPI routers of the panel API: thin handlers that validate input with `app/sc
 - `audit.py`: GET `/audit` (`services.audit`).
 - `ai.py`: GET/PUT `/ai-settings`, POST `/ai-settings/models` and `/test` (`services.ai_settings`).
 - `slack_agent.py`: GET/PATCH/DELETE `/slack-agent`, POST `/slack-agent/app`, `/avatar`, PUT `/slack-agent/tokens`, GET `/slack-agent/oauth/start` and `/oauth/callback` (back to `/settings/slack`). Service `slack_agent_setup`.
-- `access_requests.py`: GET `/access-requests` (`services.access.requests`).
+- `access_requests.py`: GET `/access-requests` (filters), GET `/export` (CSV), GET `/{id}`, POST `/{id}/approve`, `/{id}/reject` (admin step or override) (`services.access.queries`, `access.flow`).
 - `catalog.py`: `public_router` (public) GET `/api/catalog/apps`, GET `/api/catalog/logos/{slug}.png` (`app.catalog.lookup`).
 - `currencies.py`: `public_router` GET `/api/currencies` (public); `router` POST `/exchange-rates/refresh` (admin). Service `exchange_rates`.
 - `system.py`: GET `/system/version` (admin): running version and the newest release (`services.system_info`).
