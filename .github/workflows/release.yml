@@ -292,6 +292,9 @@ jobs:
 
           ### Verify
 
+          [cosign](https://github.com/sigstore/cosign) 3.0 or newer: the signatures are stored in the
+          Sigstore bundle format; cosign 2 reports "no signatures found" for the images.
+
           \`\`\`bash
           sha256sum --check SHA256SUMS
           cosign verify-blob SHA256SUMS --bundle SHA256SUMS.sigstore.json \\
