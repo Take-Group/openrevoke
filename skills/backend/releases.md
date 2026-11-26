@@ -141,6 +141,8 @@ OPEN_REVOKE_RELEASES_URL=file://$PWD/dist/releases \
   (`uses: actions/checkout@<sha> # v7.0.1`). Dependabot (`github-actions`) updates both. A new
   action: resolve the SHA of a release tag, never a branch. Exception: the
   `slsa-github-generator` workflows must be referenced by tag (`@v2.1.0`), they check their own ref.
+- **Base images are pinned by digest** in the `Dockerfile` (`tag@sha256:...`); Dependabot (`docker`)
+  moves tag and digest together. A Debian fix in a base image arrives with that update.
 - **Trivy** (`release-test.yml`) scans both images before anything is pushed. A CRITICAL with a
   fixed version fails the release: bump the package or base image, or add the CVE to
   `.trivyignore` with a reason and a date to check again. HIGH and CRITICAL go to the Security tab.

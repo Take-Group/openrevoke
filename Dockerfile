@@ -15,14 +15,14 @@
 
 
 # --- Source of the Bun binary (copied into the final image) -----------------
-FROM oven/bun:1.4.5 AS bun-binary
+FROM oven/bun:1.4.5@sha256:3aa040e5445efa09d75bb428a64ba50db13e2b3ac9b6b0c7f145615f62b2ee18 AS bun-binary
 
 
 # --- Frontend build: Next.js in standalone mode ------------------------------
 # IMPORTANT: the work directories of the build stages must match the paths in
 # the final image. The uv virtual environment writes absolute paths into
 # shebangs, so moving it to another directory breaks it.
-FROM oven/bun:1.4.5 AS frontend-build
+FROM oven/bun:1.4.5@sha256:3aa040e5445efa09d75bb428a64ba50db13e2b3ac9b6b0c7f145615f62b2ee18 AS frontend-build
 
 USER root
 WORKDIR /app/frontend
@@ -38,7 +38,7 @@ RUN bun run build
 
 
 # --- Backend build: Python dependencies and the app code --------------------
-FROM ghcr.io/astral-sh/uv:0.13.10-python3.14-trixie-slim AS backend-build
+FROM ghcr.io/astral-sh/uv:0.13.10-python3.14-trixie-slim@sha256:b093dbbd7963c765325ecdf866d42915f5327e135569f9dae9c77cac63559bf2 AS backend-build
 
 WORKDIR /app/backend
 
@@ -59,7 +59,7 @@ RUN uv sync --frozen --no-dev
 # it. The services run `uv sync --frozen` at start, so a new dependency needs
 # only a restart of the service, not a rebuild.
 # libatomic1: the Node.js driver bundled with playwright (connect_over_cdp).
-FROM ghcr.io/astral-sh/uv:0.13.10-python3.14-trixie-slim AS backend-dev
+FROM ghcr.io/astral-sh/uv:0.13.10-python3.14-trixie-slim@sha256:b093dbbd7963c765325ecdf866d42915f5327e135569f9dae9c77cac63559bf2 AS backend-dev
 
 ENV TZ=UTC \
     PYTHONUNBUFFERED=1 \
@@ -79,7 +79,7 @@ RUN uv sync --frozen --no-install-project
 
 
 # --- Final image: backend and frontend under one supervisor ----------------
-FROM ghcr.io/astral-sh/uv:0.13.10-python3.14-trixie-slim AS app
+FROM ghcr.io/astral-sh/uv:0.13.10-python3.14-trixie-slim@sha256:b093dbbd7963c765325ecdf866d42915f5327e135569f9dae9c77cac63559bf2 AS app
 
 ENV TZ=UTC \
     PYTHONUNBUFFERED=1 \
@@ -141,7 +141,7 @@ CMD ["supervisord", "--nodaemon", "--configuration", "/etc/supervisor/supervisor
 # Debian trixie has the `chromium` package for arm64 and amd64 (Google Chrome is
 # amd64 only). CDP: 127.0.0.1:9222 in the container, socat exposes it on :9223 in
 # the compose network. noVNC: :6080. Details and traps: skills/backend/browser.md.
-FROM debian:trixie-slim AS browser
+FROM debian:trixie-slim@sha256:8aa5a7bf5a1955bddbe7d74fcdd0b91ab30e74362a8b73af672b0481b35b44a0 AS browser
 
 ENV TZ=UTC \
     DEBIAN_FRONTEND=noninteractive \
