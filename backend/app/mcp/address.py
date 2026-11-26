@@ -2,7 +2,7 @@
 
 from app.config import settings
 
-MCP_PATH = "/api/mcp"
+MCP_PATH = "/mcp"
 
 
 def mcp_url() -> str:

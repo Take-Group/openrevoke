@@ -54,7 +54,7 @@ running stack.
 - `components.json`: shadcn config (style `base-nova`, aliases `@/components`, `@/lib`, `@/hooks`, CSS in `src/app/globals.css`).
 - `eslint.config.mjs`: ESLint 9 (next config) plus the UI kit rules (`no-restricted-syntax`: raw controls, `onClick` on non-interactive elements, palette colours, `cursor-default`; `ui/` and `common/` get only the colour and cursor rules).
 - `postcss.config.mjs`, `tsconfig.json`: Tailwind 4 PostCSS plugin, TypeScript with `@/*` alias to `src/`.
-- `next.config.ts`: `output: "standalone"`, rewrite `/api/:path*` to `API_PROXY_TARGET` (default `http://127.0.0.1:8000`, baked in at build time), `allowedDevOrigins` `*.localhost`.
+- `next.config.ts`: `output: "standalone"`, rewrites `/api/:path*` and `/mcp` to `API_PROXY_TARGET` (default `http://127.0.0.1:8000`, baked in at build time), `allowedDevOrigins` `*.localhost`.
 - `public/`, no map: default Next.js SVGs `file.svg`, `globe.svg`, `next.svg`, `vercel.svg`, `window.svg`; nothing in the panel depends on them.
 - `src/`, no map: `src/app/` (own AGENTS.md: routes), `src/components/` (own AGENTS.md: UI by feature plus the `ui` and `common` kits), `src/hooks/` (own AGENTS.md: React Query hooks, one file per API resource), `src/lib/` (own AGENTS.md: helpers, API client and types).
 

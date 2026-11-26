@@ -134,13 +134,18 @@ Create a personal API token in **Settings, API and MCP**. The page shows the com
 assistant, for example:
 
 ```bash
-claude mcp add --transport http open-revoke https://open-revoke.example.com/api/mcp \
+claude mcp add --transport http open-revoke https://open-revoke.example.com/mcp \
   --header "Authorization: Bearer orv_..."
 ```
 
 Then ask in plain words: "add Anna to Notion", "offboard Bob", "which apps does Carol use?". The
 assistant acts with your role, a read-only token cannot change anything, every change is in the
 audit log with the token's name, and removing accounts still waits for an approval.
+
+The tools are named after the tasks: `get_overview`, `get_person_access`,
+`list_leavers_with_access`, `get_spend_by_app`, `plan_offboarding`, `start_offboarding`,
+`approve_offboarding` and more. Any client can list them without a token; calling one needs it.
+Every panel operation as its own tool: add `?toolset=api` to the address.
 
 ## Make it your own
 

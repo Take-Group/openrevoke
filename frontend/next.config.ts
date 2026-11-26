@@ -36,6 +36,11 @@ const nextConfig: NextConfig = {
         source: "/api/:path*",
         destination: `${apiProxyTarget}/api/:path*`,
       },
+      // MCP server for AI assistants (backend/app/mcp/), on the panel's origin like the API.
+      {
+        source: "/mcp",
+        destination: `${apiProxyTarget}/mcp`,
+      },
     ];
   },
 };
