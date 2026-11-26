@@ -101,9 +101,14 @@ async def update_discovered_app(
 async def track_discovered_app(
     discovered_app_id: uuid.UUID, session: SessionDep, data: DiscoveredAppTrack | None = None
 ) -> DiscoveredAppDetail:
-    """Links the app with the same name in Open Revoke, or creates a manual one. Connect it from the app page."""
-    await discovery_review.track_discovered_app(session, discovered_app_id, data or DiscoveredAppTrack())
-    return await discovery.get_discovered_app(session, discovered_app_id)
+    """Links the app with the same name in Open Revoke, or creates a manual one. Connect it from the app page.
+
+    ``create_accounts`` also adds manual accounts for the people who signed in (active in the directory).
+    """
+    _, created = await discovery_review.track_discovered_app(session, discovered_app_id, data or DiscoveredAppTrack())
+    detail = await discovery.get_discovered_app(session, discovered_app_id)
+    detail.accounts_created = created
+    return detail
 
 
 @router.get("/people/{person_id}/discovered-apps", response_model=PersonDiscoveredAppPage)

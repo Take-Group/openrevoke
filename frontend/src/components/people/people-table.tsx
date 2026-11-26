@@ -24,7 +24,7 @@ function AppStack({ apps }: { apps: AppRef[] }) {
   return (
     <div className="flex items-center -space-x-1">
       {shown.map((app) => (
-        <AppAvatar key={app.app_id} name={app.name} slug={app.slug} size="xs" className="ring-2 ring-card" />
+        <AppAvatar key={app.app_id} name={app.name} slug={app.slug} logoUrl={app.logo_url} size="xs" className="ring-2 ring-card" />
       ))}
       {apps.length > shown.length && (
         <span className="ml-2! text-xs text-muted-foreground tabular-nums">+{apps.length - shown.length}</span>

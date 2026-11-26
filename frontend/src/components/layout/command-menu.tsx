@@ -82,7 +82,7 @@ function Palette({ go, close }: { go: (href: string) => void; close: () => void 
           <CommandGroup heading="Apps">
             {appItems.map((app) => (
               <CommandItem key={app.id} value={`app:${app.id}`} onSelect={() => go(`/apps/${app.id}`)}>
-                <AppAvatar name={app.name} slug={app.slug} connectorKey={app.connector_key} size="xs" />
+                <AppAvatar name={app.name} slug={app.slug} connectorKey={app.connector_key} logoUrl={app.logo_url} size="xs" />
                 {app.name}
               </CommandItem>
             ))}

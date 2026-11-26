@@ -78,7 +78,7 @@ function AppPage({ app, initialTab, initialAccountsFilter }: Omit<AppDetailViewP
   return (
     <>
       <DetailHeader
-        avatar={<AppAvatar name={app.name} slug={app.slug} connectorKey={app.connector_key} size="lg" />}
+        avatar={<AppAvatar name={app.name} slug={app.slug} connectorKey={app.connector_key} logoUrl={app.logo_url} size="lg" />}
         title={app.name}
         badges={
           <>
@@ -87,9 +87,9 @@ function AppPage({ app, initialTab, initialAccountsFilter }: Omit<AppDetailViewP
           </>
         }
         subtitle={
-          app.admin_url ? (
-            <TextLink href={app.admin_url} external>
-              {app.admin_url.replace(/^https?:\/\//, "")}
+          app.admin_url || app.website ? (
+            <TextLink href={(app.admin_url || app.website)!} external>
+              {(app.admin_url || app.website)!.replace(/^https?:\/\//, "")}
             </TextLink>
           ) : (
             app.slug

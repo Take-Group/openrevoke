@@ -69,10 +69,18 @@ const columns: DataColumn<AppListItem>[] = [
     header: ({ column }) => <SortHeader column={column} title="App" />,
     cell: ({ row: { original: app } }) => (
       <div className="flex items-center gap-2.5">
-        <AppAvatar name={app.name} slug={app.slug} connectorKey={app.connector_key} size="sm" />
+        <AppAvatar name={app.name} slug={app.slug} connectorKey={app.connector_key} logoUrl={app.logo_url} size="sm" />
         <span className="font-medium">{app.name}</span>
       </div>
     ),
+  },
+  {
+    id: "category",
+    accessorFn: (app) => app.category ?? "",
+    header: ({ column }) => <SortHeader column={column} title="Category" />,
+    cell: ({ row: { original: app } }) =>
+      app.category ? <span className="capitalize">{app.category}</span> : <span className="text-muted-foreground">—</span>,
+    meta: { className: "hidden min-[88rem]:table-cell w-36" },
   },
   {
     accessorKey: "integration",

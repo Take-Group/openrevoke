@@ -60,6 +60,7 @@ export function BatchBar({ actions }: { actions: ActionOut[] }) {
                     key={action.id}
                     name={action.app.name}
                     slug={action.app.slug}
+                    logoUrl={action.app.logo_url}
                     size="xs"
                     className="ring-2 ring-card"
                   />

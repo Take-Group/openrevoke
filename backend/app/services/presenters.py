@@ -26,7 +26,7 @@ def money_list(costs: Iterable[Cost]) -> list[MoneyAmount]:
 
 
 def app_ref(app: App) -> AppRef:
-    return AppRef(app_id=app.id, name=app.name, slug=app.slug)
+    return AppRef(app_id=app.id, name=app.name, slug=app.slug, logo_url=app_logo_url(app))
 
 
 def app_logo_url(app: App) -> str | None:

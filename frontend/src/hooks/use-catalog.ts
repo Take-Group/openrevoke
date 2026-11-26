@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { apiGet } from "@/lib/api/client";
-import type { CatalogAppList, CatalogAppOut } from "@/lib/api/catalog-types";
+import type { CatalogAppList, CatalogAppOut, CatalogSearchList } from "@/lib/api/catalog-types";
 import { normalizeName } from "@/lib/brand-icons";
 
 export type CatalogLookup = (...candidates: (string | null | undefined)[]) => CatalogAppOut | null;
@@ -36,4 +36,18 @@ export function useAppCatalog(): CatalogLookup {
       return null;
     };
   }, [data]);
+}
+
+/**
+ * Catalog search for "Add app" (admins). Without `q`: apps discovery found and nobody tracks, then
+ * popular ones. Keyed under "apps", so adding an app refreshes `already_added`.
+ */
+export function useCatalogSearch(q: string, limit = 20, enabled = true) {
+  return useQuery({
+    queryKey: ["apps", "catalog-search", q, limit],
+    queryFn: () => apiGet<CatalogSearchList>("/api/catalog/search", { q: q || undefined, limit }),
+    placeholderData: keepPreviousData,
+    staleTime: 30_000,
+    enabled,
+  });
 }

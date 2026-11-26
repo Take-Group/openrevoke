@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 from app.models.enums import AccountKind, AccountStatus, MatchMethod
 from app.schemas.common import ApiModel, MoneyAmount, PersonRef
+from app.schemas.people_import import FieldChange, ImportRowAction
 
 
 class AccountOut(ApiModel):
@@ -61,3 +62,43 @@ class AccountUpdate(BaseModel):
     role: str | None = Field(default=None, max_length=100)
     status: AccountStatus | None = None
     display_name: str | None = Field(default=None, max_length=320)
+
+
+class AccountImportRow(BaseModel):
+    """What one CSV row (or one pasted e-mail) does."""
+
+    line: int = Field(description="Line in the file (the header is line 1), or the position of a pasted e-mail")
+    app: str = Field(description="The app as written in the file")
+    app_id: uuid.UUID | None = Field(description="Null for an app the import creates (until it is saved) or an error")
+    email: str | None
+    username: str | None
+    display_name: str | None
+    action: ImportRowAction
+    account_id: uuid.UUID | None = Field(description="Existing account (update, unchanged) or the created one")
+    person: PersonRef | None = Field(description="Owner: matched by e-mail for new accounts")
+    changes: list[FieldChange]
+    errors: list[str]
+
+
+class AccountImportNewApp(BaseModel):
+    name: str
+    catalog_key: str | None
+    app_id: uuid.UUID | None = Field(description="Set once saved; null with dry_run")
+
+
+class AccountImportResult(BaseModel):
+    """With ``dry_run`` nothing is saved and the counts say what would happen."""
+
+    dry_run: bool
+    created: int
+    updated: int
+    unchanged: int
+    failed: int
+    rows: list[AccountImportRow]
+    new_apps: list[AccountImportNewApp] = Field(description="Apps the import creates (create_apps=true)")
+
+
+class AccountsPaste(BaseModel):
+    """E-mails separated by new lines, commas or semicolons; ``Name <e-mail>`` works too."""
+
+    emails: str = Field(min_length=1, max_length=500_000)

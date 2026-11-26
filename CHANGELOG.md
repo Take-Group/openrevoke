@@ -28,6 +28,12 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
   (`Authorization: Bearer`).
 - Anonymous telemetry: one event (`setup_completed` and the version) when the first admin
   finishes the setup; `TELEMETRY.md` says what is sent, `OPEN_REVOKE_TELEMETRY=false` turns it off.
+- Fast inventory: "Add app" starts with a search of the app catalog (name, website, logo and
+  the matching connector), "Add several apps" adds many catalog apps in one save, and an app
+  can have its own website, category and uploaded logo (PNG, JPEG, WebP or a checked SVG).
+- Accounts in bulk: a CSV import for many manual apps at once (with a preview and "Create missing
+  apps"), pasted e-mails on a manual app, and "Track" in discovery can add accounts for the
+  people who signed in.
 
 ### Changed
 

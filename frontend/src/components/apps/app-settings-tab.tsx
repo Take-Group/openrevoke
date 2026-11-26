@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2Icon } from "lucide-react";
+import { toast } from "sonner";
 
+import { LogoPicker, WebsiteCategoryFields, logoProblem } from "@/components/apps/app-identity-fields";
 import { BillingNotice } from "@/components/apps/billing-notice";
 import { IntegrationPicker } from "@/components/apps/integration-picker";
 import { PriceFields, priceFormFrom, priceFromForm, type PriceForm } from "@/components/apps/price-fields";
@@ -15,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { OptionSelect } from "@/components/common/option-select";
 import { Textarea } from "@/components/ui/textarea";
-import { useDeleteApp, useUpdateApp } from "@/hooks/use-apps";
+import { useAppLogo, useDeleteApp, useUpdateApp } from "@/hooks/use-apps";
 import { emptyToNull } from "@/lib/format";
 import type { AppDetail, Integration, RequestPolicy } from "@/lib/api/types";
 
@@ -64,12 +66,37 @@ function DeleteApp({ app }: { app: AppDetail }) {
   );
 }
 
+/** Saved at once on pick, outside the form's "Save changes": a file is not part of the PATCH. */
+function AppLogoSection({ app }: { app: AppDetail }) {
+  const logo = useAppLogo();
+  const upload = (file: File | null) => {
+    if (!file) return;
+    const problem = logoProblem(file);
+    if (problem) toast.error(problem);
+    else logo.mutate({ id: app.id, file });
+  };
+  return (
+    <SettingsSection title="Logo" description="Shown wherever the app appears; your own logo wins over the catalog's.">
+      <LogoPicker
+        name={app.name}
+        current={app.logo_url}
+        file={null}
+        onFile={upload}
+        onRemove={() => logo.mutate({ id: app.id, file: null })}
+        pending={logo.isPending}
+      />
+    </SettingsSection>
+  );
+}
+
 export function AppSettingsTab({ app }: { app: AppDetail }) {
   const [name, setName] = useState(app.name);
   const [slug, setSlug] = useState(app.slug);
   const [adminUrl, setAdminUrl] = useState(app.admin_url ?? "");
   const [integration, setIntegration] = useState<Integration>(app.integration);
   const [notes, setNotes] = useState(app.notes ?? "");
+  const [website, setWebsite] = useState(app.website ?? "");
+  const [category, setCategory] = useState(app.category ?? "");
   const [requestPolicy, setRequestPolicy] = useState<RequestPolicy>(app.request_policy);
   const [price, setPrice] = useState<PriceForm>(() => priceFormFrom(app.pricing_model, app.price));
   const update = useUpdateApp(app.id);
@@ -82,6 +109,8 @@ export function AppSettingsTab({ app }: { app: AppDetail }) {
       admin_url: emptyToNull(adminUrl),
       integration,
       notes: emptyToNull(notes),
+      website: emptyToNull(website),
+      category: emptyToNull(category),
       request_policy: requestPolicy,
       pricing_model: price.pricing_model,
       price: priceFromForm(price),
@@ -91,7 +120,8 @@ export function AppSettingsTab({ app }: { app: AppDetail }) {
   return (
     <div className="max-w-4xl pt-4">
       <form onSubmit={submit}>
-        <SettingsSection title="General" description="Name, slug and where its admin panel lives.">
+        <AppLogoSection app={app} />
+        <SettingsSection title="General" description="Name, slug, website, category and where its admin panel lives.">
           <div className="flex max-w-lg flex-col gap-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <FormField label="Name" htmlFor="set-name" required>
@@ -116,6 +146,13 @@ export function AppSettingsTab({ app }: { app: AppDetail }) {
                 onChange={(event) => setAdminUrl(event.target.value)}
               />
             </FormField>
+            <WebsiteCategoryFields
+              idPrefix="set"
+              website={website}
+              category={category}
+              onWebsite={setWebsite}
+              onCategory={setCategory}
+            />
             <FormField label="Integration">
               <IntegrationPicker value={integration} onChange={setIntegration} />
             </FormField>

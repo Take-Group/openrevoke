@@ -48,6 +48,9 @@ class AppRef(ApiModel):
     app_id: uuid.UUID
     name: str
     slug: str
+    logo_url: str | None = Field(
+        default=None, description="Uploaded logo, else the catalog's; null without one (show initials)"
+    )
 
 
 class PersonRef(ApiModel):

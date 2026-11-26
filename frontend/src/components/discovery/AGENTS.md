@@ -11,4 +11,4 @@ Google Workspace discovery: connect Google (three ways), scan, review the SaaS a
 - `discovered-apps-table.tsx`: `DiscoveredAppsTable`: found apps with review actions.
 - `discovered-app-view.tsx`: `DiscoveredAppView`: one found app and its grants. Hook `useDiscoveredApp`.
 - `grants-table.tsx`: `GrantsTable`: who granted the app access, links to `/people/[id]`.
-- `review-actions.tsx`: `ReviewActions`: track as app, ignore, undo. Hooks `useTrackDiscoveredApp`, `useUpdateDiscoveredApp`.
+- `review-actions.tsx`: `ReviewActions`: track as app (with `activeSignIns`, on the detail page, a switch also adds accounts for those people), ignore, undo. Hooks `useTrackDiscoveredApp`, `useUpdateDiscoveredApp`.

@@ -7,7 +7,9 @@ from its OAuth consent screen ("fathom.video") and its OAuth client id. Google
 gives no logo and no website. The catalog adds them for known apps: full name
 ("Fathom"), website and a bundled logo. The panel shows them in discovery
 (list, detail, a person's apps) and, by name, in every `AppAvatar`. "Track"
-names the new app with the catalog name.
+names the new app with the catalog name and stores the slug in `app.catalog_key`.
+"Add app" and "Add several apps" search the catalog (`GET /api/catalog/search`),
+and an admin may upload an app's own logo, which wins over the catalog's.
 
 The app's vendor sets the consent-screen name and the client id, so both are
 the same in every Google Workspace: one list in the repo works for every
@@ -20,15 +22,18 @@ internal OAuth apps.
 |---|---|
 | `backend/app/catalog/apps.json` | the list: `slug`, `name`, `website`, optional `aliases`, `match_name`, `logo`, `fetch_logo`, `login_url`, `google_client_ids` |
 | `backend/app/catalog/logos/<slug>.png` | 128x128 PNG logos, committed; made by the script below |
-| `backend/app/catalog/lookup.py` | `app_catalog()` (loaded once per process), `AppCatalog.match(name, client_ids)`, `by_name`, `logo_path`, `normalize` |
+| `backend/app/catalog/lookup.py` | `app_catalog()` (loaded once per process), `AppCatalog.match(name, client_ids)`, `by_name`, `resolve` (slug or name), `search(q, limit)`, `popular()`, `logo_path`, `normalize`; `CONNECTOR_BY_SLUG` (catalog app to the connector that reads it), `POPULAR` (grid order before a search) |
+| `backend/app/services/catalog_search.py` | admin search with `connector_key`, `already_added` (app with this `catalog_key` or name) and `discovered_users` (untracked discovered apps the catalog knows, first in the grid without `q`) |
+| `backend/app/services/app_logos.py`, `api/apps.py` | uploaded logos: PUT/DELETE `/api/apps/{id}/logo` (admin), GET for any signed-in user |
 | `backend/app/schemas/catalog.py` | `CatalogAppOut`, `CatalogAppList`, `CatalogMatchOut` (with `matched_by`) |
-| `backend/app/api/catalog.py` | public GET `/api/catalog/apps`, GET `/api/catalog/logos/{slug}.png` |
+| `backend/app/api/catalog.py` | public GET `/api/catalog/apps`, GET `/api/catalog/logos/{slug}.png`; admin GET `/api/catalog/search?q=&limit=` (not public: it says which apps the instance has) |
 | `backend/app/services/discovery.py` | `catalog_match` fills `catalog` of `DiscoveredAppOut` and `PersonDiscoveredApp` |
 | `backend/app/services/discovery_review.py` | Track uses the catalog name |
 | `backend/scripts/fetch_catalog_logos.py` | downloads logos from the apps' websites (run by hand) |
 | `backend/scripts/probe_google_sign_in.py` | reads client ids from the apps' public sign-in pages (run by hand) |
-| `frontend/src/hooks/use-catalog.ts` | `useAppCatalog()`: lookup by catalog slug or app name |
-| `frontend/src/components/common/avatars.tsx` | `AppAvatar`: simple-icons mark, then catalog logo, then initials |
+| `frontend/src/hooks/use-catalog.ts` | `useAppCatalog()`: lookup by catalog slug or app name; `useCatalogSearch(q)` |
+| `frontend/src/components/common/catalog-app-picker.tsx` | `CatalogAppPicker` in `/apps/new`, `CatalogItemLabel` in `/apps/new/bulk` |
+| `frontend/src/components/common/avatars.tsx` | `AppAvatar`: uploaded logo, simple-icons mark, `logoUrl` from the API (or catalog lookup by name when not given), initials |
 
 ## Matching
 
@@ -46,6 +51,27 @@ then only client ids and `aliases` match.
 The panel looks up apps by name too (`keys` from `/api/catalog/apps`,
 normalized like `brand-icons.ts` `normalizeName`), so tracked apps and
 people's accounts get the logo without a change in their API schemas.
+
+## Uploaded logos
+
+`PUT /api/apps/{id}/logo` (multipart `file`, at most 256 KB). The type comes
+from the first bytes (PNG, JPEG, WebP), never from the file name; anything
+else that does not start like XML or `<svg` is refused. An SVG is stored as
+uploaded or refused with 400: no DOCTYPE or entities, root `svg`, no
+`script` or `foreignObject`, no `on*` attribute, no `href` that is not a
+`#fragment`, no `javascript:` value. `GET /api/apps/{id}/logo` answers with the
+stored type, `X-Content-Type-Options: nosniff`,
+`Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; sandbox`,
+`Cache-Control: private, no-cache` and an `ETag` (304 on `If-None-Match`). It
+sits in `self_router`, so a member's "My access" shows logos too; the panel's
+`<img>` sends the session cookie (same origin).
+
+## Search and connectors
+
+`AppCatalog.search` ranks a whole-name or slug match, then a name prefix, then
+an alias or website prefix, then a substring. Add a slug to
+`CONNECTOR_BY_SLUG` when a connector reads that app: "Add app" then
+preselects the connector and continues to the connection form.
 
 ## Add or fix an app
 

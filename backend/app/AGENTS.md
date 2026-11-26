@@ -20,7 +20,7 @@ The FastAPI app and the Temporal worker. Layers: `api/` (endpoints) calls `servi
 - `mcp/`: own AGENTS.md. MCP server for AI assistants at `/api/mcp`, tools built from the API routes.
 - `ai/`: own AGENTS.md. Language model providers.
 - `browser/`: own AGENTS.md. Shared Chromium over CDP.
-- `catalog/`, no map: `apps.json` (known SaaS apps: name, website, aliases, Google OAuth client ids, optional `login_url`), `logos/` (own AGENTS.md: `<slug>.png`, 128 px), `lookup.py` (`app_catalog()`, `AppCatalog.match`, `by_name`, `logo_path`, `normalize`, `MatchedBy`). Skill `skills/backend/app-catalog.md`.
+- `catalog/`, no map: `apps.json` (known SaaS apps: name, website, aliases, Google OAuth client ids, optional `login_url`), `logos/` (own AGENTS.md: `<slug>.png`, 128 px), `lookup.py` (`app_catalog()`, `AppCatalog.match`, `by_name`, `resolve`, `search`, `popular`, `logo_path`, `normalize`, `MatchedBy`, `CONNECTOR_BY_SLUG`, `POPULAR`). Skill `skills/backend/app-catalog.md`.
 - `recipes/`, no map: `model.py` (click recipe format: `Recipe`, `Step`, `Locator`, `load_recipe`, `render_steps`, `render_value`, `unrender_value`, `config_params`, `RecipeError`, `RecipeStepError` with screenshot; an irreversible click needs an earlier `expect` naming the person), `repair.py` (`RecipeSupport` protocol for local fixes and AI repair, `Alternative`, `Probe`, `ProbeResult`, `RepairRequest`, `Repair`). Run by `browser/recipe_runner.py`. Skill `skills/backend/click-recipes.md`.
 - `db/`: own AGENTS.md. Schema create, reset, seed.
 - `devtools/`, no map: `capture.py` (`python -m app.devtools.capture --host ... --out file.jsonl`: records an admin panel's fetch/XHR traffic to write a connector), `masking.py` (`mask_headers`, `mask_body`, `truncate`).
