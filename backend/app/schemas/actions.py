@@ -59,6 +59,10 @@ class ActionOut(ApiModel):
     account: AccountRef | None
     payload: ActionPayload
     approved_at: datetime | None
+    approved_by: str | None = Field(
+        default=None, description="Who approved: panel user e-mail, 'e-mail (Slack)', a token, or 'Automatic (...)'"
+    )
+    created_by: str | None = Field(default=None, description="Who asked for it; null for workflows and old actions")
     started_at: datetime | None
     finished_at: datetime | None
     result: dict[str, Any] | None = Field(

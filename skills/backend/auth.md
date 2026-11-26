@@ -61,9 +61,13 @@ Authenticator and any other TOTP app).
   sign-in is in Settings.
 - Roles: `admin` (the whole panel: invites, approval, roles, 2FA reset,
   deletion, organization) and `user` (only `/api/me`: their own accounts and access
-  requests, `services/my_access.py`). `domain_router` in `api/router.py`
+  requests, `services/access/my_access.py`). `domain_router` in `api/router.py`
   requires `require_admin`; for `self_router` (`/api/me`) a session is enough.
-  A user is linked to a `Person` by e-mail (primary or alias).
+  A user is linked to a `Person` by e-mail (primary or alias). A `user` who is
+  someone's manager (`person.manager_id`) also sees, under `/api/me/team` and
+  `/api/me/approvals`, their reports and the requests waiting for them, and
+  decides the manager step; any other request is 403, their own request too
+  (`skills/backend/access-requests.md`). No new role: managers are plain users.
 
 ## Files
 
@@ -80,10 +84,10 @@ Authenticator and any other TOTP app).
 | `backend/app/services/auth/two_factor.py` | 2FA in settings: `start`, `enable`, `disable` |
 | `backend/app/services/auth/signup.py` | self sign-up, confirmation link, auto-approve by domain, `sign_in_blocker` |
 | `backend/app/services/organization.py` | reading and changing the organization with sign-up rules |
-| `backend/app/services/my_access.py`, `backend/app/api/me.py` | `/api/me/access`, `/api/me/access-requests`: accounts and requests of the signed-in user |
+| `backend/app/services/access/my_access.py`, `my_approvals.py`, `backend/app/api/me.py` | `/api/me/access`, `/api/me/access-requests`, `/api/me/team`, `/api/me/approvals`: own accounts and requests, reports, manager decisions |
 | `backend/app/services/auth/passwords_flow.py` | forgotten password, reset, change |
 | `backend/app/services/auth/invites.py`, `users.py` | invites, account approval, roles, 2FA reset, deletion |
-| `backend/app/services/auth/actor.py` | `current_actor` (ContextVar): the signed-in user's e-mail goes to `audit_event.actor` |
+| `backend/app/services/auth/actor.py` | `current_actor`, `current_user_id`, `current_via` (ContextVars, `set_actor`, `actor_ref`): the signed-in user's e-mail goes to `audit_event.actor`; user and channel go to request decisions and `action.approved_by` |
 | `backend/app/api/auth_deps.py` | `get_current_session` (cookie only), `get_current_user` (API token or cookie), `require_admin`, header `X-Open-Revoke-Client` (cookie requests) |
 | `backend/app/services/auth/api_tokens.py` | personal API tokens (Bearer) for the REST API and MCP: skill `mcp.md` |
 | `backend/app/api/auth.py` | `/api/auth/*`, public |

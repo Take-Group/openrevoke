@@ -1,4 +1,4 @@
-"""Who is writing: a Slack user as a person in Open Revoke, or as a panel admin.
+"""Who is writing: a Slack user as a person in Open Revoke, and Slack user ids of e-mails.
 
 A person is found by their Slack account (synced by the Slack connector, the
 external id is the Slack user id), then by the e-mail of their Slack profile
@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import select
 
-from app.models import Account, Connection, Person, User
-from app.models.enums import AccountStatus, UserRole
+from app.models import Account, Connection, Person
+from app.models.enums import AccountStatus
 from app.redis import redis_client
 from app.services.matching import match_email, normalize_email
 from app.slack_agent import web_api
@@ -47,13 +47,6 @@ async def find_person(session: AsyncSession, rt: SlackRuntime, user_id: str) -> 
     return person, email
 
 
-async def find_admin(session: AsyncSession, rt: SlackRuntime, user_id: str) -> User | None:
-    email = await slack_email(rt, user_id)
-    if email is None:
-        return None
-    return await session.scalar(select(User).where(User.email == email, User.role == UserRole.ADMIN))
-
-
 async def slack_email(rt: SlackRuntime, user_id: str) -> str | None:
     key = EMAIL_KEY.format(user_id=user_id)
     cached = await redis_client.get(key)
@@ -66,13 +59,14 @@ async def slack_email(rt: SlackRuntime, user_id: str) -> str | None:
     return email or None
 
 
-async def slack_user_for_email(rt: SlackRuntime, email: str) -> str | None:
+async def slack_user_for_email(bot_token: str, email: str) -> str | None:
+    """The Slack user id with this e-mail (``users.lookupByEmail``, cached); None when Slack has none."""
     key = USER_ID_KEY.format(email=email)
     cached = await redis_client.get(key)
     if cached is not None:
         return cached or None
     try:
-        body = await web_api.call("users.lookupByEmail", rt.bot_token, data={"email": email})
+        body = await web_api.call("users.lookupByEmail", bot_token, data={"email": email})
         user_id = str((body.get("user") or {}).get("id") or "")
     except SlackApiError as exc:
         if exc.error != "users_not_found":

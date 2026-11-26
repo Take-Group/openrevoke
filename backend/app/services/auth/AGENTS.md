@@ -3,7 +3,7 @@
 Panel sign-in. Flow: `sign_in.login` checks the password and opens a session (`sessions`), or, with 2FA on, returns a ticket (`tickets`) that a TOTP code (`totp`) in `sign_in.complete` turns into a session. Called by `app/api/` auth endpoints.
 
 - `__init__.py`: docstring only.
-- `actor.py`: context var with the current user for the audit log; the API sets it, workflows and CLI keep the default.
+- `actor.py`: context vars with the current actor (label, panel user, channel: `set_actor`, `actor_ref`, `ActorRef`, `created_by_label`) for the audit log, request decisions and `action.approved_by`; the API and Slack clicks set them, workflows and CLI keep the default.
 - `sign_in.py`: `setup_required`, `setup` (first-run admin and organization with the setup token, the only 2FA offer), `login` and `register` (`SignInResult`: a session at once without 2FA, a ticket with it), `complete`, `skip_enrollment`, `invite_info`, `logout`.
 - `two_factor.py`: Settings 2FA `start`, `enable` (first code), `disable` (current code, rate-limited).
 - `tickets.py`: `issue`, `load`, `discard`; short-lived second-step ticket in Redis, can carry an encrypted new TOTP secret.

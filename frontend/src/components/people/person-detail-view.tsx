@@ -22,6 +22,7 @@ import { ConvertedTotal } from "@/components/common/converted-money";
 import { DetailPageSkeleton } from "@/components/common/page-skeletons";
 import { formatWhen, fullName } from "@/lib/format";
 import type { PersonDetail } from "@/lib/api/types";
+import { PersonRequestsSection } from "@/components/people/person-requests-section";
 
 export type PersonTab = "accounts" | "sign-ins" | "activity" | "sources" | "details";
 
@@ -117,6 +118,7 @@ function PersonPage({ person, initialTab }: { person: PersonDetail; initialTab?:
           <Details person={person} />
         </TabsContent>
       </Tabs>
+      <PersonRequestsSection personId={person.id} />
     </>
   );
 }

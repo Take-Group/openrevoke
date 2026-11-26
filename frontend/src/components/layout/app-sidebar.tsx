@@ -6,7 +6,7 @@ import { SearchIcon } from "lucide-react";
 
 import { BrandMark, BrandName } from "@/components/layout/brand-mark";
 
-import { isItemActive, NAV_MAIN, NAV_SETTINGS, NAV_TOOLS, NAV_USER, type NavItem } from "@/components/layout/nav-items";
+import { isItemActive, NAV_APPROVALS, NAV_MAIN, NAV_SETTINGS, NAV_TOOLS, NAV_USER, type NavItem } from "@/components/layout/nav-items";
 import { NavUser } from "@/components/layout/nav-user";
 import { Kbd } from "@/components/ui/kbd";
 import {
@@ -31,8 +31,10 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuthState } from "@/hooks/use-auth";
 import { useDashboard } from "@/hooks/use-dashboard";
+import { useMyApprovals } from "@/hooks/use-me";
 
-function NavGroup({ label, items, pending }: { label?: string; items: NavItem[]; pending: number }) {
+/** `badges`: count per item href (pending actions, approvals waiting for the user). */
+function NavGroup({ label, items, badges = {} }: { label?: string; items: NavItem[]; badges?: Record<string, number> }) {
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
   return (
@@ -41,7 +43,10 @@ function NavGroup({ label, items, pending }: { label?: string; items: NavItem[];
       <SidebarGroupContent>
         <SidebarMenu>
           {items.map((item) => {
-            const active = isItemActive(pathname, item);
+            // /me/approvals is not also "My access" (/me): the longer matching item wins.
+            const active =
+              isItemActive(pathname, item) &&
+              !items.some((other) => other.href.length > item.href.length && other.href.startsWith(item.href) && isItemActive(pathname, other));
             return (
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton
@@ -67,12 +72,12 @@ function NavGroup({ label, items, pending }: { label?: string; items: NavItem[];
                     ))}
                   </SidebarMenuSub>
                 )}
-                {item.href === "/actions" && pending > 0 && (
+                {(badges[item.href] ?? 0) > 0 && (
                   <SidebarMenuBadge
-                    aria-label={`${pending} waiting for approval`}
+                    aria-label={`${badges[item.href]} waiting for approval`}
                     className="top-2! h-4 min-w-4 rounded-full bg-foreground px-1.5 text-[0.6875rem] leading-none text-background peer-hover/menu-button:text-background peer-data-active/menu-button:text-background"
                   >
-                    {pending}
+                    {badges[item.href]}
                   </SidebarMenuBadge>
                 )}
               </SidebarMenuItem>
@@ -124,17 +129,32 @@ function SearchButton({ onSearch }: { onSearch: () => void }) {
   );
 }
 
+/** The Approvals item with its count, for anyone who manages people or has a request waiting for them. */
+function useApprovalsItem(): { items: NavItem[]; badges: Record<string, number> } {
+  const approvals = useMyApprovals({ status: ["pending_manager"], limit: 1, offset: 0 });
+  const pending = approvals.data?.pending ?? 0;
+  const show = Boolean(approvals.data?.has_reports) || pending > 0;
+  return { items: show ? [NAV_APPROVALS] : [], badges: { [NAV_APPROVALS.href]: pending } };
+}
+
 function AdminNav() {
   const dashboard = useDashboard();
-  const pending = dashboard.data?.counts.actions_pending_approval ?? 0;
+  const approvals = useApprovalsItem();
+  const badges = { "/actions": dashboard.data?.counts.actions_pending_approval ?? 0, ...approvals.badges };
   return (
     <>
-      <NavGroup items={NAV_MAIN} pending={pending} />
-      <NavGroup label="Tools" items={NAV_TOOLS} pending={pending} />
+      <NavGroup items={[...NAV_MAIN, ...approvals.items]} badges={badges} />
+      <NavGroup label="Tools" items={NAV_TOOLS} />
       <SidebarSeparator className="mx-2" />
-      <NavGroup items={NAV_SETTINGS} pending={pending} />
+      <NavGroup items={NAV_SETTINGS} />
     </>
   );
+}
+
+function UserNav() {
+  const approvals = useApprovalsItem();
+  const [first, ...rest] = NAV_USER;
+  return <NavGroup items={[first, ...approvals.items, ...rest]} badges={approvals.badges} />;
 }
 
 /**
@@ -150,7 +170,7 @@ export function AppSidebar({ onSearch }: { onSearch: () => void }) {
         <Brand home={admin ? "/" : "/me"} />
         {admin && <SearchButton onSearch={onSearch} />}
       </SidebarHeader>
-      <SidebarContent>{admin ? <AdminNav /> : <NavGroup items={NAV_USER} pending={0} />}</SidebarContent>
+      <SidebarContent>{admin ? <AdminNav /> : <UserNav />}</SidebarContent>
       <SidebarFooter className="p-2">
         <NavUser />
       </SidebarFooter>

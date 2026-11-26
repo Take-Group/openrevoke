@@ -6,8 +6,9 @@ A Slack bot that takes access requests in direct messages. A person writes
 "I need Notion"; the language model finds the app, creates a
 `create_account` action (or a manual task) for that person and says what
 happens next. When the action ends, the bot tells the person on Slack.
-Admins on Slack get requests that wait for approval with Approve and Reject
-buttons. Setup is on the panel page `/settings/slack`; the requests (from Slack and
+The person's manager (or, in the admin step, the admins) get requests that
+wait for them with Approve and Reject buttons, whatever channel the request
+came from (flow: `skills/backend/access-requests.md`). Setup is on the panel page `/settings/slack`; the requests (from Slack and
 from My access) are on `/requests`.
 
 The model is chosen on `/settings/ai`, shared by every AI feature of the panel:
@@ -41,9 +42,9 @@ default" sends no effort. Anthropic gets `output_config.effort`, OpenRouter
 | `backend/app/slack_agent/conversation.py` | person lookup, placeholder message, model call, history in Redis (20 turns, 24 h) |
 | `backend/app/slack_agent/tools.py` | `list_apps`, `my_access`, `request_access`; the requester comes from Slack, never from the model |
 | `backend/app/slack_agent/prompt.py`, `texts.py` | system prompt; fixed messages (unknown person, results) |
-| `backend/app/slack_agent/identity.py` | Slack user to person (Slack connector account, then profile e-mail) and to panel admin |
-| `backend/app/slack_agent/approvals.py`, `notifier.py` | Approve / Reject messages to admins; result messages to people |
-| `backend/app/services/access_requests.py` | the request: policy, duplicate checks, action, auto-approval |
+| `backend/app/slack_agent/identity.py` | Slack user to person (Slack connector account, then profile e-mail); `slack_user_for_email(bot_token, email)` (cached) |
+| `backend/app/slack_agent/approvals.py`, `notifier.py` | Approve / Reject messages by step (manager, then admins); result messages to people for every channel |
+| `backend/app/services/access/requests.py`, `flow.py` | the request: checks, policy, manager step, decisions (`skills/backend/access-requests.md`) |
 | `backend/app/models/access_request.py` | request row: person, app, action, Slack channel, notified times |
 | `frontend/src/components/ai/*`, `hooks/use-ai-settings.ts`, `lib/api/ai-types.ts` | `/settings/ai` |
 | `frontend/src/components/slack/*`, `hooks/use-slack-agent.ts`, `lib/api/slack-types.ts` | `/settings/slack` |
@@ -57,21 +58,25 @@ default" sends no effort. Anthropic gets `output_config.effort`, OpenRouter
    `external_id` = Slack user id, else the Slack profile e-mail matched to a
    primary e-mail or alias. Unknown or `left` people get a fixed answer and
    no model call.
-3. The model answers with the tools. `request_access` calls
-   `services.access_requests.request_access`:
-   - `app.self_service = off`: refused,
-   - account or open creation exists: nothing new,
-   - else `create_action(reason=self_service)` and an `access_request` row,
-   - `automatic`: `action_approval.approve` at once. A connector write
-     starts `ExecuteActionWorkflow`; without "Allow writes" the action stays
-     pending; a manual task waits for an admin.
-4. The runner's poll (`approvals.notify_pending`) sends pending requests to
-   every panel admin whose e-mail has a Slack account. A click is checked
-   against the panel admin list and approves or cancels the action; the audit
-   actor is `<admin e-mail> (Slack)`.
-5. `notifier.notify_finished` closes requests whose action is `done`,
-   `failed` or `cancelled` and messages the person. A failed post keeps the
-   request open for the next poll, except for unreachable channels.
+3. The model answers with the tools. `request_access` needs a
+   `justification` (the prompt in `prompt.py` and the tool description make
+   the model ask "Why do you need it?" first) and calls
+   `services.access.requests.request_access` with `requested_by` =
+   "<e-mail> (Slack)"; `flow.route` picks the first step by the app's
+   `request_policy` (`waiting_for_manager` names the manager in `note`).
+4. The runner's poll (`approvals.notify_pending`) sends requests by step:
+   `pending_manager` to the manager's Slack (`identity.slack_user_for_email`
+   on their e-mails), `pending_admin` to every active admin on Slack except
+   the requester. Button value = request id. A click becomes
+   `flow.decide` with a `Decider` from the Slack profile e-mail (panel user,
+   person, admin role); the decision is `via=slack` by "<e-mail> (Slack)",
+   a Slack rejection has the comment "Rejected in Slack.".
+5. `notifier.notify_finished` messages the person when a request closed in
+   the last day (done, failed, rejected with the comment, cancelled): a Slack
+   request in its chat, a panel or API request in a DM when Slack knows one
+   of the person's e-mails. Closing itself happens in
+   `services/access/request_sync.py`, without Slack. A failed post retries on
+   the next poll, except for unreachable channels.
 
 ## Setup limits (Slack, checked 23.11.2026)
 
@@ -94,7 +99,7 @@ script in the `api` container that replaces `app.slack_agent.web_api.call`
 and `conversation.load_model` with fakes and feeds envelopes to
 `events.handle_envelope` (DM, then a `block_actions` click), then calls
 `approvals.notify_pending` and `notifier.notify_finished`. With the `fake`
-connector, "Allow writes" and `self_service = automatic`, a request runs the
+connector, "Allow writes" and `request_policy = automatic`, a request runs the
 real workflow to `done`. Bad tokens show in the panel as status `error`
 within 10 s (`dc logs --tail 50 worker`).
 

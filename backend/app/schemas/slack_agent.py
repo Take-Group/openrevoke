@@ -1,10 +1,8 @@
-import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, Field, SecretStr
 
-from app.models.enums import AccessRequestChannel, AccessRequestStatus, ActionStatus, SlackAgentStatus
-from app.schemas.common import AppRef, PersonRef
+from app.models.enums import SlackAgentStatus
 
 BOT_NAME_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9 ._-]*$"
 
@@ -52,22 +50,3 @@ class SlackAgentUpdate(BaseModel):
 
 class SlackOAuthStart(BaseModel):
     url: str
-
-
-class AccessRequestOut(BaseModel):
-    id: uuid.UUID
-    person: PersonRef
-    app: AppRef
-    action_id: uuid.UUID | None
-    action_status: ActionStatus | None
-    channel: AccessRequestChannel = Field(description="slack: asked the Slack agent; panel: asked on My access")
-    status: AccessRequestStatus
-    message: str | None
-    created_at: datetime
-    closed_at: datetime | None
-    notified_at: datetime | None
-
-
-class AccessRequestPage(BaseModel):
-    items: list[AccessRequestOut]
-    total: int

@@ -436,6 +436,10 @@ export interface ActionOut {
   account: AccountRef | null;
   payload: ActionPayload;
   approved_at: DateTimeString | null;
+  /** Who approved: panel user e-mail, "e-mail (Slack)", a token, or "Automatic (...)". */
+  approved_by: string | null;
+  /** Who asked for it; null for workflows and old actions. */
+  created_by: string | null;
   started_at: DateTimeString | null;
   finished_at: DateTimeString | null;
   result: Record<string, unknown> | null;

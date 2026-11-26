@@ -99,7 +99,13 @@ and reads it again; `approve`, `approve_batch` and the `start` step lock the row
 from the first read. Two concurrent approvals give one 200 and one
 409, and a cancel at the moment of the start either wins (no write) or gets 409.
 
-Audit: `action.created`, `action.approved` (on a retry with `retry` and `previous_error`, on a change with `manual`), `action.running`,
+Who: `create_action` stamps `created_by` (the current actor, or the requester for an access
+request); the first approval stamps `approved_by` and `approved_by_user_id` (`approve(...,
+approved_by=ActorRef)`, else the current actor); a retry keeps them. `ActionOut` returns both
+(`/actions` column "Approved by"). Every `advance` calls `access.request_sync.on_action_changed`:
+an access request follows its action (`skills/backend/access-requests.md`).
+
+Audit: `action.created`, `action.approved` (with `approved_by`; on a retry with `retry` and `previous_error`, on a change with `manual`), `action.running`,
 `action.verifying`, `action.verify_attempt`, `action.done`, `action.failed`,
 `action.cancelled`, `action.secret_revealed`, `account.created`,
 `account.removed`, `account.suspended`. Each event has `app_id`

@@ -15,7 +15,9 @@ from app.models import Account, Action, App, Connection, Person
 from app.models.enums import AccountStatus, ActionKind, ActionReason, ActionStatus
 from app.schemas.actions import ActionCreate, WriteKind
 from app.services import audit
+from app.services.access import request_sync
 from app.services.action_accounts import add_manual_account
+from app.services.auth.actor import ActorRef, actor_ref, created_by_label
 from app.services.capabilities import connector_supports
 from app.services.errors import ConflictError, InvalidInputError, NotFoundError
 from app.services.matching import is_valid_email, normalize_email
@@ -68,7 +70,9 @@ async def create_action(
     *,
     reason: ActionReason = ActionReason.MANUAL,
     batch_id: uuid.UUID | None = None,
+    created_by: str | None = None,
 ) -> Action:
+    """A write waiting for approval. ``created_by`` defaults to the current actor (None in workflows)."""
     app = await session.get(App, data.app_id)
     if app is None:
         raise InvalidInputError("App not found")
@@ -109,6 +113,7 @@ async def create_action(
         status=S.PENDING_APPROVAL,
         reason=reason,
         batch_id=batch_id,
+        created_by=created_by or created_by_label(),
     )
     session.add(action)
     await session.flush()
@@ -130,23 +135,34 @@ async def advance(
     result: dict[str, Any] | None = None,
     error: str | None = None,
     data: dict[str, Any] | None = None,
+    approved_by: ActorRef | None = None,
 ) -> Action:
     """Transition with audit (``action.<target>``); ``data`` goes to the audit event.
 
     The row is locked (``SELECT ... FOR UPDATE``) and re-read, so two requests or a request and
     the workflow never move the same action from the same status twice (e.g. a double approval).
+    The first approval stamps ``approved_by`` (``approved_by``, else the current actor); a retry
+    keeps it. The access request of the action follows the new status (``request_sync``).
     """
     action = await get_action(session, action_id, lock=True)
+    previous = action.status
     apply_transition(action, target)
+    approver = None
+    if action.approved_by is None and target in {S.APPROVED, S.DONE} and previous == S.PENDING_APPROVAL:
+        approver = approved_by or actor_ref()
+        action.approved_by, action.approved_by_user_id = approver.label, approver.user_id
     if result is not None:
         action.result = result
     if error is not None:
         action.error = error
     await session.flush()
     event_data = {**(data or {}), **({"error": error} if error else {})}
+    if approver is not None:
+        event_data["approved_by"] = approver.label
     await audit.record(session, f"action.{target}", "action", action.id, event_data or None)
     if target == S.DONE:
         await _close_manual_task(session, action)
+    await request_sync.on_action_changed(session, action, previous, approver)
     return action
 
 
