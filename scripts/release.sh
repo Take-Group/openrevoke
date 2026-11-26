@@ -42,8 +42,16 @@ unreleased=$(awk '/^## \[Unreleased\]/ { on = 1; next } /^## \[/ { on = 0 } on &
 
 if [ "$SKIP_CHECKS" = 0 ]; then
     echo "==> Checks"
-    (cd backend && uvx ruff check . && uvx ruff format --check .)
-    (cd frontend && bun run lint && bun run typecheck)
+    # The dev stack keeps the panel's node_modules in a volume, so the host copy may be stale:
+    # run the checks in the stack's containers when it is up, else on the host after an install.
+    if docker compose -f compose.dev.yaml ps -q web 2> /dev/null | grep -q .; then
+        dc() { docker compose -f compose.dev.yaml exec -T "$@"; }
+        dc api ruff check . && dc api ruff format --check . && dc api python -m pytest -q -m "not integration"
+        dc web bun run lint && dc web bun run typecheck
+    else
+        (cd backend && uvx ruff check . && uvx ruff format --check . && uv run --frozen pytest -q -m "not integration")
+        (cd frontend && bun install --frozen-lockfile && bun run lint && bun run typecheck)
+    fi
 fi
 
 echo "==> CHANGELOG.md"

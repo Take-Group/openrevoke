@@ -13,7 +13,8 @@ update and Kubernetes tests) runs only on GitHub.
   `package.json` keep `0.1.0`: they are not published.
 - **CHANGELOG.md.** Every change people who run Open Revoke notice adds a line under
   `[Unreleased]`. `scripts/release.sh` turns the section into `## [X.Y.Z] - date`, commits
-  `Release X.Y.Z` and tags `vX.Y.Z` (no push).
+  `Release X.Y.Z` and tags `vX.Y.Z` (no push). Its checks run in the dev stack's containers when the
+  stack is up (the host `node_modules` may be stale), else on the host after `bun install`.
 - **Release bundle.** `scripts/build-release.sh X.Y.Z` builds `ghcr.io/take-group/open-revoke`
   and `open-revoke-browser` for this machine's platform and writes
   `dist/releases/download/vX.Y.Z/` (bundle tar.gz, `install.sh`, `SHA256SUMS`, `VERSION`) plus

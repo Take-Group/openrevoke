@@ -13,6 +13,13 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
 
 ## [Unreleased]
 
+### Security
+
+- E-mail validation no longer slows down on crafted input (found by CodeQL); app logos and the
+  browser live view serve only files from their own lists.
+- Dependabot waits 7 days after a dependency's release before proposing it (security updates do
+  not wait).
+
 ## [0.1.0-rc.2] - 2026-11-26
 
 ### Fixed

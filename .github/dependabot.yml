@@ -8,6 +8,10 @@ updates:
     directory: /backend
     schedule:
       interval: weekly
+    # Version updates wait 7 days after a release (a hijacked release is usually found by then);
+    # security updates do not wait.
+    cooldown:
+      default-days: 7
     groups:
       backend-minor-patch:
         update-types: [minor, patch]
@@ -16,6 +20,10 @@ updates:
     directory: /frontend
     schedule:
       interval: weekly
+    # Version updates wait 7 days after a release (a hijacked release is usually found by then);
+    # security updates do not wait.
+    cooldown:
+      default-days: 7
     ignore:
       # typescript-eslint supports TypeScript below 6.1 only (peer range checked 25.11.2026); a
       # TypeScript major breaks `bun run lint`. Remove this when typescript-eslint supports it.
@@ -30,6 +38,10 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # Version updates wait 7 days after a release (a hijacked release is usually found by then);
+    # security updates do not wait.
+    cooldown:
+      default-days: 7
     groups:
       dockerfile-minor-patch:
         update-types: [minor, patch]
@@ -41,6 +53,10 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # Version updates wait 7 days after a release (a hijacked release is usually found by then);
+    # security updates do not wait.
+    cooldown:
+      default-days: 7
     ignore:
       - dependency-name: postgres
         update-types: ["version-update:semver-major"]
@@ -52,6 +68,10 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # Version updates wait 7 days after a release (a hijacked release is usually found by then);
+    # security updates do not wait.
+    cooldown:
+      default-days: 7
     groups:
       actions-minor-patch:
         update-types: [minor, patch]
