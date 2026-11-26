@@ -145,3 +145,19 @@ affinity:
   {{- toYaml . | nindent 2 }}
 {{- end }}
 {{- end }}
+
+{{- /*
+Restricted container security context (Pod Security Standard "restricted"): no privilege
+escalation, no capabilities, the runtime's seccomp profile, and a fixed non-root user. Called with
+(dict "uid" 1000 "gid" 1000): the user the image itself runs as.
+*/ -}}
+{{- define "open-revoke.restrictedContainer" -}}
+allowPrivilegeEscalation: false
+capabilities:
+  drop: ["ALL"]
+seccompProfile:
+  type: RuntimeDefault
+runAsNonRoot: true
+runAsUser: {{ .uid }}
+runAsGroup: {{ .gid }}
+{{- end }}

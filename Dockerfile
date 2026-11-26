@@ -94,7 +94,8 @@ RUN apt-get update \
     && apt-get install --yes --no-install-recommends tzdata supervisor libatomic1 \
     && rm -rf /var/lib/apt/lists/*
 
-RUN groupadd --system app && useradd --system --gid app --home-dir /app app
+# Fixed ids: the Helm chart runs the container as this user (runAsNonRoot needs a numeric user).
+RUN groupadd --system --gid 10001 app && useradd --system --uid 10001 --gid app --home-dir /app app
 
 # pip is not used at runtime: uv installs the dependencies at build time and
 # the app starts from the ready venv (/app/backend/.venv). Removing pip removes

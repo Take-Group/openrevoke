@@ -4,6 +4,10 @@ Open Revoke holds the keys to a company's SaaS tools: API tokens, SCIM tokens, a
 account key and signed-in admin sessions in a shared browser. We treat security reports as the most
 important kind of report.
 
+How Open Revoke protects that data, and the risks it does not cover:
+[docs/security/overview.md](docs/security/overview.md) and
+[docs/security/threat-model.md](docs/security/threat-model.md).
+
 ## Supported versions
 
 Open Revoke is in beta. Only the latest MINOR release line (for example `0.4.x` when `0.4.2` is the

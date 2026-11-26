@@ -170,6 +170,9 @@ Details: [openrevoke.com/implementation](https://openrevoke.com/implementation).
   the browser. Anyone with this volume has those sessions: do not copy it.
 - Only the panel port is published (`127.0.0.1:18410` by default). The browser live view goes
   through the API, for signed-in admins only.
+- For your security review: [docs/security/overview.md](docs/security/overview.md) (data, access,
+  encryption, logging, release integrity) and the
+  [threat model](docs/security/threat-model.md).
 - Report vulnerabilities privately: [SECURITY.md](SECURITY.md). What telemetry sends and how to turn
   it off: [TELEMETRY.md](TELEMETRY.md).
 

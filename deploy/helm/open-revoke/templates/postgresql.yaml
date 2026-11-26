@@ -47,6 +47,12 @@ spec:
         - name: postgresql
           image: {{ include "open-revoke.image" (dict "root" . "image" .Values.postgresql.image) }}
           imagePullPolicy: {{ .Values.postgresql.image.pullPolicy }}
+          # The entrypoint starts as root to own the data directory and drops to postgres (gosu, no
+          # setuid binary): default capabilities stay, privilege escalation and syscalls do not.
+          securityContext:
+            allowPrivilegeEscalation: false
+            seccompProfile:
+              type: RuntimeDefault
           args: ["-c", "timezone={{ .Values.timezone }}", "-c", "log_timezone={{ .Values.timezone }}"]
           ports:
             - name: postgresql

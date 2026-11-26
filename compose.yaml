@@ -22,9 +22,20 @@ x-timezone: &timezone
   # Dates in the panel use the organization's zone.
   TZ: ${TZ:-UTC}
 
+# No container may gain privileges after it starts (setuid binaries, file capabilities).
+x-no-escalation: &no-escalation
+  security_opt: ["no-new-privileges:true"]
+
+# Images that run as their own non-root user need no Linux capabilities at all.
+x-unprivileged: &unprivileged
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+
 services:
   postgres:
     image: postgres:18.7
+    # Starts as root to own the data directory, then runs as postgres (gosu): default capabilities.
+    <<: *no-escalation
     command: ["postgres", "-c", "timezone=${TZ:-UTC}", "-c", "log_timezone=${TZ:-UTC}"]
     environment:
       <<: *timezone
@@ -41,6 +52,7 @@ services:
 
   redis:
     image: redis:8.10.3-alpine
+    <<: *no-escalation
     environment:
       <<: *timezone
     healthcheck:
@@ -51,6 +63,7 @@ services:
 
   temporal-schema-setup:
     image: temporalio/admin-tools:1.32.2
+    <<: *unprivileged
     environment:
       <<: *timezone
       DB: postgres12
@@ -69,6 +82,7 @@ services:
 
   temporal:
     image: temporalio/server:1.32.2
+    <<: *unprivileged
     environment:
       <<: *timezone
       DB: postgres12
@@ -92,6 +106,7 @@ services:
 
   temporal-create-namespace:
     image: temporalio/admin-tools:1.32.2
+    <<: *unprivileged
     environment:
       <<: *timezone
       TEMPORAL_ADDRESS: temporal:7233
@@ -108,6 +123,7 @@ services:
   # One container: database tables (at start), API, Temporal worker and panel.
   app:
     image: ${OPEN_REVOKE_IMAGE:-ghcr.io/take-group/open-revoke}:${OPEN_REVOKE_VERSION:-dev}
+    <<: *unprivileged
     environment:
       <<: *timezone
       DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/open_revoke
@@ -169,6 +185,7 @@ services:
   # through the API, admins only (backend/app/browser/live_proxy.py).
   browser:
     image: ${OPEN_REVOKE_BROWSER_IMAGE:-ghcr.io/take-group/open-revoke-browser}:${OPEN_REVOKE_VERSION:-dev}
+    <<: *unprivileged
     environment:
       <<: *timezone
       # Panel API the browser polls for which password manager to force-install (the admin's
@@ -189,6 +206,9 @@ services:
   # the panel (docs/self-hosting.md).
   caddy:
     image: caddy:2.11
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
     profiles: ["https"]
     restart: unless-stopped
     environment:

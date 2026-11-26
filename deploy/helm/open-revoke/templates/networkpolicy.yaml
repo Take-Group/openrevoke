@@ -1,7 +1,9 @@
 {{- /*
 The browser pod holds signed-in admin sessions of SaaS panels and its CDP has no sign-in: only
 the app pods may connect to it (compose.yaml publishes no browser port for the same reason).
-Egress stays open: the browser opens the SaaS panels and polls the app's API.
+PostgreSQL, Redis and Temporal hold the data and the job queue and have no sign-in of their own
+beyond the database password: only the pods that use them may connect. Egress stays open: the
+browser opens the SaaS panels, the app calls the SaaS APIs.
 */ -}}
 {{- if .Values.networkPolicy.enabled }}
 apiVersion: networking.k8s.io/v1
@@ -25,5 +27,76 @@ spec:
         - port: 9223
           protocol: TCP
         - port: 6080
+          protocol: TCP
+{{- if .Values.postgresql.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "open-revoke.component" (dict "root" . "component" "postgresql") }}
+  labels:
+    {{- include "open-revoke.componentLabels" (dict "root" . "component" "postgresql") | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "open-revoke.selectorLabels" (dict "root" . "component" "postgresql") | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "open-revoke.selectorLabels" (dict "root" . "component" "app") | nindent 14 }}
+        - podSelector:
+            matchLabels:
+              {{- include "open-revoke.selectorLabels" (dict "root" . "component" "temporal") | nindent 14 }}
+      ports:
+        - port: 5432
+          protocol: TCP
+{{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "open-revoke.component" (dict "root" . "component" "redis") }}
+  labels:
+    {{- include "open-revoke.componentLabels" (dict "root" . "component" "redis") | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "open-revoke.selectorLabels" (dict "root" . "component" "redis") | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "open-revoke.selectorLabels" (dict "root" . "component" "app") | nindent 14 }}
+      ports:
+        - port: 6379
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "open-revoke.component" (dict "root" . "component" "temporal") }}
+  labels:
+    {{- include "open-revoke.componentLabels" (dict "root" . "component" "temporal") | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "open-revoke.selectorLabels" (dict "root" . "component" "temporal") | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "open-revoke.selectorLabels" (dict "root" . "component" "app") | nindent 14 }}
+        - podSelector:
+            matchLabels:
+              {{- include "open-revoke.selectorLabels" (dict "root" . "component" "temporal") | nindent 14 }}
+      ports:
+        - port: 7233
           protocol: TCP
 {{- end }}

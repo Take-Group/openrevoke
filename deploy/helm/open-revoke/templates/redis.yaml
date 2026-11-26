@@ -40,6 +40,8 @@ spec:
         - name: redis
           image: {{ include "open-revoke.image" (dict "root" . "image" .Values.redis.image) }}
           imagePullPolicy: {{ .Values.redis.image.pullPolicy }}
+          securityContext:
+            {{- include "open-revoke.restrictedContainer" (dict "uid" 999 "gid" 1000) | nindent 12 }}
           ports:
             - name: redis
               containerPort: 6379

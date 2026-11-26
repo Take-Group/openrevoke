@@ -65,6 +65,8 @@ spec:
         - name: wait-for-postgresql
           image: {{ $adminTools }}
           imagePullPolicy: {{ .Values.temporal.adminToolsImage.pullPolicy }}
+          securityContext:
+            {{- include "open-revoke.restrictedContainer" (dict "uid" 1000 "gid" 1000) | nindent 12 }}
           command:
             - /bin/sh
             - -c
@@ -77,6 +79,8 @@ spec:
         - name: schema-setup
           image: {{ $adminTools }}
           imagePullPolicy: {{ .Values.temporal.adminToolsImage.pullPolicy }}
+          securityContext:
+            {{- include "open-revoke.restrictedContainer" (dict "uid" 1000 "gid" 1000) | nindent 12 }}
           command: ["/bin/sh", "/scripts/setup-postgres.sh"]
           env:
             {{- include "open-revoke.temporalDbEnv" . | nindent 12 }}
@@ -96,6 +100,8 @@ spec:
         - name: temporal
           image: {{ include "open-revoke.image" (dict "root" . "image" .Values.temporal.image) }}
           imagePullPolicy: {{ .Values.temporal.image.pullPolicy }}
+          securityContext:
+            {{- include "open-revoke.restrictedContainer" (dict "uid" 1000 "gid" 1000) | nindent 12 }}
           ports:
             - name: grpc
               containerPort: 7233

@@ -66,6 +66,8 @@ spec:
         - name: temporal-namespace
           image: {{ include "open-revoke.image" (dict "root" . "image" .Values.temporal.adminToolsImage) }}
           imagePullPolicy: {{ .Values.temporal.adminToolsImage.pullPolicy }}
+          securityContext:
+            {{- include "open-revoke.restrictedContainer" (dict "uid" 1000 "gid" 1000) | nindent 12 }}
           command: ["/bin/sh", "/scripts/create-namespace.sh"]
           env:
             - name: TEMPORAL_ADDRESS
@@ -183,9 +185,7 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop: ["ALL"]
+            {{- include "open-revoke.restrictedContainer" (dict "uid" 10001 "gid" 10001) | nindent 12 }}
       volumes:
         - name: temporal-scripts
           configMap:

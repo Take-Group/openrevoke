@@ -23,6 +23,11 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
   the key can also come from a file (`OPEN_REVOKE_SECRET_KEY_FILE`).
 - The audit log is append-only in the database, records failed sign-ins with the address, and
   exports to CSV or JSON Lines (Audit page, `GET /api/audit/export`).
+- Containers run with `no-new-privileges`; the app, browser and Temporal containers with no Linux
+  capabilities (Caddy keeps only the one to bind ports 80 and 443). The app image runs as uid
+  10001. The Helm chart sets restricted security contexts and network policies for PostgreSQL,
+  Redis and Temporal.
+- Security documentation for your review: docs/security/overview.md and the threat model.
 - Sign-in limits per address and per e-mail from one address: a stranger can no longer lock an
   account out with ten wrong passwords. Your own reverse proxy must set `X-Forwarded-For`
   (docs/self-hosting.md).
