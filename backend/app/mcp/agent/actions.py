@@ -4,7 +4,8 @@ from collections import Counter
 from typing import TYPE_CHECKING, Any
 
 from app.mcp.agent.api import PAGE_LIMIT
-from app.mcp.agent.base import AgentTool, ToolError, schema
+from app.mcp.agent.base import AgentTool, schema
+from app.mcp.agent.errors import ToolError
 from app.mcp.agent.views import action_line
 
 if TYPE_CHECKING:

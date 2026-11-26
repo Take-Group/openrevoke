@@ -19,10 +19,6 @@ if TYPE_CHECKING:
 type Audience = Literal["admin", "user"]
 
 
-class ToolError(Exception):
-    """A message for the assistant: what went wrong and what to call instead."""
-
-
 @dataclass(frozen=True)
 class AgentTool:
     name: str
