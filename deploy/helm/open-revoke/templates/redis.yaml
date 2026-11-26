@@ -1,4 +1,4 @@
-{{- /* The `redis` service of compose.yaml: official image, no persistence. */ -}}
+{{- /* The `redis` service of compose.yaml: official image, no persistence, password from the Secret. */ -}}
 {{- $name := include "open-revoke.redisHost" . }}
 {{- $selector := dict "root" . "component" "redis" }}
 apiVersion: v1
@@ -33,6 +33,9 @@ spec:
     metadata:
       labels:
         {{- include "open-revoke.selectorLabels" $selector | nindent 8 }}
+      annotations:
+        # A new REDIS_PASSWORD restarts Redis together with the app.
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
     spec:
       {{- include "open-revoke.podDefaults" . | nindent 6 }}
       {{- include "open-revoke.scheduling" .Values.redis | nindent 6 }}
@@ -42,12 +45,18 @@ spec:
           imagePullPolicy: {{ .Values.redis.image.pullPolicy }}
           securityContext:
             {{- include "open-revoke.restrictedContainer" (dict "uid" 999 "gid" 1000) | nindent 12 }}
+          # The image's entrypoint puts redis-server in front of arguments that start with "-".
+          args: ["--requirepass", "$(REDIS_PASSWORD)"]
           ports:
             - name: redis
               containerPort: 6379
           env:
             - name: TZ
               value: {{ .Values.timezone | quote }}
+            {{- include "open-revoke.redis.passwordEnv" . | nindent 12 }}
+            # redis-cli of the probes reads it.
+            - name: REDISCLI_AUTH
+              value: $(REDIS_PASSWORD)
           readinessProbe:
             exec:
               command: ["redis-cli", "ping"]

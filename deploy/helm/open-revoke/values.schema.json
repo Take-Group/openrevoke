@@ -52,6 +52,10 @@
         },
         "postgresPassword": {
           "type": "string"
+        },
+        "redisPassword": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9]*$"
         }
       }
     },

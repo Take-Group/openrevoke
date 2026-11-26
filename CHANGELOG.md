@@ -19,12 +19,22 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
   and are also published on Docker Hub as `takegroup/openrevoke` and `takegroup/openrevoke-browser`.
   If you set `OPEN_REVOKE_IMAGE` or `OPEN_REVOKE_BROWSER_IMAGE` in `.env`, change them to the new names.
 
+- `.env` gets `REDIS_PASSWORD`. `install.sh` generates it; `open-revoke update`, `start` and
+  `restart` generate it once for an older `.env`. Updating from 0.1.x with the old command leaves
+  Redis without a password until the next `open-revoke restart` (`open-revoke doctor` says so).
+  Helm: the chart's Secret gets `REDIS_PASSWORD` by itself; a Secret of your own
+  (`secrets.existingSecret`) needs the key `REDIS_PASSWORD` (letters and digits) before the upgrade.
 - Fewer third-party packages: the Google service account token is signed with `cryptography`
   (no `google-auth`), the API runs on plain `uvicorn` (no uvloop, httptools, PyYAML), and the panel
   no longer installs the shadcn CLI (about 110 packages fewer).
 
 ### Security
 
+- Redis needs a password (`REDIS_PASSWORD`) in Docker Compose and in the Helm chart.
+- Docker Compose: PostgreSQL, Redis and Temporal moved to an internal network without a route out
+  that only the app joins. The shared browser, which opens any SaaS page, can no longer reach
+  them. Temporal's open source server has no password; this network is what protects it.
+- `TELEMETRY.md` describes the hourly update check against GitHub and how to turn it off.
 - SLSA Build Level 3 provenance is now made with GitHub artifact attestations from the reusable
   workflow `release-publish.yml` instead of the unmaintained `slsa-github-generator`. Check it with
   `gh attestation verify --signer-workflow Take-Group/openrevoke/.github/workflows/release-publish.yml`

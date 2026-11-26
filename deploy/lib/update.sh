@@ -152,6 +152,7 @@ cmd_update() {
     printf 'PREVIOUS_VERSION=%s\nBACKUP=%s\n' "$current" "$backup" > "$INSTALL_DIR/$STATE_FILE"
     put_bundle "$stage/new"
     merge_env_keys "$INSTALL_DIR/.env.example"
+    generate_missing_secrets
     env_set OPEN_REVOKE_VERSION "$target" "$INSTALL_DIR/.env"
     rm -rf "$stage"
 

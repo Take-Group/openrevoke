@@ -101,8 +101,10 @@ spec:
             # $(POSTGRES_PASSWORD) is expanded by Kubernetes from the variable above.
             - name: DATABASE_URL
               value: {{ printf "postgresql+asyncpg://%s:$(POSTGRES_PASSWORD)@%s:%s/%s%s" (include "open-revoke.db.user" .) (include "open-revoke.db.host" .) (include "open-revoke.db.port" .) (include "open-revoke.db.name" .) (ternary "?ssl=require" "" (and (not .Values.postgresql.enabled) .Values.externalDatabase.tls)) | quote }}
+            {{- include "open-revoke.redis.passwordEnv" . | nindent 12 }}
+            # $(REDIS_PASSWORD) is expanded by Kubernetes from the variable above.
             - name: REDIS_URL
-              value: {{ printf "redis://%s:6379/0" (include "open-revoke.redisHost" .) | quote }}
+              value: {{ printf "redis://:$(REDIS_PASSWORD)@%s:6379/0" (include "open-revoke.redisHost" .) | quote }}
             - name: TEMPORAL_HOST
               value: {{ printf "%s:7233" (include "open-revoke.temporalHost" .) | quote }}
             - name: TEMPORAL_NAMESPACE

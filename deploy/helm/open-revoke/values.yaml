@@ -18,12 +18,12 @@ publicUrl: ""
 
 imagePullSecrets: []
 
-# -- Secrets of the installation, in one Secret with the keys OPEN_REVOKE_SECRET_KEY and
-# POSTGRES_PASSWORD. Empty values are generated at install and kept on upgrade. The Secret is
+# -- Secrets of the installation, in one Secret with the keys OPEN_REVOKE_SECRET_KEY,
+# POSTGRES_PASSWORD and REDIS_PASSWORD. Empty values are generated at install and kept on upgrade. The Secret is
 # kept on `helm uninstall` (resource policy "keep"): the database and the connector secrets
 # need it.
 secrets:
-  # -- Name of a Secret you manage with the two keys above; the chart then creates none.
+  # -- Name of a Secret you manage with the three keys above; the chart then creates none.
   existingSecret: ""
   # -- Fernet key that encrypts connector secrets (OPEN_REVOKE_SECRET_KEY). Moving from a
   # Docker Compose install: put the key from its .env here. Generate one with
@@ -33,6 +33,9 @@ secrets:
   # later does not change the database's password. With an external database use
   # externalDatabase.password.
   postgresPassword: ""
+  # -- Password of the bundled Redis (REDIS_PASSWORD). Letters and digits only: it goes into the
+  # Redis URL unescaped. Redis keeps no data, so a new value only signs everyone out.
+  redisPassword: ""
 
 # The container with the API, the Temporal worker and the panel (service `app` in compose.yaml).
 # One replica: the API, the worker and its schedules run in it.

@@ -75,9 +75,12 @@ commands to verify a release are in its notes.
 
 - Compose: one published port (the panel, `127.0.0.1` by default), `no-new-privileges` for every
   container, no Linux capabilities for the app, browser and Temporal containers, non-root users.
+  PostgreSQL, Redis and Temporal sit on an internal network without a route out that only the app
+  joins, so the browser cannot reach them. PostgreSQL and Redis have generated passwords;
+  Temporal's open source server has none and relies on that network.
 - Kubernetes: restricted security contexts (non-root, no capabilities, `RuntimeDefault` seccomp)
   except PostgreSQL's entrypoint, network policies around the browser, PostgreSQL, Redis and
-  Temporal, no service account token.
+  Temporal, a generated Redis password, no service account token.
 
 ## Certifications
 

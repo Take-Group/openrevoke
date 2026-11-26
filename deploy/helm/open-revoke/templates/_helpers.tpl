@@ -100,6 +100,15 @@ app.kubernetes.io/component: {{ .component }}
       key: POSTGRES_PASSWORD
 {{- end }}
 
+{{/* Env of Redis's password from the Secret; Redis and the app read it. */}}
+{{- define "open-revoke.redis.passwordEnv" -}}
+- name: REDIS_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "open-revoke.secretName" . }}
+      key: REDIS_PASSWORD
+{{- end }}
+
 {{/* Connection of Temporal's server and admin tools to PostgreSQL (env names of the images). */}}
 {{- define "open-revoke.temporalDbEnv" -}}
 - name: TZ

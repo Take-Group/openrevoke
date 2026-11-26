@@ -6,7 +6,7 @@
 #
 # 1. Checks Docker, Docker Compose, free ports and disk; changes nothing when a check fails.
 # 2. Downloads the release bundle and checks its SHA-256 against the release's SHA256SUMS.
-# 3. Writes .env: generated OPEN_REVOKE_SECRET_KEY and POSTGRES_PASSWORD, the panel address,
+# 3. Writes .env: generated OPEN_REVOKE_SECRET_KEY, POSTGRES_PASSWORD and REDIS_PASSWORD, the panel address,
 #    the time zone of this machine, the version. chmod 600.
 # 4. Links the `open-revoke` command into PATH and starts the stack.
 # 5. Prints the setup link: only it can create the first admin.
@@ -183,6 +183,7 @@ env_file="$INSTALL_DIR/.env"
 env_set OPEN_REVOKE_VERSION "$VERSION" "$env_file"
 env_set OPEN_REVOKE_SECRET_KEY "$(openssl rand -base64 32 | tr '+/' '-_')" "$env_file"
 env_set POSTGRES_PASSWORD "$(openssl rand -hex 24)" "$env_file"
+env_set REDIS_PASSWORD "$(openssl rand -hex 24)" "$env_file"
 env_set PUBLIC_URL "$PUBLIC_URL" "$env_file"
 env_set TZ "$ZONE" "$env_file"
 env_set COMPOSE_PROJECT_NAME "$NAME" "$env_file"

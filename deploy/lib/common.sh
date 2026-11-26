@@ -17,16 +17,27 @@ env_get() {
 }
 
 # Set KEY=VALUE in a dotenv file: replaces `KEY=` or a commented `# KEY=` line, else appends.
+# Later `KEY=` lines are dropped: Compose and env_get read the last one, which would win.
 env_set() {
     file=$3
     tmp="$file.tmp.$$"
     # umask 077: the copy holds the secrets and replaces .env, so .env stays readable by its owner only.
     (umask 077 && awk -v key="$1" -v value="$2" '
+        done && $0 ~ "^" key "=" { next }
         !done && ($0 ~ "^" key "=" || $0 ~ "^# " key "=") { print key "=" value; done = 1; next }
         { print }
         END { if (!done) print key "=" value }
-    ' "$file" > "$tmp")
-    mv "$tmp" "$file"
+    ' "$file" > "$tmp") || { rm -f "$tmp"; return 1; }
+    mv "$tmp" "$file" || return 1
+}
+
+# Secrets added after the installation was made (REDIS_PASSWORD in 0.2) are generated once by
+# update, start and restart; a value already in .env stays.
+generate_missing_secrets() {
+    if [ -z "$(env_get REDIS_PASSWORD)" ]; then
+        env_set REDIS_PASSWORD "$(openssl rand -hex 24)" "$INSTALL_DIR/.env" || return 1
+        say "   .env: generated REDIS_PASSWORD"
+    fi
 }
 
 compose() {

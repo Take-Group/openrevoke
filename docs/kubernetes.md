@@ -23,7 +23,7 @@ password manager: few people with `exec`, `port-forward` or Secret access.
 | Redis | `Deployment`, no persistence | `redis` |
 | Temporal | `Deployment` `<release>-temporal`; init containers wait for PostgreSQL and set up its schema | `temporal`, `temporal-schema-setup` |
 | Temporal namespace | init container of the app pod | `temporal-create-namespace` |
-| Secrets | `Secret` `<release>` with `OPEN_REVOKE_SECRET_KEY` and `POSTGRES_PASSWORD` | `.env` |
+| Secrets | `Secret` `<release>` with `OPEN_REVOKE_SECRET_KEY`, `POSTGRES_PASSWORD` and `REDIS_PASSWORD` | `.env` |
 | Way in | optional `Ingress` to the panel | `caddy` |
 | Network | `NetworkPolicy`: only the app pods reach the browser | no published browser port |
 
@@ -91,7 +91,7 @@ timezone: Europe/Warsaw
 | `publicUrl` | from `ingress.host`, else `http://localhost:18410` | `PUBLIC_URL`: links, cookies, Google sign-in, host names the API answers to |
 | `ingress.*` | off | `Ingress` to the panel; `tls.enabled` makes the public URL https |
 | `timezone` | `UTC` | `TZ` of every container |
-| `secrets.existingSecret` | empty | your own Secret with `OPEN_REVOKE_SECRET_KEY` and `POSTGRES_PASSWORD` |
+| `secrets.existingSecret` | empty | your own Secret with `OPEN_REVOKE_SECRET_KEY`, `POSTGRES_PASSWORD` and `REDIS_PASSWORD` (letters and digits) |
 | `secrets.secretKey` | generated | the key of an installation you move here (below) |
 | `app.updateCheck`, `app.telemetry` | `true` | `OPEN_REVOKE_UPDATE_CHECK`, `OPEN_REVOKE_TELEMETRY` (`TELEMETRY.md`) |
 | `app.googleOauthRedirectBase` | empty | `GOOGLE_OAUTH_REDIRECT_BASE` (`docs/self-hosting.md`) |
