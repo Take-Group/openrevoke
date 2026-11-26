@@ -34,6 +34,8 @@ export type PersonStatus = "active" | "left";
 export type PersonKind = "human" | "service";
 /** auto: set by the import rules (a sync may change it); manual: set by an admin. */
 export type PersonKindSource = "auto" | "manual";
+/** Who set a person's manager: a people source (auto) or an admin, also by CSV import (manual). */
+export type ManagerSource = "auto" | "manual";
 export type Integration = "api" | "scim" | "browser" | "manual";
 export type PricingModel = "per_seat" | "flat" | "free";
 export type BillingPeriod = "monthly" | "yearly";
@@ -64,7 +66,8 @@ export type AlertKind =
   | "connection_error"
   | "action_failed"
   | "person_inactive_in_source"
-  | "discovered_sign_ins_at_risk";
+  | "discovered_sign_ins_at_risk"
+  | "people_without_manager";
 export type AlertSeverity = "critical" | "warning";
 export type AlertEntityType = "account" | "app" | "connection" | "action" | "person" | "discovered_app";
 export type ImportRowAction = "create" | "update" | "unchanged" | "error";
@@ -144,6 +147,12 @@ export interface PersonListItem {
   kind_source: PersonKindSource;
   /** Why the rules made it a service account. */
   kind_reason: string | null;
+  department: string | null;
+  job_title: string | null;
+  /** The person's manager; approves their access requests. */
+  manager: PersonRef | null;
+  /** auto: a people source sets it (a sync may change it); manual: an admin or a CSV import. */
+  manager_source: ManagerSource;
   accounts_count: number;
   apps: AppRef[];
   monthly_cost: MoneyAmount[];
@@ -204,6 +213,8 @@ export interface PersonDetail extends PersonListItem {
   accounts: PersonAccountOut[];
   /** No accounts and no actions: DELETE /api/people/{id} is allowed. */
   can_delete: boolean;
+  /** People whose manager is this person, active first. */
+  reports: PersonRef[];
 }
 
 export interface PersonCreate {
@@ -213,6 +224,9 @@ export interface PersonCreate {
   employee_code?: string | null;
   notes?: string | null;
   aliases?: string[];
+  manager_id?: Uuid | null;
+  department?: string | null;
+  job_title?: string | null;
 }
 
 export interface PersonUpdate {
@@ -227,6 +241,10 @@ export interface PersonUpdate {
   aliases?: string[] | null;
   /** Person or service account; an admin's choice is kept by syncs. */
   kind?: PersonKind | null;
+  /** Manager set by hand (kept by syncs); null clears it. 400 on a loop. */
+  manager_id?: Uuid | null;
+  department?: string | null;
+  job_title?: string | null;
 }
 
 export interface FieldChange {
@@ -247,6 +265,9 @@ export interface ImportRowResult {
   last_name?: string | null;
   employee_code?: string | null;
   aliases?: string[];
+  manager_email?: string | null;
+  department?: string | null;
+  job_title?: string | null;
 }
 
 export interface ImportResult {

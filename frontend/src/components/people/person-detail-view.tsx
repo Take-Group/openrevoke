@@ -11,6 +11,7 @@ import { Stat, StatStrip } from "@/components/common/stat";
 import { StatusBadge } from "@/components/common/status-badge";
 import { PersonAccountsTable } from "@/components/people/person-accounts-table";
 import { PersonKindBadge } from "@/components/people/person-kind-badge";
+import { PersonManagerSection } from "@/components/people/person-manager-section";
 import { PersonDiscoveredApps } from "@/components/people/person-discovered-apps";
 import { PersonActivity } from "@/components/people/person-activity";
 import { PersonMoreMenu } from "@/components/people/person-more-menu";
@@ -89,6 +90,7 @@ function PersonPage({ person, initialTab }: { person: PersonDetail; initialTab?:
           {formatWhen(person.created_at).split(",")[0]}
         </Stat>
       </StatStrip>
+      <PersonManagerSection person={person} />
       <Tabs value={tab} onValueChange={(value) => setTab(value as PersonTab)}>
         <TabsList variant="line" className="mb-3">
           <TabsTrigger value="accounts">

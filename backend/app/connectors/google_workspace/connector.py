@@ -175,6 +175,7 @@ class GoogleWorkspaceConnector(Connector, AppDiscovery):
     async def _users_page(
         self, ctx: Ctx, token: str, page_token: str | None, page_size: int = PAGE_SIZE
     ) -> tuple[list[dict[str, Any]], str | None]:
+        # basic leaves out only custom schemas; relations (manager) and organizations come with it.
         params: dict[str, str | int] = {"maxResults": page_size, "projection": "basic", "viewType": "admin_view"}
         if ctx.config.domain:
             params["domain"] = ctx.config.domain

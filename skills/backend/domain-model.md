@@ -18,6 +18,7 @@ and the frontend takes its types from it.
 | `backend/app/services/costs.py` | pure cost functions: seat, app, sum per currency; conversion to the organization currency: `skills/backend/exchange-rates.md` |
 | `backend/app/services/accounts.py` | accounts: list, manual account, assignment, `rematch_accounts`, `unassigned_clause` |
 | `backend/app/services/people.py`, `people_import.py`, `people_sources.py` | people, aliases, CSV import, sources and `person_link` |
+| `backend/app/services/people_managers.py`, `people_import_managers.py` | reporting lines: `set_manager`, `creates_cycle`, reports, `needs_manager_clause`; manager column of the CSV import |
 | `backend/app/services/apps.py` | apps, `seat_stats` (accounts, seats, without an owner) |
 | `backend/app/services/actions.py`, `offboarding.py`, `onboarding.py`, `capabilities.py` | actions, status transitions, offboarding, onboarding; execution and verification: `skills/backend/actions.md` |
 | `backend/app/services/dashboard.py` | counts, monthly cost, alerts |
@@ -43,6 +44,29 @@ and the frontend takes its types from it.
   /api/people/{id}` with `kind` sets `manual`, and sync no longer changes it.
   A person added by hand is `manual`. `GET /api/people?kind=` filters,
   `kind_counts` gives the counts for the tabs. The dashboard counts only `human`.
+- **Manager, department, job title** (`person.manager_id`, `manager_source`,
+  `department`, `job_title`). Sources: a people source (`RemotePerson.manager_email`,
+  `department`, `job_title`; Google `relations` and `organizations`), the CSV
+  import (`manager_email`, `department`, `job_title`) and `PATCH
+  /api/people/{id}` (`manager_id`, `department`, `job_title`).
+  - `manager_source = auto`: the sync's second pass (after every person of the
+    list is stored) sets the manager from the source's e-mail (primary or
+    alias); no manager or an unknown e-mail clears it. `manual` (PATCH, also
+    `null`, and every manager set by the CSV import) is never changed by a sync.
+  - Nobody is their own manager and the chain above a person never leads back
+    to them (`creates_cycle`): PATCH and CSV give 400 or a row error, the sync
+    ignores such a manager. PATCH also refuses a manager who left or is a
+    service account.
+  - Department and job title from a source replace the stored values on every
+    sync; an empty value in the source keeps them (no source flag column).
+  - `GET /api/people?no_manager=true` lists people with no manager; `q` also
+    matches department and job title. `PersonListItem` has `manager`
+    (`PersonRef`), `manager_source`, `department`, `job_title`; `PersonDetail`
+    adds `reports`.
+  - Dashboard alert `people_without_manager` (count, link
+    `/people?no_manager=true`): only while an app has `request_policy`
+    `manager` or `manager_then_admin`; counts active `human` people with no
+    manager who manage nobody (the top of a reporting line is not missing data).
 - **E-mails** in the database have `strip()` and `lower()` applied (CHECK in `person`
   and `person_email`). An e-mail, primary or alias, belongs to one person.
   The service enforces this, because these are two tables.
@@ -87,7 +111,7 @@ and the frontend takes its types from it.
   `status` several times and also returns `counts` (the number of actions in each status
   with the same filters without `status`).
 - `ImportRowResult` of `create` rows has the fields of the new person: `first_name`,
-  `last_name`, `employee_code`, `aliases`.
+  `last_name`, `employee_code`, `aliases`, `manager_email`, `department`, `job_title`.
 - `AppListItem` has `create_mode` and `delete_mode` (`automatic`,
   `writes_disabled`, `manual`) and `delete_suspends`: the panel says what will happen
   before it creates an action.

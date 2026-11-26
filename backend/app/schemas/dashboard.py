@@ -15,6 +15,7 @@ class AlertKind(StrEnum):
     ACTION_FAILED = "action_failed"
     PERSON_INACTIVE_IN_SOURCE = "person_inactive_in_source"
     DISCOVERED_SIGN_INS_AT_RISK = "discovered_sign_ins_at_risk"
+    PEOPLE_WITHOUT_MANAGER = "people_without_manager"
 
 
 class AlertSeverity(StrEnum):
@@ -36,11 +37,14 @@ class Alert(BaseModel):
     severity: AlertSeverity
     message: str
     entity_type: AlertEntityType
-    entity_id: uuid.UUID
+    entity_id: uuid.UUID = Field(description="The record; people_without_manager: the first of those people")
     app_id: uuid.UUID | None = Field(description="App to link to, when the alert concerns one")
     person_id: uuid.UUID | None = Field(description="Person to link to, when the alert concerns one")
     count: int | None = Field(
-        description="Number of items for grouped alerts (unassigned_accounts, discovered_sign_ins_at_risk)"
+        description=(
+            "Number of items for grouped alerts (unassigned_accounts, discovered_sign_ins_at_risk, "
+            "people_without_manager)"
+        )
     )
 
 

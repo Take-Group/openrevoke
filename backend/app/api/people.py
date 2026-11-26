@@ -20,12 +20,16 @@ async def list_people(
     q: SearchQuery = None,
     status: PersonStatus | None = None,
     kind: PersonKind | None = None,
+    no_manager: Annotated[bool, Query(description="Only people with no manager set")] = False,
     limit: Limit = DEFAULT_LIMIT,
     offset: Offset = 0,
 ) -> PersonPage:
-    """``kind_counts`` counts the matches of ``q`` and ``status`` per kind, for the filter tabs."""
+    """``q`` also matches department and job title.
+
+    ``kind_counts`` counts the matches of ``q``, ``status`` and ``no_manager`` per kind, for the filter tabs.
+    """
     items, total, kind_counts = await people.list_people(
-        session, q=q, status=status, kind=kind, limit=limit, offset=offset
+        session, q=q, status=status, kind=kind, limit=limit, offset=offset, no_manager=no_manager
     )
     return PersonPage(items=items, total=total, kind_counts=kind_counts)
 
@@ -39,12 +43,14 @@ async def create_person(data: PersonCreate, session: SessionDep) -> PersonDetail
 @router.post("/import", response_model=ImportResult)
 async def import_people(
     session: SessionDep,
-    file: Annotated[UploadFile, File(description="CSV: email,first_name,last_name,employee_code,aliases")],
+    file: Annotated[UploadFile, File(description=f"CSV: {people_import.HEADER}")],
     dry_run: Annotated[bool, Query(description="Preview the changes without saving")] = False,
 ) -> ImportResult:
-    """Adds or updates people from a CSV (header: email,first_name,last_name,employee_code,aliases).
+    """Adds or updates people from a CSV (header: email,first_name,last_name,employee_code,aliases,
+    manager_email,department,job_title; only email is required).
 
-    Try ``dry_run=true`` first.
+    ``manager_email`` must be a person already stored or a row of the same file; it is set as manual,
+    so syncs keep it. Try ``dry_run=true`` first.
     """
     # Read one byte past the limit: enough to refuse a too large file without loading all of it.
     content = await file.read(people_import.MAX_BYTES + 1)
@@ -53,13 +59,17 @@ async def import_people(
 
 @router.get("/{person_id}", response_model=PersonDetail)
 async def get_person(person_id: uuid.UUID, session: SessionDep) -> PersonDetail:
-    """One person with their e-mails, sources, accounts in every app and monthly cost."""
+    """One person with their e-mails, sources, accounts in every app, monthly cost, manager and reports."""
     return await people.get_person(session, person_id)
 
 
 @router.patch("/{person_id}", response_model=PersonDetail)
 async def update_person(person_id: uuid.UUID, data: PersonUpdate, session: SessionDep) -> PersonDetail:
-    """Changes a person's name, e-mails, code, kind or notes. Only the fields present change."""
+    """Changes a person's name, e-mails, code, kind, notes, manager, department or job title.
+
+    Only the fields present change. ``manager_id`` is kept by syncs (manual); null clears it. 400 when the
+    manager is the person, has left, is a service account, or reports to the person (a loop).
+    """
     return await people.update_person(session, person_id, data, data.model_fields_set)
 
 

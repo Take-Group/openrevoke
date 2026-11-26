@@ -33,7 +33,7 @@ sizes in rem (Tailwind classes), not in px.
 | Path | View file | Hooks | URL parameters |
 |---|---|---|---|
 | `/` | `components/dashboard/dashboard-view.tsx` | `useDashboard` | - |
-| `/people` | `components/people/people-view.tsx` | `usePeople`, `useCreatePerson`, `useImportPeople` | `status` |
+| `/people` | `components/people/people-view.tsx` | `usePeople`, `useCreatePerson`, `useImportPeople` | `status`, `no_manager=true` |
 | `/people/new` | `components/people/new-person-view.tsx` | `useCreatePerson` | - |
 | `/people/import` | `components/people/import-people-view.tsx` | `useImportPeople` | - |
 | `/people/[id]` | `components/people/person-detail-view.tsx` | `usePerson`, `useDeletePerson`, `useSetPersonKind`, `useCreateAction`, `useActions`, `useApps` | - |
@@ -106,6 +106,13 @@ The backend is described in skills/backend/actions.md. Panel:
   will happen, from the app's `create_mode` / `delete_mode` (`automatic`,
   `writes_disabled`, `manual`; texts in `lib/write-mode.ts`). "Delete" is
   shown only with `can_delete` (`delete-person-button.tsx`).
+- Person: "Reporting line" (`person-manager-section.tsx`, under the stats)
+  shows manager, department, job title and reports. Manager, Department and
+  Job title are edited on `/people/[id]/edit` (`PersonFields`, `PersonPicker`);
+  the edit form sends `manager_id` only when it changed, because saving it
+  makes the manager manual (syncs keep it). `/people` has a Department
+  column and the "No manager" filter (`?no_manager=true`, the target of the
+  dashboard alert `people_without_manager`).
 
 ## App discovery in the panel
 

@@ -17,6 +17,8 @@ function NewPerson({ row }: { row: ImportRowResult }) {
   const extra = [
     row.employee_code && `code ${row.employee_code}`,
     row.aliases && row.aliases.length > 0 && `aliases ${row.aliases.join(", ")}`,
+    [row.job_title, row.department].filter(Boolean).join(", "),
+    row.manager_email && `manager ${row.manager_email}`,
   ].filter(Boolean);
   return (
     <span>

@@ -1,4 +1,4 @@
-"""People: list with costs, detail, manual create, edit (status, aliases) and delete."""
+"""People: list with costs, detail, manual create, edit (status, aliases, manager) and delete."""
 
 from collections import defaultdict
 from datetime import UTC, datetime
@@ -24,13 +24,14 @@ from app.schemas.people import (
     PersonSourceOut,
     PersonUpdate,
 )
-from app.services import audit, exchange_rates
+from app.services import audit, exchange_rates, people_managers
+from app.services.access.managers import manager_of
 from app.services.accounts import rematch_accounts
 from app.services.costs import sum_by_currency
 from app.services.errors import ConflictError, InvalidInputError, NotFoundError
 from app.services.matching import email_owner, is_valid_email, normalize_email
 from app.services.people_sources import get_or_create_source, source_names, upsert_link
-from app.services.presenters import account_cost, account_out, app_ref, money, money_list
+from app.services.presenters import account_cost, account_out, app_ref, money, money_list, person_ref
 
 if TYPE_CHECKING:
     import uuid
@@ -49,6 +50,11 @@ def clean_email(value: str, field: str = "email") -> str:
 
 def clean_code(value: str | None) -> str | None:
     return (value or "").strip() or None
+
+
+def clean_text(value: str | None) -> str | None:
+    """Department, job title: trimmed, empty means none."""
+    return (value or "").strip()[:200] or None
 
 
 async def ensure_email_free(session: AsyncSession, email: str, person_id: uuid.UUID | None) -> None:
@@ -87,10 +93,13 @@ async def list_people(
     kind: PersonKind | None,
     limit: int,
     offset: int,
+    no_manager: bool = False,
 ) -> tuple[list[PersonListItem], int, dict[PersonKind, int]]:
     query = select(Person)
     if status:
         query = query.where(Person.status == status)
+    if no_manager:
+        query = query.where(people_managers.without_manager_clause())
     if q:
         pattern = f"%{q.strip()}%"
         query = query.where(
@@ -98,6 +107,8 @@ async def list_people(
                 (Person.first_name + " " + Person.last_name).ilike(pattern),
                 Person.primary_email.ilike(pattern),
                 Person.employee_code.ilike(pattern),
+                Person.department.ilike(pattern),
+                Person.job_title.ilike(pattern),
                 exists().where(PersonEmail.person_id == Person.id, PersonEmail.email.ilike(pattern)),
             )
         )
@@ -114,8 +125,11 @@ async def list_people(
         )
     )
     accounts = await _live_accounts(session, [person.id for person in people])
+    managers = await people_managers.people_by_id(session, {p.manager_id for p in people if p.manager_id})
     converter = await exchange_rates.load_converter(session)
-    items = [_list_item(person, accounts.get(person.id, []), converter) for person in people]
+    items = [
+        _list_item(person, accounts.get(person.id, []), converter, managers.get(person.manager_id)) for person in people
+    ]
     return items, total or 0, kind_counts
 
 
@@ -138,7 +152,9 @@ async def get_person(session: AsyncSession, person_id: uuid.UUID) -> PersonDetai
     has_actions = bool(await session.scalar(select(exists().where(Action.person_id == person_id))))
     live = [(account, app) for account, app in all_accounts if account.status != AccountStatus.REMOVED]
     converter = await exchange_rates.load_converter(session)
-    item = _list_item(person, live, converter)
+    manager = await manager_of(session, person)
+    item = _list_item(person, live, converter, manager)
+    reports = await people_managers.reports_of(session, person_id)
     return PersonDetail(
         **item.model_dump(),
         notes=person.notes,
@@ -160,6 +176,7 @@ async def get_person(session: AsyncSession, person_id: uuid.UUID) -> PersonDetai
             for account, app in all_accounts
         ],
         can_delete=not all_accounts and not has_actions,
+        reports=[ref for ref in map(person_ref, reports) if ref is not None],
     )
 
 
@@ -196,11 +213,15 @@ async def create_person(session: AsyncSession, data: PersonCreate) -> PersonDeta
         primary_email=email,
         employee_code=code,
         notes=data.notes,
+        department=clean_text(data.department),
+        job_title=clean_text(data.job_title),
         status=PersonStatus.ACTIVE,
         kind_source=PersonKindSource.MANUAL,  # typed in by an admin: a person, whatever the rules say
     )
     session.add(person)
     await session.flush()
+    if data.manager_id is not None:
+        await people_managers.set_manager(session, person, data.manager_id)
     session.add_all(PersonEmail(person_id=person.id, email=alias) for alias in aliases)
     source = await get_or_create_source(session, PeopleSourceKind.MANUAL)
     await upsert_link(
@@ -236,6 +257,16 @@ async def update_person(
     if "notes" in fields:
         note("notes", person.notes, data.notes)
         person.notes = data.notes
+    for field in ("department", "job_title"):
+        if field in fields:
+            value = clean_text(getattr(data, field))
+            note(field, getattr(person, field), value)
+            setattr(person, field, value)
+    if "manager_id" in fields:
+        old_manager, old_source = person.manager_id, person.manager_source
+        await people_managers.set_manager(session, person, data.manager_id)
+        note("manager_id", old_manager, person.manager_id)
+        note("manager_source", old_source, person.manager_source)
     if "kind" in fields:
         if data.kind is None:
             raise InvalidInputError("kind cannot be empty")
@@ -330,7 +361,9 @@ async def _live_accounts(
     return grouped
 
 
-def _list_item(person: Person, accounts: list[tuple[Account, App]], converter: Converter) -> PersonListItem:
+def _list_item(
+    person: Person, accounts: list[tuple[Account, App]], converter: Converter, manager: Person | None
+) -> PersonListItem:
     apps = {app.id: app for _, app in accounts}
     costs = [account_cost(account, app) for account, app in accounts]
     return PersonListItem(
@@ -344,6 +377,10 @@ def _list_item(person: Person, accounts: list[tuple[Account, App]], converter: C
         kind=person.kind,
         kind_source=person.kind_source,
         kind_reason=person.kind_reason,
+        department=person.department,
+        job_title=person.job_title,
+        manager=person_ref(manager),
+        manager_source=person.manager_source,
         accounts_count=len(accounts),
         apps=[app_ref(app) for app in sorted(apps.values(), key=lambda app: app.name.lower())],
         monthly_cost=money_list(sum_by_currency(costs)),

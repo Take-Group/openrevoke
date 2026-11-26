@@ -28,6 +28,11 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
   (`Authorization: Bearer`).
 - Anonymous telemetry: one event (`setup_completed` and the version) when the first admin
   finishes the setup; `TELEMETRY.md` says what is sent, `OPEN_REVOKE_TELEMETRY=false` turns it off.
+- People have a manager, a department and a job title: from Google Workspace (manager relation,
+  primary organization), from the people CSV (`manager_email`, `department`, `job_title`) or set in
+  the panel. A manager set by hand is kept by syncs; a loop of managers is refused. The person page
+  shows the reporting line, the people list a Department column and a "No manager" filter, and the
+  dashboard warns about people without a manager while an app sends requests to managers.
 
 ### Changed
 

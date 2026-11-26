@@ -1,8 +1,8 @@
 """Deterministic app discovery data for the fake connector. Fictional apps and people only.
 
-Directory: the fake people (``user<N>@<domain>``, the last one suspended).
+Directory: the fake people (``user<N>@<domain>``, ``manager@`` and ``member@``; the last one suspended).
 Sign-ins: everybody to "Fake Notes", odd users to "Fake Design" (no live
-token), user1 to "Fake Video", and a deleted ``former@<domain>`` to
+token), the first person to "Fake Video", and a deleted ``former@<domain>`` to
 "Fake Notes" and "Fake Chat".
 """
 

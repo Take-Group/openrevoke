@@ -33,7 +33,7 @@ export function ImportPeopleView() {
       wide
       description={
         <>
-          Columns: <code className="font-mono text-xs text-foreground">email,first_name,last_name,employee_code,aliases</code>
+          Columns: <code className="font-mono text-xs text-foreground">email,first_name,last_name,employee_code,aliases,manager_email,department,job_title</code>
         </>
       }
       onSubmit={(event) => {
@@ -59,7 +59,7 @@ export function ImportPeopleView() {
       <FormField
         label="CSV file"
         htmlFor="csv-file"
-        info="Only email is required; aliases are separated with “;”. Matching is by e-mail. Nobody is deleted and empty cells keep existing values. UTF-8, up to 2 MB."
+        info="Only email is required; aliases are separated with “;”. Matching is by e-mail. manager_email must be a person already here or a row of the file; managers from the file are kept by syncs. Nobody is deleted and empty cells keep existing values. UTF-8, up to 2 MB."
       >
         <FileDrop
           id="csv-file"

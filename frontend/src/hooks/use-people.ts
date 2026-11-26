@@ -21,6 +21,8 @@ export interface PeopleParams {
   q?: string;
   status?: PersonStatus;
   kind?: PersonKind;
+  /** Only people with no manager set. */
+  no_manager?: boolean;
   limit?: number;
   offset?: number;
 }

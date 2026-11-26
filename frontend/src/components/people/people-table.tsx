@@ -72,6 +72,18 @@ const columns: DataColumn<PersonListItem>[] = [
     meta: { className: "w-[34%]" },
   },
   {
+    id: "department",
+    accessorFn: (person) => person.department ?? "",
+    header: ({ column }) => <SortHeader column={column} title="Department" />,
+    cell: ({ row: { original: person } }) => (
+      <div className="min-w-0 leading-tight">
+        <div className="truncate">{person.department ?? <span className="text-muted-foreground">—</span>}</div>
+        {person.job_title && <div className="truncate text-xs text-muted-foreground">{person.job_title}</div>}
+      </div>
+    ),
+    meta: { className: "max-lg:hidden w-44" },
+  },
+  {
     accessorKey: "employee_code",
     header: ({ column }) => <SortHeader column={column} title="Code" />,
     cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string | null) ?? "—"}</span>,

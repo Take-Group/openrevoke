@@ -3,11 +3,12 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from app.models.enums import PersonKind, PersonKindSource, PersonLinkSource, PersonStatus
+from app.models.enums import ManagerSource, PersonKind, PersonKindSource, PersonLinkSource, PersonStatus
 from app.schemas.accounts import AccountOut
-from app.schemas.common import ApiModel, AppRef, MoneyAmount
+from app.schemas.common import ApiModel, AppRef, MoneyAmount, PersonRef
 
 Name = Field(min_length=1, max_length=200)
+OrgText = Field(default=None, max_length=200)
 
 
 class PersonCreate(BaseModel):
@@ -17,6 +18,9 @@ class PersonCreate(BaseModel):
     employee_code: str | None = Field(default=None, max_length=100)
     notes: str | None = None
     aliases: list[str] = Field(default_factory=list, description="Alias e-mails used to match accounts")
+    manager_id: uuid.UUID | None = Field(default=None, description="The person's manager (set as manual)")
+    department: str | None = OrgText
+    job_title: str | None = OrgText
 
 
 class PersonUpdate(BaseModel):
@@ -24,6 +28,9 @@ class PersonUpdate(BaseModel):
 
     ``status = left`` sets ``left_at`` to now unless ``left_at`` is given;
     ``status = active`` clears it. ``aliases`` replaces the whole alias list.
+    ``manager_id`` sets the manager by hand (``manager_source = manual``, kept by syncs); null
+    clears it, also as manual. A manager who already reports to this person, directly or through
+    others, is refused (400).
     """
 
     first_name: str | None = Field(default=None, min_length=1, max_length=200)
@@ -35,6 +42,9 @@ class PersonUpdate(BaseModel):
     left_at: datetime | None = None
     aliases: list[str] | None = None
     kind: PersonKind | None = Field(default=None, description="Person or service account; an admin's choice is kept")
+    manager_id: uuid.UUID | None = Field(default=None, description="Manager; null clears it. Syncs keep this choice")
+    department: str | None = OrgText
+    job_title: str | None = OrgText
 
 
 class PersonListItem(ApiModel):
@@ -48,6 +58,12 @@ class PersonListItem(ApiModel):
     kind: PersonKind = Field(description="human, or service: shared mailbox or technical account")
     kind_source: PersonKindSource = Field(description="auto: the rules set it (a sync may change it); manual: an admin")
     kind_reason: str | None = Field(description="Why the rules made it a service account")
+    department: str | None
+    job_title: str | None
+    manager: PersonRef | None = Field(description="The person's manager; approves their access requests")
+    manager_source: ManagerSource = Field(
+        description="auto: a people source sets it (a sync may change it); manual: an admin or a CSV import"
+    )
     accounts_count: int = Field(description="Accounts that are not removed")
     apps: list[AppRef] = Field(description="Apps where the person has a not-removed account")
     monthly_cost: list[MoneyAmount] = Field(description="Sum of per-seat prices of billable accounts, per currency")
@@ -89,3 +105,4 @@ class PersonDetail(PersonListItem):
     sources: list[PersonSourceOut]
     accounts: list[PersonAccountOut] = Field(description="All accounts of the person, removed ones included")
     can_delete: bool = Field(description="True when the person has no accounts and no actions (DELETE allowed)")
+    reports: list[PersonRef] = Field(description="People whose manager is this person, active first")
