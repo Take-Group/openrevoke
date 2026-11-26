@@ -36,13 +36,18 @@ class LatestRelease:
     checked_at: str
 
 
-def parse_version(value: str) -> tuple[int, int, int, bool] | None:
-    """``(major, minor, patch, is_final)``; None for anything that is not SemVer (e.g. ``dev``)."""
+def parse_version(value: str) -> tuple[int, int, int, bool, tuple[tuple[int, int | str], ...]] | None:
+    """A key in SemVer precedence order; None for anything that is not SemVer (e.g. ``dev``).
+
+    A final release sorts after its pre-releases, and numeric pre-release parts compare as numbers,
+    below text parts: 0.1.0-rc.2 < 0.1.0-rc.10 < 0.1.0.
+    """
     match = VERSION.match(value.strip())
     if match is None:
         return None
     major, minor, patch, prerelease = match.groups()
-    return int(major), int(minor), int(patch), prerelease is None
+    parts = tuple((0, int(part)) if part.isdigit() else (1, part) for part in (prerelease or "").split(".") if part)
+    return int(major), int(minor), int(patch), prerelease is None, parts
 
 
 def is_newer(candidate: str, current: str) -> bool:

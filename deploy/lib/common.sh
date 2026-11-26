@@ -73,10 +73,25 @@ download_bundle() {
 # 0 when $1 is a newer SemVer than $2 (pre-releases sort before their final release).
 version_gt() {
     [ "$1" != "$2" ] || return 1
+    # SemVer order: a release after its own pre-releases, numeric pre-release parts as numbers
+    # (rc.10 > rc.2). Same key as scripts/newest-version.sh in the repository.
     newest=$(printf '%s\n%s\n' "$1" "$2" | awk '
-        { v = $0; sub(/^v/, "", v); split(v, part, "-"); split(part[1], n, ".")
-          printf "%09d%09d%09d%s %s\n", n[1], n[2], n[3], (part[2] == "" ? "~" : part[2]), $0 }
-    ' | sort | tail -n 1 | awk '{ print $2 }')
+        function key(pre,   i, k, ids, out) {
+            if (pre == "") return "~"
+            k = split(pre, ids, ".")
+            out = ""
+            for (i = 1; i <= k; i++)
+                out = out (ids[i] ~ /^[0-9]+$/ ? sprintf("0%09d", ids[i]) : "1" ids[i]) "."
+            return out
+        }
+        NF {
+            v = $0; sub(/^v/, "", v)
+            pre = ""; dash = index(v, "-")
+            if (dash) { pre = substr(v, dash + 1); v = substr(v, 1, dash - 1) }
+            split(v, n, ".")
+            printf "%09d%09d%09d%s %s\n", n[1], n[2], n[3], key(pre), $0
+        }
+    ' | LC_ALL=C sort | tail -n 1 | awk '{ print $2 }')
     [ "$newest" = "$1" ]
 }
 

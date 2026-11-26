@@ -13,6 +13,12 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
 
 ## [Unreleased]
 
+### Fixed
+
+- Versions compare in SemVer order everywhere: a release is newer than its pre-releases and
+  `rc.10` is newer than `rc.2` (the update notice in the panel, `open-revoke update`, the release
+  scripts).
+
 ### Security
 
 - E-mail validation no longer slows down on crafted input (found by CodeQL); app logos and the

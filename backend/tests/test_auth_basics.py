@@ -72,3 +72,14 @@ def test_logo_path_stays_in_the_logo_folder() -> None:
     catalog = app_catalog()
     assert catalog.logo_path("../../config") is None
     assert catalog.logo_path("..") is None
+
+
+@pytest.mark.parametrize(
+    ("newer", "older"),
+    [("0.1.0", "0.1.0-rc.2"), ("0.1.0-rc.10", "0.1.0-rc.2"), ("0.2.0", "0.1.9"), ("1.0.0-rc.1", "1.0.0-beta.11")],
+)
+def test_update_check_uses_semver_precedence(newer: str, older: str) -> None:
+    from app.services.update_check import is_newer
+
+    assert is_newer(newer, older)
+    assert not is_newer(older, newer)

@@ -118,7 +118,7 @@ jobs:
           previous=${previous#v}
           newer=true
           if [ -n "$previous" ]; then
-            top=$(printf '%s\n%s\n' "$previous" "$VERSION" | sort -V | tail -n 1)
+            top=$(sh scripts/newest-version.sh "$previous" "$VERSION")
             if [ "$top" != "$VERSION" ] || [ "$previous" = "$VERSION" ]; then
               # A fix for an older line (0.4.3 after 0.5.0): no update test from a newer release,
               # and `latest` stays where it is.

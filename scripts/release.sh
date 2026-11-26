@@ -33,7 +33,7 @@ branch=$(git rev-parse --abbrev-ref HEAD)
 
 last=$(git tag -l 'v*' --sort=-v:refname | head -n 1)
 if [ -n "$last" ]; then
-    newest=$(printf '%s\n%s\n' "${last#v}" "$VERSION" | sort -V | tail -n 1)
+    newest=$(sh scripts/newest-version.sh "${last#v}" "$VERSION")
     [ "$newest" = "$VERSION" ] && [ "${last#v}" != "$VERSION" ] || die "$VERSION is not newer than the last release ${last#v}"
 fi
 
