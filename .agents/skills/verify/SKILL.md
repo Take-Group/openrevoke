@@ -29,6 +29,6 @@ Git). This skill is that step.
 5. Review the diff: scope, secrets (`.env`, keys), debug leftovers, files over 600 lines.
 6. Stage only your files by name (`git add <paths>`, never `-A`), then `git diff --cached --check`.
 7. Commit one logical change on `main`, message in English: what changed and why. No AI
-   attribution lines. No push.
+   attribution lines. No push: publishing is skill [ship](../ship/SKILL.md), through a pull request.
 
 Report the change, the checks with results, what stays unproven and the commit SHA.
