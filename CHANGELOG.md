@@ -13,6 +13,11 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
 
 ## [Unreleased]
 
+### Fixed
+
+- Release workflow: the Trivy gate scans for vulnerabilities only; its secret scanner took the text
+  `"type": "service_account"` for a Google key. 0.1.0-rc.1 stopped there and was never published.
+
 ## [0.1.0-rc.1] - 2026-11-26
 
 ### Security

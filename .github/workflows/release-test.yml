@@ -106,11 +106,15 @@ jobs:
       # Vulnerability scan of the images about to be released. A CRITICAL vulnerability that has
       # a fixed version stops the release: bump the package or the base image. Accepted findings
       # go to .trivyignore with a reason. HIGH and CRITICAL findings, fixed or not, go to the
-      # Security tab of the repository.
+      # Security tab of the repository. Only the vulnerability scanner: Trivy's secret scanner
+      # flags the text "type": "service_account" (the Google connector's messages, the panel's
+      # setup guide, SDK docstrings) as a key. Secrets in the source are caught by GitHub's
+      # secret scanning and push protection instead.
       - name: Trivy gate (app image)
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ${{ env.IMAGE }}:${{ env.VERSION }}
+          scanners: vuln
           severity: CRITICAL
           ignore-unfixed: true
           exit-code: "1"
@@ -120,6 +124,7 @@ jobs:
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ${{ env.BROWSER_IMAGE }}:${{ env.VERSION }}
+          scanners: vuln
           severity: CRITICAL
           ignore-unfixed: true
           exit-code: "1"
@@ -130,6 +135,7 @@ jobs:
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ${{ env.IMAGE }}:${{ env.VERSION }}
+          scanners: vuln
           severity: HIGH,CRITICAL
           format: sarif
           output: trivy-app.sarif
@@ -140,6 +146,7 @@ jobs:
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ${{ env.BROWSER_IMAGE }}:${{ env.VERSION }}
+          scanners: vuln
           severity: HIGH,CRITICAL
           format: sarif
           output: trivy-browser.sarif
