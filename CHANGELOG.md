@@ -13,6 +13,8 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
 
 ## [Unreleased]
 
+## [0.1.0-rc.2] - 2026-11-26
+
 ### Fixed
 
 - Release workflow: the Trivy gate scans for vulnerabilities only; its secret scanner took the text
