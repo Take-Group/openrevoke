@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import func, select, text
+from sqlalchemy import func, or_, select, text, update
 
 from app.database import async_session
 from app.models import Organization, User
@@ -164,13 +164,29 @@ async def complete(
         await rate_limit.hit("totp", user.email, limit=TOTP_ACCOUNT_LIMIT, window_seconds=LOGIN_WINDOW_SECONDS)
         await record_failed_sign_in(user.email, user.id, client_ip or "unknown", "totp")
         raise AuthenticationError(WRONG_CODE)
+    if not await _claim_step(session, user, step):  # a parallel request used this code first
+        raise AuthenticationError(WRONG_CODE)
     await tickets.use(ticket)
     current_actor.set(user.email)
     if pending.enroll_secret is not None:
         user.totp_secret_encrypted = encrypt_value(secret)
         await audit.record(session, "user.totp_enabled", "user", user.id)
-    user.totp_last_step = step
     return await _open_session(session, user, user_agent, client_ip)
+
+
+async def _claim_step(session: AsyncSession, user: User, step: int) -> bool:
+    """Store the used TOTP step in one conditional UPDATE, so two requests cannot both use one code.
+
+    A concurrent request that claimed the same step holds the row lock; PostgreSQL re-checks the
+    condition after it commits, and this update then matches no row.
+    """
+    result = await session.execute(
+        update(User)
+        .where(User.id == user.id, or_(User.totp_last_step.is_(None), User.totp_last_step < step))
+        .values(totp_last_step=step)
+        .execution_options(synchronize_session="fetch")
+    )
+    return result.rowcount == 1
 
 
 async def skip_enrollment(session: AsyncSession, *, ticket: str, user_agent: str | None) -> SignedIn:
