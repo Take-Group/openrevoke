@@ -49,6 +49,12 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
 - Request history: `/requests` with filters, Export CSV, and `/requests/<id>` with the timeline of
   every decision (who, when, via panel, API or Slack, comment); admins can decide for the manager.
 - Managers can ask for access for their reports; "Approved by" on actions.
+- Fast inventory: "Add app" starts with a search of the app catalog (name, website, logo and
+  the matching connector), "Add several apps" adds many catalog apps in one save, and an app
+  can have its own website, category and uploaded logo (PNG, JPEG, WebP or a checked SVG).
+- Accounts in bulk: a CSV import for many manual apps at once (with a preview and "Create missing
+  apps"), pasted e-mails on a manual app, and "Track" in discovery can add accounts for the
+  people who signed in.
 
 ### Changed
 

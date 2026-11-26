@@ -6,6 +6,7 @@ from app.api.accounts import router as accounts_router
 from app.api.actions import router as actions_router
 from app.api.ai import router as ai_router
 from app.api.api_tokens import router as api_tokens_router
+from app.api.apps import logo_router as app_logo_router
 from app.api.apps import router as apps_router
 from app.api.audit import router as audit_router
 from app.api.auth import router as auth_router
@@ -14,6 +15,7 @@ from app.api.browser import public_router as browser_policy_router
 from app.api.browser import router as browser_router
 from app.api.browser_live import router as browser_live_router
 from app.api.catalog import public_router as catalog_public_router
+from app.api.catalog import router as catalog_router
 from app.api.connections import router as connections_router
 from app.api.currencies import public_router as currencies_public_router
 from app.api.currencies import router as currencies_router
@@ -43,6 +45,7 @@ domain_router.include_router(discovery_router, tags=["discovery"])
 domain_router.include_router(google_oauth_router, tags=["discovery"])
 domain_router.include_router(google_cloud_setup_router, tags=["discovery"])
 domain_router.include_router(apps_router, tags=["apps"])
+domain_router.include_router(catalog_router, tags=["catalog"])
 domain_router.include_router(accounts_router, tags=["accounts"])
 domain_router.include_router(connections_router, tags=["connections"])
 domain_router.include_router(actions_router, tags=["actions"])
@@ -60,6 +63,7 @@ domain_router.include_router(system_router)
 # The signed-in user's own access: every role, with the cookie or an API token.
 self_router = APIRouter(prefix="/api", responses=ERROR_RESPONSES, dependencies=[Depends(get_current_user)])
 self_router.include_router(me_router, tags=["me"])
+self_router.include_router(app_logo_router, tags=["apps"])
 
 # The signed-in user's API tokens: every role, the panel session only (a token cannot manage tokens).
 session_router = APIRouter(prefix="/api", responses=ERROR_RESPONSES, dependencies=[Depends(get_current_session)])

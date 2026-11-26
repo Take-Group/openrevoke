@@ -159,6 +159,9 @@ class DiscoveredGrantOut(BaseModel):
 
 class DiscoveredAppDetail(DiscoveredAppOut):
     grants: list[DiscoveredGrantOut] = Field(description="At-risk people first, then by last sign-in")
+    accounts_created: int | None = Field(
+        default=None, description="Only in the answer to track with create_accounts: accounts it added"
+    )
 
 
 class DiscoveredAppUpdate(BaseModel):
@@ -172,6 +175,11 @@ class DiscoveredAppTrack(BaseModel):
     """Creates a manual app in Open Revoke (or links one with the same name) and tracks this one as it."""
 
     name: str | None = Field(default=None, min_length=1, max_length=200, description="Defaults to the found name")
+    create_accounts: bool = Field(
+        default=False,
+        description="Also add an active account for every person who signed in and is active in the directory. "
+        "Only for apps without a connector. Off by default: a Google sign-in does not prove a paid seat",
+    )
 
 
 class PersonDiscoveredApp(BaseModel):

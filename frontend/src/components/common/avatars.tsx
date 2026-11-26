@@ -32,17 +32,29 @@ interface AppAvatarProps {
   connectorKey?: string | null;
   /** Slug in the API's app catalog, when the API matched the app (discovery matches by OAuth client). */
   catalogSlug?: string | null;
+  /**
+   * `logo_url` from the API (uploaded logo, else the catalog's). Pass it, also when null: then the
+   * avatar does not look the app up in the catalog by name.
+   */
+  logoUrl?: string | null;
   size?: AvatarSize;
   className?: string;
 }
 
+/** An uploaded logo, served by the API for this instance's app (or a picked file before upload). */
+function isUploaded(url: string | null | undefined): url is string {
+  return Boolean(url?.startsWith("/api/apps/") || url?.startsWith("blob:"));
+}
+
 /**
- * App mark, first that exists: the bundled brand icon (simple-icons), the logo from the API's app
- * catalog (a picture on a white tile, as app stores show them), initials.
+ * App mark, first that exists: the logo an admin uploaded, the bundled brand icon (simple-icons), the
+ * catalog logo (`logoUrl`, or a lookup by name when it is not given; a picture on a white tile, as app
+ * stores show them), initials.
  */
-export function AppAvatar({ name, slug, connectorKey, catalogSlug, size = "md", className }: AppAvatarProps) {
-  const catalog = useAppCatalog()(catalogSlug, slug, name);
-  const brand = findBrand(connectorKey, catalog?.slug, slug, name);
+export function AppAvatar({ name, slug, connectorKey, catalogSlug, logoUrl, size = "md", className }: AppAvatarProps) {
+  const lookup = useAppCatalog();
+  const catalog = logoUrl === undefined ? lookup(catalogSlug, slug, name) : lookup(catalogSlug);
+  const brand = isUploaded(logoUrl) ? null : findBrand(connectorKey, catalog?.slug, slug, name);
   const [broken, setBroken] = useState<string | null>(null);
   const base = cn(
     "inline-flex shrink-0 items-center justify-center rounded-md border bg-background font-semibold select-none dark:bg-muted/50",
@@ -79,11 +91,12 @@ export function AppAvatar({ name, slug, connectorKey, catalogSlug, size = "md", 
       </span>
     );
   }
-  const logo = !icon && catalog?.logo_url && broken !== catalog.logo_url ? catalog.logo_url : null;
+  const picture = logoUrl === undefined ? catalog?.logo_url : logoUrl;
+  const logo = !icon && picture && broken !== picture ? picture : null;
   if (logo) {
     return (
       <span className={cn(base, "overflow-hidden bg-white p-px dark:bg-white")} title={name}>
-        {/* eslint-disable-next-line @next/next/no-img-element -- a small bundled PNG from the API, no resizing needed */}
+        {/* eslint-disable-next-line @next/next/no-img-element -- a small logo from the API (same origin), no resizing needed */}
         <img
           src={logo}
           alt={name}

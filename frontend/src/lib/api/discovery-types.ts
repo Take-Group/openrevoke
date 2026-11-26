@@ -124,6 +124,8 @@ export interface DiscoveredGrantOut {
 
 export interface DiscoveredAppDetail extends DiscoveredAppOut {
   grants: DiscoveredGrantOut[];
+  /** Only in the answer to track with `create_accounts`: accounts it added. */
+  accounts_created?: number | null;
 }
 
 export interface DiscoveredAppUpdate {

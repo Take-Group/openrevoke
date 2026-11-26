@@ -70,7 +70,13 @@ function DiscoveredApp({ app }: { app: DiscoveredAppDetail }) {
         title={name}
         badges={<StatusBadge status={app.status} label={STATUS_LABEL[app.status]} tone={STATUS_TONE[app.status]} />}
         subtitle={<Subtitle app={app} />}
-        actions={<ReviewActions app={app} size="default" />}
+        actions={
+          <ReviewActions
+            app={app}
+            size="default"
+            activeSignIns={app.grants.filter((grant) => grant.directory_status === "active").length}
+          />
+        }
       />
       <StatStrip>
         <Stat label="People" icon={UsersIcon}>

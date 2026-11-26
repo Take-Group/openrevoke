@@ -19,7 +19,9 @@ and the frontend takes its types from it.
 | `backend/app/services/accounts.py` | accounts: list, manual account, assignment, `rematch_accounts`, `unassigned_clause` |
 | `backend/app/services/people.py`, `people_import.py`, `people_sources.py` | people, aliases, CSV import, sources and `person_link` |
 | `backend/app/services/people_managers.py`, `people_import_managers.py` | reporting lines: `set_manager`, `creates_cycle`, reports, `needs_manager_clause`; manager column of the CSV import |
-| `backend/app/services/apps.py` | apps, `seat_stats` (accounts, seats, without an owner) |
+| `backend/app/services/apps.py` | apps, `seat_stats` (accounts, seats, without an owner), `add_app` (from `catalog_key` too), categories |
+| `backend/app/services/apps_bulk.py`, `app_logos.py`, `catalog_search.py` | several apps at once, uploaded logos, catalog search for "Add app" (`skills/backend/app-catalog.md`) |
+| `backend/app/services/accounts_import.py` | accounts in bulk for manual apps: CSV, pasted e-mails, people from discovery |
 | `backend/app/services/actions.py`, `offboarding.py`, `onboarding.py`, `capabilities.py` | actions, status transitions, offboarding, onboarding; execution and verification: `skills/backend/actions.md` |
 | `backend/app/services/access/profiles.py` and `profile_*.py` | access profiles: apps with roles, assignment, drift (`skills/backend/access-profiles.md`) |
 | `backend/app/services/dashboard.py` | counts, monthly cost, alerts (also `profile_access_missing` per access profile) |
@@ -95,6 +97,27 @@ and the frontend takes its types from it.
 - **Deleting a person** (`DELETE /api/people/{id}`): only without accounts and actions
   (409), e.g. a person added by mistake. `PersonDetail.can_delete` says
   whether it is allowed. Leaving the company is offboarding, not deletion.
+- **App identity:** `app.catalog_key` (slug in `catalog/apps.json`, set when
+  the app was picked from the catalog or tracked from discovery), `website`,
+  `category` (free text, stored lowercase; suggestions in
+  `schemas/apps.CATEGORIES`) and an uploaded `logo` with `logo_content_type`.
+  `logo` is deferred: list queries never load it; only `app_logos.get_logo`
+  reads it. `presenters.app_logo_url` gives every `AppListItem` and `AppRef`
+  its `logo_url`: uploaded logo (`/api/apps/{id}/logo`), else the catalog's
+  by `catalog_key`, else by name, else null.
+- **Accounts in bulk** (`services/accounts_import.py`), only for apps with
+  `integration = manual` (others: a row error or 409; their accounts come from
+  the sync). CSV `app,email,username,display_name,role,status,kind` (`app` =
+  name, the app's slug or a catalog slug or alias; 2 MB, 10 000 rows) at
+  `POST /api/accounts/import?dry_run=&create_apps=`; pasted e-mails at
+  `POST /api/apps/{id}/accounts/bulk` (`{"emails": "..."}`, new lines, commas,
+  semicolons, `Name <e-mail>`). A row matches an account of the app by
+  lowercase e-mail (or `external_id`), then username; it updates non-empty
+  cells, deletes nothing. New accounts match people with the e-mail index (as
+  sync). With `create_apps` an unknown app becomes a manual, free app, named
+  from the catalog when the value matches it. The answer has a plan per row
+  (`create`, `update`, `unchanged`, `error`), counts and `new_apps`; one
+  `accounts.imported` audit event per app (`via`: csv, paste, discovery).
 - **Actions:** status transitions are in `TRANSITIONS` in `services/actions.py`.
   A person closes a `manual_task` (`complete`), and it does not go through
   `running`. A connector action ends as `done` only through `running` or

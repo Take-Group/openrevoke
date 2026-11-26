@@ -125,6 +125,7 @@
     {"slug": "gmelius", "name": "Gmelius", "website": "https://gmelius.com", "google_client_ids": ["535790240972-0hliusdo5vfeudq24ub8961e22iedg1l.apps.googleusercontent.com"]},
     {"slug": "gologin", "name": "GoLogin", "website": "https://gologin.com", "google_client_ids": ["713507725115-sfv5mksf4jjsrccnmaut7rhdmtavk2d5.apps.googleusercontent.com"]},
     {"slug": "gong", "name": "Gong", "website": "https://www.gong.io"},
+    {"slug": "google-workspace", "name": "Google Workspace", "website": "https://workspace.google.com", "aliases": ["G Suite"], "fetch_logo": false},
     {"slug": "gorgias", "name": "Gorgias", "website": "https://www.gorgias.com", "google_client_ids": ["849257281300-l3s6vg4mfucht73913m4kd4dutk3jjac.apps.googleusercontent.com"]},
     {"slug": "goto", "name": "GoTo Meeting", "website": "https://www.goto.com/meeting", "aliases": ["GoToMeeting", "GoTo"]},
     {"slug": "grafana", "name": "Grafana Cloud", "website": "https://grafana.com", "aliases": ["Grafana"], "google_client_ids": ["866630123061-90gforkpe6r7lpljhdp246icb4h28rk3.apps.googleusercontent.com"]},

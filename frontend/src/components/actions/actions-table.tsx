@@ -122,7 +122,7 @@ const columns: DataColumn<ActionOut>[] = [
     header: ({ column }) => <SortHeader column={column} title="App" />,
     cell: ({ row: { original: action } }) => (
       <div className="flex items-center gap-2.5">
-        <AppAvatar name={action.app.name} slug={action.app.slug} size="sm" />
+        <AppAvatar name={action.app.name} slug={action.app.slug} logoUrl={action.app.logo_url} size="sm" />
         <span className="font-medium">{action.app.name}</span>
       </div>
     ),

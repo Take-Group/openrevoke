@@ -2,7 +2,7 @@
 
 Shared screen-level components of the panel: forms, messages, states, headers, badges, pickers. Build pages from these; the rules and the full catalogue are in `open-revoke/skills/frontend/ui-kit.md` (read it first). Primitives they sit on are in `ui/`; if nothing here fits, add a component here, not inline in a page.
 
-- `avatars.tsx`: `AppAvatar` (name, slug, connectorKey, catalogSlug, size; simple-icons mark, then the app catalog logo from `useAppCatalog`, then initials), `PersonAvatar` (firstName, lastName, email), `GlyphAvatar` (icon). `size`: xs, sm, md, lg.
+- `avatars.tsx`: `AppAvatar` (name, slug, connectorKey, catalogSlug, logoUrl, size; an uploaded logo from `logoUrl`, then the simple-icons mark, then `logoUrl` or, without it, the catalog logo looked up by name, then initials), `PersonAvatar` (firstName, lastName, email), `GlyphAvatar` (icon). `size`: xs, sm, md, lg.
 - `choice-cards.tsx`: `ChoiceCards` radio-like cards; `ChoiceOption` has value, label, hint, icon.
 - `code-block.tsx`: `CodeBlock` (code, label): a multi-line command or config snippet, kept as written, with a copy button.
 - `confirm-dialog.tsx`: `ConfirmDialog` (open, title, description, confirmLabel, `destructive`, `pending`, onConfirm, children). The short-question dialog.
@@ -29,6 +29,7 @@ Shared screen-level components of the panel: forms, messages, states, headers, b
 - `rates-source.tsx`: `RatesSource` caption of the exchange-rate date; `formatRatesDay`.
 - `relative-time.tsx`: `RelativeTime` ("3 days ago").
 - `search-input.tsx`: `SearchInput` (value, onChange, placeholder), `Toolbar` (filters left, actions right).
+- `catalog-app-picker.tsx`: `CatalogAppPicker` (combobox over `GET /api/catalog/search`: logo, name, website, "Added"), `CatalogItemLabel`, `hostOf`. Hook `useCatalogSearch`.
 - `searchable-select.tsx`: `SearchableSelect` with search and groups (`SearchableGroup`, `SearchableOption` with hint and keywords).
 - `segmented.tsx`: `Segmented` filter switch (options with count, `attention`; label).
 - `spinner.tsx`: `Spinner`.

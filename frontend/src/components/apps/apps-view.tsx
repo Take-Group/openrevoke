@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AppWindowIcon, PlusIcon } from "lucide-react";
+import { AppWindowIcon, FileUpIcon, LayoutGridIcon, PlusIcon } from "lucide-react";
 
 import { AppsTable } from "@/components/apps/apps-table";
 import { EmptyState } from "@/components/common/empty-state";
@@ -29,6 +29,22 @@ function AddAppButton() {
   );
 }
 
+function HeaderActions() {
+  return (
+    <>
+      <LinkButton href="/accounts/import" variant="outline" title="Import accounts">
+        <FileUpIcon />
+        <span className="max-md:sr-only">Import accounts</span>
+      </LinkButton>
+      <LinkButton href="/apps/new/bulk" variant="outline" title="Add several apps">
+        <LayoutGridIcon />
+        <span className="max-md:sr-only">Add several apps</span>
+      </LinkButton>
+      <AddAppButton />
+    </>
+  );
+}
+
 const INTEGRATION_FILTER = [
   { value: "all" as const, label: "All" },
   ...(Object.keys(INTEGRATION) as Integration[]).map((value) => ({ value, label: INTEGRATION[value].label })),
@@ -45,6 +61,7 @@ export function AppsView() {
   const [search, setSearch] = useState("");
   const [integration, setIntegration] = useState<Integration | "all">("all");
   const [status, setStatus] = useState<ConnectionStatus | "">("");
+  const [category, setCategory] = useState("");
   const [offset, setOffset] = useState(0);
   const q = useDebouncedValue(search.trim(), 300);
 
@@ -52,13 +69,17 @@ export function AppsView() {
     q: q || undefined,
     integration: integration === "all" ? undefined : integration,
     status: status || undefined,
+    category: category || undefined,
     limit: PAGE_SIZE,
     offset,
   });
 
+  // Categories in use come with every page; keep the last ones while a filter loads.
+  const categories = query.data?.categories ?? [];
+
   return (
     <>
-      <PageHeader title="Apps" actions={<AddAppButton />} />
+      <PageHeader title="Apps" actions={<HeaderActions />} />
       <Toolbar>
         <SearchInput
           placeholder="Search apps"
@@ -88,13 +109,26 @@ export function AppsView() {
             setOffset(0);
           }}
         />
+        {categories.length > 0 && (
+          <OptionSelect
+            className="w-40"
+            aria-label="Category"
+            placeholder="Any category"
+            options={categories.map((value) => ({ value, label: value.charAt(0).toUpperCase() + value.slice(1) }))}
+            value={category}
+            onChange={(next) => {
+              setCategory(next);
+              setOffset(0);
+            }}
+          />
+        )}
       </Toolbar>
       <QueryState query={query} loading={<TableSkeleton rows={8} />}>
         {(page) => (
           <>
             <AppsTable
               apps={page.items}
-              filtered={Boolean(q || integration !== "all" || status)}
+              filtered={Boolean(q || integration !== "all" || status || category)}
               empty={<EmptyState icon={AppWindowIcon} title="No apps yet" action={<AddAppButton />} />}
             />
             <Pager total={page.total} limit={PAGE_SIZE} offset={offset} onOffsetChange={setOffset} />

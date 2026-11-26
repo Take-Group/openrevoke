@@ -3,7 +3,7 @@
 Pydantic request/response models of the panel API, one file per router in `app/api/` (same name unless noted). They define `docs/openapi.json`, which is the panel's contract. All inherit `ApiModel`.
 
 - `__init__.py`: empty.
-- `common.py`: `ApiModel` (base), `MoneyAmount`, refs `AppRef`, `PersonRef`, `AccountRef`, `ErrorResponse` (used by `api/errors.py`).
+- `common.py`: `ApiModel` (base), `MoneyAmount`, refs `AppRef` (with `logo_url`), `PersonRef`, `AccountRef`, `ErrorResponse` (used by `api/errors.py`).
 - `auth.py`: `api/auth.py` and `api/users.py` organization: `UserOut`, `OrganizationOut`/`OrganizationSettingsOut`/`OrganizationUpdate` (`EmailDomains`), `AuthState`, `SetupRequest` (with `token`), `SetupTokenCheck`, `LoginRequest`, `RegisterRequest`, `SignupRequest`/`SignupResult`, `AuthStep` (+ `AuthStepKind`, `TotpEnrollment`), `TotpRequest`, `TotpSkipRequest`, `InviteInfo`, `ResetPasswordRequest`, `ChangePasswordRequest`, `DevPrefill`.
 - `users.py`: `api/users.py`: `InviteCreate`, `InviteOut`, `InviteCreated`, `InviteList`, `UserUpdate`, `ResetLinkOut`.
 - `api_tokens.py`: `api/api_tokens.py`: `ApiTokenOut`, `ApiTokenList` (with `mcp_url`), `ApiTokenCreate`, `ApiTokenCreated` (the token once).
@@ -11,8 +11,8 @@ Pydantic request/response models of the panel API, one file per router in `app/a
 - `access_requests.py`: `api/access_requests.py`, `api/me.py` approvals: `AccessRequestOut`, `AccessRequestDetail` (decisions, action, seat cost), `AccessRequestDecisionOut`, `AccessRequestActionOut`, `AccessRequestPage`, `AccessRequestDecisionCreate`, `MyApprovals`, `WaitingFor`.
 - `people.py`: `api/people.py`: `PersonCreate`, `PersonUpdate`, `PersonListItem`, `PersonPage`, `PersonDetail` (with `AliasOut`, `PersonSourceOut`, `PersonAccountOut`).
 - `people_import.py`: POST `/people/import`: `ImportResult`, `ImportRowResult`, `ImportRowAction`, `FieldChange`.
-- `apps.py`: `api/apps.py`: `AppCreate`, `AppUpdate`, `AppListItem`, `AppPage`, `AppDetail`, `PriceIn`/`PriceOut`.
-- `accounts.py`: `api/accounts.py` and `/apps/{id}/accounts`: `AccountOut`, `AccountPage`, `AccountCreate`, `AccountUpdate`.
+- `apps.py`: `api/apps.py`: `AppCreate`, `AppUpdate`, `AppListItem`, `AppPage`, `AppDetail`, `PriceIn`/`PriceOut`, `AppBulkCreate`/`Item`/`Result`/`Skipped`, `CATEGORIES`.
+- `accounts.py`: `api/accounts.py` and `/apps/{id}/accounts`: `AccountOut`, `AccountPage`, `AccountCreate`, `AccountUpdate`, `AccountImportResult`/`Row`/`NewApp`, `AccountsPaste`.
 - `connections.py`: `api/connections.py`: `ConnectionOut`, `ConnectionUpsert`, `ConnectionCheckResult`, `SyncRunOut`, `SyncRunPage`, `ConnectorOut`, `ConnectorPage`.
 - `actions.py`: `api/actions.py` plus on/offboarding in `api/people.py`: `ActionCreate`, `ActionOut`, `ActionPage`, `ActionList`, `ActionPayload`, `BatchApproveResult`, `NotApproved`, `ActionSecret`; `OffboardResult`/`OffboardSkipped`, `OnboardRequest`/`OnboardApp`/`OnboardResult`/`OnboardSkipped`; enums `WriteKind`, `WriteMode`.
 - `recipe_fixes.py`: `api/recipe_fixes.py` and `ActionOut.recipe_fixes`: `RecipeFixOut`, `RecipeFixList`.
@@ -25,6 +25,6 @@ Pydantic request/response models of the panel API, one file per router in `app/a
 - `audit.py`: `api/audit.py`: `AuditEventOut`, `AuditEventPage`.
 - `ai.py`: `api/ai.py`: `AiSettingsOut`, `AiSettingsUpdate`, `AiProviderOut`, `AiModelsRequest`, `AiModelOut` (id, name, efforts), `AiModelList`, `AiTestResult`.
 - `slack_agent.py`: `api/slack_agent.py`: `SlackAgentOut`, `SlackAgentUpdate`, `SlackAppCreate`, `SlackTokensUpdate`, `SlackOAuthStart`.
-- `catalog.py`: `api/catalog.py`: `CatalogAppOut`, `CatalogAppList`, `CatalogMatchOut` (also in discovered apps).
+- `catalog.py`: `api/catalog.py`: `CatalogAppOut`, `CatalogAppList`, `CatalogMatchOut` (also in discovered apps), `CatalogSearchItem`, `CatalogSearchList`.
 - `currencies.py`: `api/currencies.py`: `CurrencyList`, `ExchangeRatesInfo`.
 - `system.py`: `api/system.py`: `SystemVersion`.

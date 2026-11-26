@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PlusIcon } from "lucide-react";
+import { ClipboardPasteIcon, PlusIcon } from "lucide-react";
 
 import { AccountsTable } from "@/components/apps/accounts-table";
 import { LinkButton } from "@/components/common/links";
@@ -42,10 +42,16 @@ export function AppAccountsTab({ app, initialFilter }: { app: AppDetail; initial
       <Toolbar
         actions={
           app.integration === "manual" && (
-            <LinkButton href={`/apps/${app.id}/accounts/new`}>
-              <PlusIcon />
-              Add account
-            </LinkButton>
+            <>
+              <LinkButton href={`/apps/${app.id}/accounts/bulk`} variant="outline" title="Paste e-mails">
+                <ClipboardPasteIcon />
+                <span className="max-md:sr-only">Paste e-mails</span>
+              </LinkButton>
+              <LinkButton href={`/apps/${app.id}/accounts/new`}>
+                <PlusIcon />
+                Add account
+              </LinkButton>
+            </>
           )
         }
       >

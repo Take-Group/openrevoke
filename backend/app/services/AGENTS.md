@@ -9,8 +9,12 @@ Logic between `app/api/`, `app/temporal/` activities and `app/models/`. Services
 - `access/`: own AGENTS.md. Access requests and approvals, managers, access profiles, My access.
 - `audit.py`: `record`, `list_events`; append-only log, also fills app and person of an event.
 - `presenters.py`: model to schema builders (`account_out`, `app_ref`, `app_logo_url`, `person_ref`, `money`), shared by services.
-- `apps.py`: app CRUD with seats (`seat_stats`).
+- `apps.py`: app CRUD with seats (`seat_stats`); `add_app` (no audit, from `catalog_key` too), `used_categories`, `clean_category`.
+- `apps_bulk.py`: `create_apps` ("Add several apps": skip existing, one `app.bulk_created` event), `existing_apps`.
+- `app_logos.py`: uploaded logos: `set_logo` (type from bytes, SVG checks), `delete_logo`, `get_logo` (the only read of the deferred `app.logo`).
+- `catalog_search.py`: `search` for "Add app" (already added, found by discovery), `discovered_untracked`.
 - `accounts.py`: `list_app_accounts`, `create_manual_account`, `update_account`, `set_owner`, `rematch_accounts`.
+- `accounts_import.py`: accounts in bulk for manual apps: `import_csv` (`create_apps`), `import_emails` (pasted), `add_people_accounts` (discovery); `dry_run` plans per row.
 - `matching.py`: account to person by e-mail, order manual, primary, alias (`resolve_match`, `match_email`, `EmailIndex`).
 - `people.py`: people CRUD with e-mail and code uniqueness checks; manager, department, job title, `no_manager` filter.
 - `people_managers.py`: reporting lines: `set_manager` (panel, manual), `creates_cycle`, `manager_map`, `reports_of`, `without_manager_clause`, `needs_manager_clause` (dashboard alert).
@@ -32,7 +36,7 @@ Logic between `app/api/`, `app/temporal/` activities and `app/models/`. Services
 - `discovery_scan.py`: `start_run`, `run`, `fail_run`, `scan_lock`; app discovery scan, for `ScanConnectionWorkflow`.
 - `discovery_apply.py`: `apply_discovery` merges found apps, grants, directory state.
 - `discovery.py`: read side: `overview`, `list_discovered_apps`, `get_discovered_app`, `person_discovered_apps`, `apps_at_risk`, `grant_risk`.
-- `discovery_review.py`: `update_discovered_app` (ignore), `track_discovered_app` (becomes an app).
+- `discovery_review.py`: `update_discovered_app` (ignore), `track_discovered_app` (becomes an app with its `catalog_key`; `create_accounts` adds accounts for active sign-ins).
 - `discovery_setup.py`: `setup_google_source` onboarding in one step: verifies the key and scope, then first sync and scan.
 - `discovery_sources.py`: connections able to scan (`discovery_connections`, `discovery_keys`).
 - `scan_requests.py`: `request_scan`, `resolve_source`.

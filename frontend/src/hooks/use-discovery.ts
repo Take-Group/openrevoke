@@ -163,8 +163,11 @@ export function useUpdateDiscoveredApp(id: string) {
 
 export function useTrackDiscoveredApp(id: string) {
   return useApiMutation({
-    mutationFn: () => apiSend<DiscoveredAppDetail>("POST", `/api/discovery/apps/${id}/track`),
-    invalidate: ["discovery", "apps"],
-    success: (app) => `Tracking ${app.app?.name ?? app.name}`,
+    mutationFn: (options: { create_accounts?: boolean } | void) =>
+      apiSend<DiscoveredAppDetail>("POST", `/api/discovery/apps/${id}/track`, options ?? undefined),
+    invalidate: ["discovery", "apps", "accounts", "people", "person"],
+    success: (app) =>
+      `Tracking ${app.app?.name ?? app.name}` +
+      (app.accounts_created != null ? `, ${app.accounts_created} account(s) added` : ""),
   });
 }

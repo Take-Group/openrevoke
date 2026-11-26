@@ -3,7 +3,7 @@
 FastAPI routers of the panel API: thin handlers that validate input with `app/schemas/`, call one `app/services/` module and return a schema. No business logic here. `router.py` mounts everything under `/api`; paths below are relative to `/api` unless noted.
 
 - `__init__.py`: empty.
-- `router.py`: builds `api_router`. `domain_router` (prefix `/api`, every route needs `require_admin`) includes the panel routers; `self_router` (`/api/me`, any signed-in user, cookie or token); `session_router` (`/api/api-tokens`, the panel cookie only); `health`, `auth`, public currencies and app catalog, the Google OAuth callback and `browser_live` sit outside it; `dev_router` is the fake panel.
+- `router.py`: builds `api_router`. `domain_router` (prefix `/api`, every route needs `require_admin`) includes the panel routers; `self_router` (`/api/me` and the app logo GET, any signed-in user, cookie or token); `session_router` (`/api/api-tokens`, the panel cookie only); `health`, `auth`, public currencies and app catalog, the Google OAuth callback and `browser_live` sit outside it; `dev_router` is the fake panel.
 - `deps.py`: `SessionDep` (AsyncSession), `DispatcherDep`, `ActionDispatcherDep`, `ScanDispatcherDep` (Temporal starters from `app/temporal/`).
 - `auth_deps.py`: `get_current_session` (cookie only), `get_current_user` (API token `Authorization: Bearer`, else the cookie; a read token gets only safe methods), `require_admin`, `require_client_header` (CSRF header `X-Open-Revoke-Client` on unsafe methods with the cookie), `bearer_token`; aliases `CurrentUserDep`, `CurrentSessionDep`, `AdminDep`, `OptionalSessionDep`. Use `AdminDep` for admin-only routes.
 - `params.py`: shared list query params `SearchQuery`, `Limit`, `Offset`, `DEFAULT_LIMIT`.
@@ -17,12 +17,12 @@ FastAPI routers of the panel API: thin handlers that validate input with `app/sc
 - `dashboard.py`: GET `/dashboard` (`services.dashboard.get_dashboard`).
 - `setup_checklist.py`: GET `/onboarding`, PUT `/onboarding/choices`, POST `/onboarding/dismiss` (`services.setup_checklist`).
 - `people.py`: `/people` list/create, POST `/people/import`, GET/PATCH/DELETE `/people/{id}`, POST `/people/{id}/offboard` and `/onboard`. Services: `people`, `people_import`, `offboarding`, `onboarding`.
-- `apps.py`: `/apps` CRUD, GET/POST `/apps/{id}/accounts`. Services: `apps`, `accounts`; delete also drops the sync schedule (`sync_dispatch`).
-- `accounts.py`: PATCH `/accounts/{id}` (`services.accounts`).
+- `apps.py`: `/apps` CRUD (list filter `category`, `categories` in the page), POST `/apps/bulk` (`apps_bulk`), GET/POST `/apps/{id}/accounts`, POST `/apps/{id}/accounts/bulk` (pasted e-mails, `?dry_run`, `accounts_import`), PUT/DELETE `/apps/{id}/logo` (`app_logos`); `logo_router` GET `/apps/{id}/logo` for any signed-in user (in `self_router`; `nosniff`, CSP, ETag). Services: `apps`, `accounts`; delete also drops the sync schedule (`sync_dispatch`).
+- `accounts.py`: POST `/accounts/import` (CSV, `?dry_run`, `?create_apps`; `services.accounts_import`), PATCH `/accounts/{id}` (`services.accounts`).
 - `connections.py`: GET `/connectors`, PUT `/apps/{id}/connection`, POST `/apps/{id}/connection/check` and `/sync` (202, `sync_requests.request_sync`), GET `/apps/{id}/sync-runs`. Services: `connections`, `sync_dispatch`.
 - `actions.py`: POST/GET `/actions`, POST `/actions/batch/{batch_id}/approve`, `/actions/{id}/approve`, `/cancel`, `/complete`, `/retry`, `/by-hand`, `/reveal-secret`, GET `/actions/{id}/screenshot` (PNG). Services: `actions`, `action_approval` (starts the workflow), `action_retry`, `action_queries`.
 - `recipe_fixes.py`: GET `/recipe-fixes` (`?recipe_app=`), POST `/recipe-fixes/{id}/approve` and `/reject`. Service `recipe_fixes`.
-- `discovery.py`: GET `/discovery`, POST `/discovery/source`, `/discovery/scan` (202), GET `/discovery/scans`, `/discovery/apps`, GET/PATCH `/discovery/apps/{id}`, POST `/discovery/apps/{id}/track`, GET `/people/{id}/discovered-apps`. Services: `discovery`, `discovery_review`, `discovery_setup`, `scan_requests`.
+- `discovery.py`: GET `/discovery`, POST `/discovery/source`, `/discovery/scan` (202), GET `/discovery/scans`, `/discovery/apps`, GET/PATCH `/discovery/apps/{id}`, POST `/discovery/apps/{id}/track` (`create_accounts`), GET `/people/{id}/discovered-apps`. Services: `discovery`, `discovery_review`, `discovery_setup`, `scan_requests`.
 - `google_oauth.py`: POST `/discovery/google-oauth/start` (admin); `callback_router` GET `/api/discovery/google-oauth/callback` (public, 303 redirect to the panel). Service `google_oauth`.
 - `google_cloud_setup.py`: GET/POST `/discovery/google-cloud-setup` (`services.google_cloud_setup.service`, browser automation).
 - `browser.py`: GET `/browser`, POST `/browser/open` (`services.browser`); `public_router` GET `/api/browser/policy` (no sign-in: the browser container polls which password manager to force-install).
@@ -32,7 +32,7 @@ FastAPI routers of the panel API: thin handlers that validate input with `app/sc
 - `slack_agent.py`: GET/PATCH/DELETE `/slack-agent`, POST `/slack-agent/app`, `/avatar`, PUT `/slack-agent/tokens`, GET `/slack-agent/oauth/start` and `/oauth/callback` (back to `/settings/slack`). Service `slack_agent_setup`.
 - `access_requests.py`: GET `/access-requests` (filters), GET `/export` (CSV), GET `/{id}`, POST `/{id}/approve`, `/{id}/reject` (admin step or override) (`services.access.queries`, `access.flow`).
 - `access_profiles.py`: GET/POST `/access-profiles`, GET `/access-profiles/app-roles`, GET/PATCH/DELETE `/access-profiles/{id}`, GET/POST `/access-profiles/{id}/members`, GET/POST `/people/{id}/access-profiles`, DELETE `/people/{id}/access-profiles/{profile_id}`, GET `/people/{id}/access-drift`. Services `access.profiles`, `access.profile_assignment`, `access.profile_members`.
-- `catalog.py`: `public_router` (public) GET `/api/catalog/apps`, GET `/api/catalog/logos/{slug}.png` (`app.catalog.lookup`).
+- `catalog.py`: `public_router` (public) GET `/api/catalog/apps`, GET `/api/catalog/logos/{slug}.png` (`app.catalog.lookup`); `router` (admins) GET `/catalog/search` (`services.catalog_search`: `connector_key`, `already_added`, `discovered_users`).
 - `currencies.py`: `public_router` GET `/api/currencies` (public); `router` POST `/exchange-rates/refresh` (admin). Service `exchange_rates`.
 - `system.py`: GET `/system/version` (admin): running version and the newest release (`services.system_info`).
 - `dev_panel.py`: fake SaaS admin panel at `/api/dev/fake-panel` (login, users, invite, remove, HTML `/admin` for the click recipe, `/ui?version=2` to break its look), no panel session; 404 unless `fake_connector_enabled()`. Backs `connectors/browser_fake`.

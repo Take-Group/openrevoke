@@ -13,8 +13,9 @@ The only place that talks HTTP to the API, plus the response types, written by h
 - `discovery-types.ts`: app discovery (`DiscoveryOverview`, `DiscoveredAppOut`, `DiscoveredAppDetail`, Google Cloud setup, scan runs).
 - `billing-types.ts`: `AppBillingOut` (`AppDetail.billing`: plan and price read from the app's billing).
 - `recipe-fix-types.ts`: click recipe fixes (`RecipeFixStatus`, `RecipeFixOut`, `RecipeFixList`; `ActionOut.recipe_fixes`).
-- `catalog-types.ts`: app catalog (`CatalogAppOut`, `CatalogAppList`, `CatalogMatchOut`, `CatalogMatchedBy`).
 - `browser-types.ts`: shared browser (`BrowserTab`, `BrowserApp`, `BrowserState`, `BrowserOpenRequest`).
+- `catalog-types.ts`: app catalog (`CatalogAppOut`, `CatalogAppList`, `CatalogMatchOut`, `CatalogMatchedBy`, `CatalogSearchItem`, `CatalogSearchList`).
+- `inventory-types.ts`: fast inventory (`AppCatalogFields` and `AppCatalogInput` used by `AppListItem`/`AppCreate`, `AppPage`, `APP_CATEGORIES`, `AppBulkItem`/`Result`/`Skipped`, `AccountImportResult`/`Row`/`NewApp`).
 - `system-types.ts`: `SystemVersion` (GET `/api/system/version`).
 - `access-profile-types.ts`: access profiles (`AccessProfileOut`, `AccessProfileCreate`/`Update`, drift `AccessDrift`, `PersonAccessDrift`, `AccessProfileMember`, assignment `ProfileAssign`, `MembersAssign`, `ProfileAssignResult`, `PlannedAction`, `ProfileUnassignResult`).
 - `onboarding-types.ts`: `/welcome` questions and dashboard checklist (`OnboardingOut`, `PeopleImport`, `ChatPlatform`, `PasswordManager`).

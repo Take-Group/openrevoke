@@ -38,7 +38,7 @@ function OpenActions({ personId }: { personId: string }) {
       <ul className="divide-y text-sm">
         {items.map((action) => (
           <li key={action.id} className="flex items-center gap-3 px-4 py-2.5">
-            <AppAvatar name={action.app.name} slug={action.app.slug} size="sm" />
+            <AppAvatar name={action.app.name} slug={action.app.slug} logoUrl={action.app.logo_url} size="sm" />
             <span className="min-w-0 flex-1 truncate">
               <span className="font-medium">{action.app.name}</span>
               <span className="text-muted-foreground"> · {actionOperation(action)}</span>

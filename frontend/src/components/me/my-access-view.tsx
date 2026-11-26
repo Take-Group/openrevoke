@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 function AppCell({ app }: { app: AppRef }) {
   return (
     <div className="flex items-center gap-2.5">
-      <AppAvatar name={app.name} slug={app.slug} size="sm" />
+      <AppAvatar name={app.name} slug={app.slug} logoUrl={app.logo_url} size="sm" />
       <span className="font-medium">{app.name}</span>
     </div>
   );

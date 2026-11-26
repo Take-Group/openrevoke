@@ -44,7 +44,7 @@ Details: `docs/connectors/google_workspace.md`, section "App scan".
 | `backend/app/services/discovery_scan.py` | scan run: `start_run`, `run`, `fail_run`, time window, scan lock |
 | `backend/app/services/discovery_apply.py` | saving the result: grouping by app name, state in the directory (`Directory.classify`) |
 | `backend/app/services/discovery.py` | reads: overview, list with risk, details, a person's apps, `apps_at_risk` |
-| `backend/app/services/discovery_review.py` | "Track" (a `manual` app or an existing one with the same name), "Ignore" |
+| `backend/app/services/discovery_review.py` | "Track" (a `manual` app or an existing one with the same name or catalog key; sets `app.catalog_key`; `create_accounts`), "Ignore" |
 | `backend/app/services/discovery_setup.py` | first Google connection: scope check, app, connection, sync, scan |
 | `backend/app/services/google_oauth.py`, `backend/app/api/google_oauth.py` | Connect with Google: `state` in Redis, callback without a panel session, then `setup_google_source` |
 | `backend/app/connectors/google_workspace/oauth.py`, `auth.py`, `scopes.py` | consent screen, code exchange (PKCE), refresh token; `access_token` picks the key or OAuth |
@@ -80,6 +80,22 @@ Risk is computed on read (`grant_risk`): `deleted`, `suspended`, or
 a person in Open Revoke with the status `left`. The person is matched by primary
 e-mail and aliases on read, so a person added after the scan matches
 at once.
+
+## Track with accounts
+
+`POST /api/discovery/apps/{id}/track` with `{"create_accounts": true}` also
+adds a manual account (`status=active`, `kind=person`, matched by e-mail) for
+every grant with `directory_status = active`, through
+`services/accounts_import.add_people_accounts`. Existing accounts stay. Only
+for apps without a connector (`integration = manual`); a connected app gets
+its accounts from the sync, and the count is 0. Off by default: a Google
+sign-in proves use, not a paid seat. The answer carries `accounts_created`;
+the audit gets `discovery.accounts_created` (count) and `accounts.imported`
+(`via: discovery`). Panel: the switch "Also add accounts for the N people who
+signed in" next to Track on `/discovery/[id]` (N = active sign-ins).
+
+Untracked discovered apps that the catalog knows also lead the grid of
+"Add several apps" (`services/catalog_search.discovered_untracked`).
 
 ## How to extend
 

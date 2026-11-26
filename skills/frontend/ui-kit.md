@@ -75,6 +75,7 @@ Paths are under `frontend/src/components/`.
 | Pick one of a short list | `common/option-select.tsx` `OptionSelect` (`options`, `placeholder`; without `required` the placeholder item clears the choice) |
 | Pick one of a long list, with search | `common/searchable-select.tsx` `SearchableSelect`; `CurrencySelect`, `TimeZoneSelect` |
 | Pick a person | `common/person-picker.tsx` `PersonPicker` (`variant="field"` in forms) |
+| Pick an app from the catalog | `common/catalog-app-picker.tsx` `CatalogAppPicker` (server search, logo, website, "Added"); `CatalogItemLabel` for one catalog app in a list |
 | Free text with suggestions | `common/suggest-input.tsx` `SuggestInput` |
 | Yes/no setting in a form | `common/switch-field.tsx` `SwitchField`; a bare `ui/switch.tsx` `Switch` with a `Label` only in a header or a table |
 | Tick items in a list | `ui/checkbox.tsx` `Checkbox` |

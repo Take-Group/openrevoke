@@ -47,10 +47,13 @@ sizes in rem (Tailwind classes), not in px.
 | `/access-profiles/[id]` | `components/access-profiles/access-profile-detail-view.tsx` | `useAccessProfile`, `useAccessProfileMembers`, `useDeleteAccessProfile` | - |
 | `/access-profiles/[id]/edit` | `components/access-profiles/edit-access-profile-view.tsx` | `useAccessProfile`, `useUpdateAccessProfile`, `useApps`, `useAppRoleSuggestions` | - |
 | `/access-profiles/[id]/members/add` | `components/access-profiles/add-members-view.tsx` | `useAccessProfile`, `useAccessProfileMembers`, `useAssignProfileMembers` | `missing=1` (preselects members who miss access) |
-| `/apps` | `components/apps/apps-view.tsx` | `useApps` | - |
-| `/apps/new` | `components/apps/new-app-view.tsx` | `useCreateApp`, `useConnectors`, `useAuthState` | - |
+| `/apps` | `components/apps/apps-view.tsx` | `useApps` (category filter from `categories`) | - |
+| `/apps/new` | `components/apps/new-app-view.tsx` | `useCatalogSearch` (in `CatalogAppPicker`), `useCreateApp`, `useAppLogo`, `useConnectors`, `useAuthState` | - |
+| `/apps/new/bulk` | `components/apps/bulk-apps-view.tsx` | `useCatalogSearch`, `useCreateApps` | - |
+| `/accounts/import` | `components/apps/import-accounts-view.tsx` | `useImportAccounts` | - |
 | `/apps/[id]` | `components/apps/app-detail-view.tsx` | `useApp`, `useAppAccounts`, `useUpdateAccount`, `useConnectors`, `useCheckConnection`, `useSyncConnection`, `useSyncRuns`, `useSyncInProgress`, `useUpdateApp`, `useDeleteApp` | `tab` (`accounts`, `connection`, `sync`, `settings`), `accounts` (`all`, `unassigned`, `removed`) |
 | `/apps/[id]/accounts/new` | `components/apps/new-account-view.tsx` | `useApp`, `useCreateAccount` | - |
+| `/apps/[id]/accounts/bulk` | `components/apps/paste-accounts-view.tsx` | `useApp`, `usePasteAccounts` | - |
 | `/apps/[id]/connection/edit` | `components/apps/connection-form-view.tsx` | `useApp`, `useConnectors`, `useSaveConnection` | `connector` (preselected after "Add app") |
 | `/actions` | `components/actions/actions-view.tsx` | `useActions`, `useActionTransition`, `useApproveBatch`, `useRevealSecret` | `tab` (`pending`, `progress`, `done`, `failed`, `cancelled`), `batch` |
 | `/discovery` | `components/discovery/discovery-view.tsx` | `useDiscovery`, `useDiscoveredApps`, `useScanNow`, `useConnectDiscoverySource`, `useTrackDiscoveredApp`, `useUpdateDiscoveredApp` | - |
@@ -201,8 +204,10 @@ with the same connector send `secrets: null`, which means
 - Statuses are `StatusBadge`: a dot and text in a thin border. The `info` tone
   (in progress, invited) is ink, `neutral` is light grey. The integration type is
   `IntegrationIcon` (API, SCIM, Browser, Manual). The app logo
-  (`AppAvatar`) comes from the `simple-icons` package, bundled in the build,
-  and sits in a neutral square with a thin border. The panel does not fetch icons
+  (`AppAvatar`) is the logo an admin uploaded, else the `simple-icons` mark
+  bundled in the build, else `logo_url` from the API (a catalog PNG); it sits in
+  a neutral square with a thin border. Pass `logoUrl={app.logo_url}` wherever the
+  API gives it (`AppListItem`, `AppRef`). The panel does not fetch icons
   from outside. Without a brand icon there is an initial (in the brand colour when it is
   readable). People avatars are initials on a neutral background.
 - Tables: `components/data-table/data-table.tsx` (TanStack Table): white

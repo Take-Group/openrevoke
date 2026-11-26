@@ -20,6 +20,49 @@ LOGO_DIR = CATALOG_DIR / "logos"
 LOGO_URL = "/api/catalog/logos/{slug}.png"
 _SLUG = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
+# Catalog apps a connector can read: picking one in "Add app" suggests that connector.
+CONNECTOR_BY_SLUG = {
+    "slack": "slack",
+    "github": "github",
+    "google-workspace": "google_workspace",
+    "claude": "claude",
+    "chatgpt": "chatgpt",
+}
+
+# Shown first in "Add several apps" before the admin searches: tools most companies of 20-250 people pay for.
+POPULAR = (
+    "google-workspace",
+    "slack",
+    "notion",
+    "github",
+    "figma",
+    "zoom",
+    "jira",
+    "confluence",
+    "chatgpt",
+    "claude",
+    "miro",
+    "canva",
+    "hubspot",
+    "asana",
+    "trello",
+    "dropbox",
+    "1password",
+    "linear",
+    "loom",
+    "calendly",
+    "docusign",
+    "salesforce",
+    "zendesk",
+    "monday",
+    "clickup",
+    "airtable",
+    "intercom",
+    "adobe-creative-cloud",
+    "cursor",
+    "grammarly",
+)
+
 
 class MatchedBy(StrEnum):
     CLIENT_ID = "client_id"  # the OAuth client id is on the list: this is the app
@@ -38,6 +81,10 @@ class CatalogApp:
     @property
     def logo_url(self) -> str | None:
         return LOGO_URL.format(slug=self.logo_slug) if self.logo_slug else None
+
+    @property
+    def connector_key(self) -> str | None:
+        return CONNECTOR_BY_SLUG.get(self.slug)
 
 
 @dataclass(frozen=True)
@@ -80,6 +127,35 @@ class AppCatalog:
             return CatalogMatch(named if named in by_client else by_client[0], MatchedBy.CLIENT_ID)
         named = self.by_name(name)
         return CatalogMatch(named, MatchedBy.NAME) if named else None
+
+    def resolve(self, value: str) -> CatalogApp | None:
+        """A slug, else a name or alias: what an admin types in a CSV ``app`` column."""
+        return self.get(value.strip().lower()) or self.by_name(value)
+
+    def search(self, query: str, limit: int) -> list[CatalogApp]:
+        """Apps whose name, alias or website host contains the query; whole and prefix matches first."""
+        key = normalize(query)
+        if not key:
+            return []
+        scored: list[tuple[int, str, CatalogApp]] = []
+        for app in self.apps:
+            name = normalize(app.name)
+            if key in (name, app.slug):
+                rank = 0
+            elif name.startswith(key):
+                rank = 1
+            elif any(item.startswith(key) for item in app.keys):
+                rank = 2
+            elif any(key in item for item in app.keys) or key in name:
+                rank = 3
+            else:
+                continue
+            scored.append((rank, app.name.lower(), app))
+        scored.sort(key=lambda item: item[:2])
+        return [app for _, _, app in scored[:limit]]
+
+    def popular(self) -> list[CatalogApp]:
+        return [app for app in (self.get(slug) for slug in POPULAR) if app is not None]
 
     def logo_path(self, slug: str) -> Path | None:
         if not _SLUG.match(slug):

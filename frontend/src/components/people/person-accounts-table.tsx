@@ -36,6 +36,7 @@ function columns(
           <AppAvatar
             name={account.app.name}
             slug={account.app.slug}
+            logoUrl={account.app.logo_url}
             connectorKey={appOf(account)?.connector_key}
             size="sm"
           />

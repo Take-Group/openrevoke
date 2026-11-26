@@ -9,7 +9,8 @@ App Router of the panel. Every `page.tsx` is a thin server component: it reads `
 - `page.tsx`: `/` renders `DashboardView`.
 - `actions/`: `/actions` renders `ActionsView`; `?tab=` picks the tab, `?batch=<uuid>` filters one batch.
 - `access-profiles/`: `/access-profiles` renders `AccessProfilesView`; `new/` (`NewAccessProfileView`); `[id]/` is `/access-profiles/<id>` (`AccessProfileDetailView`) with form pages `[id]/edit/` (`EditAccessProfileView`) and `[id]/members/add/` (`AddMembersView`, `?missing=1`).
-- `apps/`: `/apps` renders `AppsView`; `new/` is `/apps/new` (`NewAppView`); `[id]/` is `/apps/<id>` and renders `AppDetailView` (`?tab=`, accounts filter), with form pages `[id]/accounts/new/` (`NewAccountView`) and `[id]/connection/edit/` (`ConnectionFormView`, `?connector=`).
+- `apps/`: `/apps` renders `AppsView`; `new/` is `/apps/new` (`NewAppView`), `new/bulk/` is `/apps/new/bulk` (`BulkAppsView`); `[id]/` is `/apps/<id>` and renders `AppDetailView` (`?tab=`, accounts filter), with form pages `[id]/accounts/new/` (`NewAccountView`), `[id]/accounts/bulk/` (`PasteAccountsView`) and `[id]/connection/edit/` (`ConnectionFormView`, `?connector=`).
+- `accounts/`: `import/` is `/accounts/import` (`ImportAccountsView` from `components/apps/`).
 - `audit/`: `/audit` renders `AuditView`; `?entity=&id=&app=&person=` prefilter the log.
 - `browser/`: `/browser` renders `BrowserView` (live view of the shared browser).
 - `discovery/`: `/discovery` renders `DiscoveryView`; `[id]/` is `/discovery/<id>` and renders `DiscoveredAppView`.

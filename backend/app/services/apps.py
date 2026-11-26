@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import func, or_, select
 
+from app.catalog.lookup import app_catalog
 from app.models import Account, Action, App, AppBilling, Connection
 from app.models.enums import AccountStatus, ConnectionStatus, Integration, PricingModel
 from app.schemas.actions import WriteKind
@@ -16,7 +17,7 @@ from app.services.accounts import unassigned_clause
 from app.services.capabilities import delete_suspends, write_mode
 from app.services.costs import BILLABLE_KINDS, BILLABLE_STATUSES, Cost, app_monthly_cost
 from app.services.errors import ConflictError, InvalidInputError, NotFoundError
-from app.services.presenters import money, price_of
+from app.services.presenters import app_logo_url, money, price_of
 from app.services.secret_box import secret_names
 
 if TYPE_CHECKING:
@@ -59,6 +60,7 @@ async def list_apps(
     q: str | None,
     status: ConnectionStatus | None,
     integration: Integration | None,
+    category: str | None = None,
     limit: int,
     offset: int,
 ) -> tuple[list[AppListItem], int]:
@@ -70,12 +72,19 @@ async def list_apps(
         query = query.where(Connection.status == status)
     if integration:
         query = query.where(App.integration == integration)
+    if category:
+        query = query.where(App.category == clean_category(category))
     total = await session.scalar(select(func.count()).select_from(query.subquery()))
     rows = list(await session.execute(query.order_by(func.lower(App.name), App.id).limit(limit).offset(offset)))
     stats = await seat_stats(session, [app.id for app, _ in rows])
     converter = await exchange_rates.load_converter(session)
     items = [_list_item(app, connection, stats.get(app.id, SeatStats()), converter) for app, connection in rows]
     return items, total or 0
+
+
+async def used_categories(session: AsyncSession) -> list[str]:
+    rows = await session.scalars(select(App.category).where(App.category.is_not(None)).distinct())
+    return sorted(category for category in rows if category)
 
 
 async def get_app(session: AsyncSession, app_id: uuid.UUID) -> AppDetail:
@@ -99,12 +108,30 @@ async def get_app(session: AsyncSession, app_id: uuid.UUID) -> AppDetail:
 
 
 async def create_app(session: AsyncSession, data: AppCreate) -> AppDetail:
+    app = await add_app(session, data)
+    await audit.record(session, "app.created", "app", app.id, _snapshot(app))
+    return await get_app(session, app.id)
+
+
+async def add_app(session: AsyncSession, data: AppCreate) -> App:
+    """Store a new app without an audit event (``create_app`` and the bulk paths record their own)."""
     _check_price(data.pricing_model, data.price)
-    slug = data.slug or await _free_slug(session, slugify(data.name))
+    entry = None
+    if data.catalog_key:
+        entry = app_catalog().get(data.catalog_key)
+        if entry is None:
+            raise InvalidInputError(f"The catalog has no app {data.catalog_key!r}")
+    name = (data.name or (entry.name if entry else "")).strip()
+    if not name:
+        raise InvalidInputError("Give a name or a catalog_key")
+    slug = data.slug or await _free_slug(session, slugify(name))
     await _ensure_slug_free(session, slug, None)
     app = App(
-        name=data.name.strip(),
+        name=name,
         slug=slug,
+        catalog_key=entry.slug if entry else None,
+        website=_clean(data.website) or (entry.website if entry else None),
+        category=clean_category(data.category),
         admin_url=_clean(data.admin_url),
         integration=data.integration,
         pricing_model=data.pricing_model,
@@ -114,8 +141,7 @@ async def create_app(session: AsyncSession, data: AppCreate) -> AppDetail:
     _set_price(app, data.price)
     session.add(app)
     await session.flush()
-    await audit.record(session, "app.created", "app", app.id, _snapshot(app))
-    return await get_app(session, app.id)
+    return app
 
 
 async def update_app(session: AsyncSession, app_id: uuid.UUID, data: AppUpdate, fields: set[str]) -> AppDetail:
@@ -138,6 +164,10 @@ async def update_app(session: AsyncSession, app_id: uuid.UUID, data: AppUpdate, 
         app.admin_url = _clean(data.admin_url)
     if "notes" in fields:
         app.notes = data.notes
+    if "website" in fields:
+        app.website = _clean(data.website)
+    if "category" in fields:
+        app.category = clean_category(data.category)
     if "request_policy" in fields:
         if data.request_policy is None:
             raise InvalidInputError("request_policy cannot be null")
@@ -209,6 +239,10 @@ def _list_item(app: App, connection: Connection | None, stats: SeatStats, conver
         name=app.name,
         slug=app.slug,
         admin_url=app.admin_url,
+        catalog_key=app.catalog_key,
+        website=app.website,
+        category=app.category,
+        logo_url=app_logo_url(app),
         integration=app.integration,
         pricing_model=app.pricing_model,
         price=_current_price_out(app),
@@ -293,8 +327,15 @@ def _snapshot(app: App) -> dict[str, str | None]:
         "billing_period": str(app.billing_period),
         "notes": app.notes,
         "request_policy": str(app.request_policy),
+        "catalog_key": app.catalog_key,
+        "website": app.website,
+        "category": app.category,
     }
 
 
 def _clean(value: str | None) -> str | None:
     return (value or "").strip() or None
+
+
+def clean_category(value: str | None) -> str | None:
+    return _clean(value.lower() if value else None)

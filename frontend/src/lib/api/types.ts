@@ -1,4 +1,5 @@
 import type { AppBillingOut } from "@/lib/api/billing-types";
+import type { AppCatalogFields, AppCatalogInput } from "@/lib/api/inventory-types";
 import type { RecipeFixOut } from "@/lib/api/recipe-fix-types";
 
 // Types of the Open Revoke REST API, written by hand from docs/openapi.json.
@@ -98,6 +99,8 @@ export interface AppRef {
   app_id: Uuid;
   name: string;
   slug: string;
+  /** Uploaded logo, else the catalog's; null without one. */
+  logo_url: string | null;
 }
 
 export interface AccountRef {
@@ -303,7 +306,7 @@ export interface PriceOut {
   billing_period: BillingPeriod;
 }
 
-export interface AppListItem {
+export interface AppListItem extends AppCatalogFields {
   id: Uuid;
   name: string;
   slug: string;
@@ -355,8 +358,9 @@ export interface AppDetail extends AppListItem {
   billing: AppBillingOut | null;
 }
 
-export interface AppCreate {
-  name: string;
+export interface AppCreate extends AppCatalogInput {
+  /** Optional with catalog_key: the catalog names the app. */
+  name?: string;
   slug?: string | null;
   admin_url?: string | null;
   integration?: Integration;
@@ -377,7 +381,8 @@ export type AppUpdate = Partial<{
   request_policy: RequestPolicy | null;
   /** true: take the price from the app's billing again. */
   price_from_app: boolean | null;
-}>;
+}> &
+  Omit<AppCatalogInput, "catalog_key">;
 
 // --- Accounts --------------------------------------------------------------
 
