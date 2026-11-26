@@ -173,6 +173,8 @@ jobs:
       browser-packages-key: ${{ needs.build-test.outputs.browser-packages-key }}
       app-layers: ${{ needs.build-test.outputs.app-layers }}
       browser-layers: ${{ needs.build-test.outputs.browser-layers }}
+    secrets:
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
   # Only after the images are tagged: the chart's default image tag is this version.
   chart:

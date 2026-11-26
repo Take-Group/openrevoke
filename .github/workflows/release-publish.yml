@@ -36,6 +36,10 @@ on:
         description: SHA-256 of the tested amd64 browser image's layer list (release-test.yml)
         type: string
         required: true
+    secrets:
+      DOCKERHUB_TOKEN:
+        description: Docker Hub access token (Read & Write) of the account in vars.DOCKERHUB_USERNAME
+        required: true
     outputs:
       app-digest:
         description: Digest of the multi-arch app image
