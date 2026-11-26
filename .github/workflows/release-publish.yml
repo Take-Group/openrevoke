@@ -24,6 +24,18 @@ on:
         description: Image tags, space-separated, e.g. "0.1.0 0.1 latest"
         type: string
         required: true
+      browser-packages-key:
+        description: Browser packages key of the tested amd64 image (release-test.yml)
+        type: string
+        required: true
+      app-layers:
+        description: SHA-256 of the tested amd64 app image's layer list (release-test.yml)
+        type: string
+        required: true
+      browser-layers:
+        description: SHA-256 of the tested amd64 browser image's layer list (release-test.yml)
+        type: string
+        required: true
     outputs:
       app-digest:
         description: Digest of the multi-arch app image
@@ -79,6 +91,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
+      # amd64 takes the key of the tested image, so its package layer is the tested one from the
+      # cache. arm64 has no tested image and computes its own on the native runner.
+      - name: Browser packages key
+        id: packages
+        env:
+          TESTED_KEY: ${{ inputs.browser-packages-key }}
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          if [ "$PLATFORM" = linux/amd64 ]; then key=$TESTED_KEY; else key=$(scripts/browser-packages-key.sh); fi
+          echo "key=$key" >> "$GITHUB_OUTPUT"
+
       - name: OCI labels
         id: labels
         run: |
@@ -123,9 +146,7 @@ jobs:
         with:
           context: .
           target: browser
-          # The browser stage runs `apt-get install chromium`. From the cache it would keep the
-          # Chromium of an earlier build, and a Chromium security release would ship the old one.
-          no-cache-filters: browser
+          build-args: BROWSER_PACKAGES_KEY=${{ steps.packages.outputs.key }}
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.labels.outputs.browser }}
           outputs: type=image,name=${{ env.BROWSER_IMAGE }},push-by-digest=true,name-canonical=true,push=true
@@ -133,6 +154,28 @@ jobs:
           provenance: mode=max
           cache-from: type=gha,scope=browser-${{ matrix.slug }}
           cache-to: type=gha,mode=max,scope=browser-${{ matrix.slug }}
+
+      # The amd64 images must be the ones release-test.yml tested: same layers, only labels and
+      # attestations differ. A cache miss would rebuild layers that nobody tested; it stops here.
+      - name: Published amd64 layers are the tested ones
+        if: matrix.platform == 'linux/amd64'
+        env:
+          APP_DIGEST: ${{ steps.app.outputs.digest }}
+          BROWSER_DIGEST: ${{ steps.browser.outputs.digest }}
+          APP_LAYERS: ${{ inputs.app-layers }}
+          BROWSER_LAYERS: ${{ inputs.browser-layers }}
+        run: |
+          layers() {
+            docker buildx imagetools inspect "$1" --format '{{json (index .Image "linux/amd64").RootFS.DiffIDs}}' \
+              | jq -c . | sha256sum | cut -d' ' -f1
+          }
+          check() {
+            got=$(layers "$1")
+            [ "$got" = "$2" ] || { echo "::error::$1 has other layers than the tested image ($got, tested $2)"; exit 1; }
+            echo "$1: layers match the tested image"
+          }
+          check "$IMAGE@$APP_DIGEST" "$APP_LAYERS"
+          check "$BROWSER_IMAGE@$BROWSER_DIGEST" "$BROWSER_LAYERS"
 
       - name: Keep the digests
         env:

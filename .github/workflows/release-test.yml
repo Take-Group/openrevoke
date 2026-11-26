@@ -3,7 +3,8 @@
 # (scripts/build-release.sh --skip-images), a fresh install with install.sh, an update from the
 # previous release with `open-revoke update` and a rollback, and the Helm chart installed and
 # upgraded on kind. Its artifacts (release-bundle, helm-chart) belong to the calling run, so the
-# later jobs of release.yml download them.
+# later jobs of release.yml download them. Its outputs let release-publish.yml build the same
+# amd64 images from the cache and check that their layers are the ones tested here.
 name: Release build and test
 
 on:
@@ -21,6 +22,16 @@ on:
         description: "true for a pre-release"
         type: string
         required: true
+    outputs:
+      browser-packages-key:
+        description: Key of the browser image's Debian packages (scripts/browser-packages-key.sh)
+        value: ${{ jobs.build-test.outputs.browser-packages-key }}
+      app-layers:
+        description: SHA-256 of the tested amd64 app image's layer list (rootfs diff_ids)
+        value: ${{ jobs.build-test.outputs.app-layers }}
+      browser-layers:
+        description: SHA-256 of the tested amd64 browser image's layer list (rootfs diff_ids)
+        value: ${{ jobs.build-test.outputs.browser-layers }}
 
 permissions:
   contents: read
@@ -46,6 +57,10 @@ jobs:
       packages: read
       # Trivy reports of the images go to the Security tab.
       security-events: write
+    outputs:
+      browser-packages-key: ${{ steps.packages.outputs.key }}
+      app-layers: ${{ steps.layers.outputs.app }}
+      browser-layers: ${{ steps.layers.outputs.browser }}
     env:
       VERSION: ${{ inputs.version }}
       PREVIOUS: ${{ inputs.previous }}
@@ -86,14 +101,18 @@ jobs:
           cache-from: type=gha,scope=app-linux-amd64
           cache-to: type=gha,mode=max,scope=app-linux-amd64
 
+      # The versions apt would install now for the browser image. Same key: the package layer
+      # comes from the cache; a newer Chromium or any other Debian fix: a new key, a fresh layer.
+      - name: Browser packages key
+        id: packages
+        run: echo "key=$(scripts/browser-packages-key.sh)" >> "$GITHUB_OUTPUT"
+
       - name: Build browser image (amd64, local)
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           target: browser
-          # The browser stage runs `apt-get install chromium`. From the cache it would keep the
-          # Chromium of an earlier build, and a Chromium security release would ship the old one.
-          no-cache-filters: browser
+          build-args: BROWSER_PACKAGES_KEY=${{ steps.packages.outputs.key }}
           platforms: linux/amd64
           tags: ${{ env.BROWSER_IMAGE }}:${{ env.VERSION }}
           load: true
@@ -102,6 +121,15 @@ jobs:
           sbom: false
           cache-from: type=gha,scope=browser-linux-amd64
           cache-to: type=gha,mode=max,scope=browser-linux-amd64
+
+      # The publish job builds the amd64 images again from the same cache and compares its layers
+      # with these, so the published amd64 images are the tested ones.
+      - name: Layers of the tested images
+        id: layers
+        run: |
+          layers() { docker inspect -f '{{json .RootFS.Layers}}' "$1" | jq -c . | sha256sum | cut -d' ' -f1; }
+          echo "app=$(layers "$IMAGE:$VERSION")" >> "$GITHUB_OUTPUT"
+          echo "browser=$(layers "$BROWSER_IMAGE:$VERSION")" >> "$GITHUB_OUTPUT"
 
       # Vulnerability scan of the images about to be released. A CRITICAL vulnerability that has
       # a fixed version stops the release: bump the package or the base image. Accepted findings
