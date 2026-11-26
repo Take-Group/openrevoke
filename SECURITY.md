@@ -95,7 +95,7 @@ Out of scope:
 - **Keep it updated.** The browser image ships Chromium from Debian. Its security patches arrive as
   Open Revoke PATCH releases.
 - **Verify what you download.** Every release lists SHA-256 sums of its files in `SHA256SUMS`.
-  The release notes show how to check the `cosign` signatures of the images, the Helm chart and
+  The release notes show how to check the `cosign` (3.0 or newer) signatures of the images, the Helm chart and
   `SHA256SUMS`, the SLSA Build Level 3 provenance of the images and files (`gh attestation verify`), and
   the GitHub release attestation (`gh release verify`). Releases are immutable: once published,
   their files and tag cannot change.
