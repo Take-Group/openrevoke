@@ -122,7 +122,7 @@ services:
 
   # One container: database tables (at start), API, Temporal worker and panel.
   app:
-    image: ${OPEN_REVOKE_IMAGE:-ghcr.io/take-group/open-revoke}:${OPEN_REVOKE_VERSION:-dev}
+    image: ${OPEN_REVOKE_IMAGE:-ghcr.io/take-group/openrevoke}:${OPEN_REVOKE_VERSION:-dev}
     <<: *unprivileged
     environment:
       <<: *timezone
@@ -184,7 +184,7 @@ services:
   # CDP (9223) and noVNC (6080) only inside the compose network; the panel's live view goes
   # through the API, admins only (backend/app/browser/live_proxy.py).
   browser:
-    image: ${OPEN_REVOKE_BROWSER_IMAGE:-ghcr.io/take-group/open-revoke-browser}:${OPEN_REVOKE_VERSION:-dev}
+    image: ${OPEN_REVOKE_BROWSER_IMAGE:-ghcr.io/take-group/openrevoke-browser}:${OPEN_REVOKE_VERSION:-dev}
     <<: *unprivileged
     environment:
       <<: *timezone

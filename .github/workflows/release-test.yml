@@ -42,8 +42,8 @@ defaults:
     shell: bash
 
 env:
-  IMAGE: ghcr.io/take-group/open-revoke
-  BROWSER_IMAGE: ghcr.io/take-group/open-revoke-browser
+  IMAGE: ghcr.io/take-group/openrevoke
+  BROWSER_IMAGE: ghcr.io/take-group/openrevoke-browser
 
 jobs:
   build-test:

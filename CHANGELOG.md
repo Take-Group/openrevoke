@@ -15,6 +15,10 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
 
 ### Changed
 
+- Images are renamed to `ghcr.io/take-group/openrevoke` and `ghcr.io/take-group/openrevoke-browser`,
+  and are also published on Docker Hub as `takegroup/openrevoke` and `takegroup/openrevoke-browser`.
+  If you set `OPEN_REVOKE_IMAGE` or `OPEN_REVOKE_BROWSER_IMAGE` in `.env`, change them to the new names.
+
 - Fewer third-party packages: the Google service account token is signed with `cryptography`
   (no `google-auth`), the API runs on plain `uvicorn` (no uvloop, httptools, PyYAML), and the panel
   no longer installs the shadcn CLI (about 110 packages fewer).
