@@ -151,7 +151,7 @@ OPEN_REVOKE_RELEASES_URL=file://$PWD/dist/releases \
   moves tag and digest together. A Debian fix in a base image arrives with that update.
 - **Browser image cache**: `scripts/browser-packages-key.sh` hashes the versions that
   `apt-get install --simulate` picks for `docker/browser/packages.txt` (with dependencies) in the
-  browser stage's base image; the workflows pass it as `BROWSER_PACKAGES_KEY`. Same key: the
+  browser stage's base image; the workflows pass it as `BROWSER_PACKAGES_HASH`. Same key: the
   package layer comes from the GitHub Actions cache (seconds instead of ~3 minutes); a new
   Chromium or any other Debian fix changes the key and rebuilds the layer, so a release never
   ships an old Chromium from the cache. amd64 in `release-publish.yml` reuses the tested key; arm64
