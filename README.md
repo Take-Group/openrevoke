@@ -24,6 +24,11 @@
 </p>
 
 <p align="center">
+  <a href="https://www.bestpractices.dev/projects/17143"><img src="https://www.bestpractices.dev/projects/17143/badge" alt="OpenSSF Best Practices"></a>
+  <a href="https://slsa.dev"><img src="https://slsa.dev/images/gh-badge-level3.svg" alt="SLSA Build Level 3"></a>
+</p>
+
+<p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-7c5cff" alt="License: MIT"></a>
   <img src="https://img.shields.io/badge/self--hosted-Docker-0b0b0c" alt="Self-hosted with Docker">
   <img src="https://img.shields.io/badge/MCP-server-0b0b0c" alt="MCP server">
