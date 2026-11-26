@@ -13,6 +13,8 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-26
+
 ### Fixed
 
 - Versions compare in SemVer order everywhere: a release is newer than its pre-releases and
