@@ -13,6 +13,8 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
 
 ## [Unreleased]
 
+## [0.1.1-rc.1] - 2026-11-26
+
 ### Changed
 
 - Fewer third-party packages: the Google service account token is signed with `cryptography`
