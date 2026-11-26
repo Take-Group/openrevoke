@@ -16,7 +16,7 @@ from app.database import async_session
 from app.models import Organization
 from app.models.enums import PersonStatus
 from app.redis import redis_client
-from app.services.access_requests import SlackOrigin
+from app.services.access.requests import SlackOrigin
 from app.services.ai_settings import load_model
 from app.services.auth.actor import current_actor
 from app.slack_agent import identity, texts, web_api

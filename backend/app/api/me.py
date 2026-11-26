@@ -5,7 +5,7 @@ from fastapi import APIRouter, status
 from app.api.auth_deps import CurrentUserDep
 from app.api.deps import ActionDispatcherDep, SessionDep
 from app.schemas.me import MyAccess, MyAccessRequestCreate, MyAccessRequestResult
-from app.services import my_access
+from app.services.access import my_access
 
 router = APIRouter(prefix="/me")
 

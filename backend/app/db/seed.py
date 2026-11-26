@@ -19,14 +19,14 @@ from app.config import settings
 from app.database import async_session
 from app.db.seed_demo import seed_demo_directory
 from app.db.seed_google import seed_google_workspace
-from app.models import Organization, User
+from app.models import AccessProfile, AccessProfileApp, Organization, User
 from app.models.enums import (
     ApiTokenScope,
     BillingPeriod,
     Integration,
     PasswordManager,
     PricingModel,
-    SelfServicePolicy,
+    RequestPolicy,
     UserRole,
 )
 from app.schemas.apps import AppCreate, PriceIn
@@ -40,15 +40,19 @@ DEV_API_TOKENS = [
     ("member@example.com", "Local AI assistant", ApiTokenScope.WRITE, "orv_dev_member_local_only"),
 ]
 
-A = SelfServicePolicy.AUTOMATIC
-R = SelfServicePolicy.APPROVAL
-# (name, pricing model, price per seat or plan, currency, Slack agent requests)
+# (name, pricing model, price per seat or plan, currency, who approves access requests)
 APPS = [
-    ("Slack", PricingModel.PER_SEAT, "8.75", "USD", R),
-    ("Notion", PricingModel.PER_SEAT, "10", "USD", R),
-    ("Figma", PricingModel.PER_SEAT, "15", "EUR", R),
-    ("1Password", PricingModel.FLAT, "399", "PLN", SelfServicePolicy.OFF),
-    ("Miro", PricingModel.FREE, None, None, A),
+    ("Slack", PricingModel.PER_SEAT, "8.75", "USD", RequestPolicy.MANAGER),
+    ("Notion", PricingModel.PER_SEAT, "10", "USD", RequestPolicy.MANAGER_THEN_ADMIN),
+    ("Figma", PricingModel.PER_SEAT, "15", "EUR", RequestPolicy.ADMIN),
+    ("1Password", PricingModel.FLAT, "399", "PLN", RequestPolicy.OFF),
+    ("Miro", PricingModel.FREE, None, None, RequestPolicy.AUTOMATIC),
+]
+
+# (name, description, requests skip the manager, [(app, role)])
+PROFILES = [
+    ("Every employee", "What everyone gets on the first day", True, [("Slack", "member"), ("Miro", None)]),
+    ("Designer", "Design team", False, [("Figma", "editor"), ("Notion", "member")]),
 ]
 
 
@@ -67,6 +71,8 @@ async def seed() -> None:
         users = [
             _user(settings.dev_prefill_email, settings.dev_prefill_name, UserRole.ADMIN),
             _user("member@example.com", "Dev Member", UserRole.USER),
+            # A manager who approves requests of their people (manager step of access requests).
+            _user("manager@example.com", "Dev Manager", UserRole.USER),
         ]
         session.add_all(users)
         await session.flush()
@@ -75,19 +81,28 @@ async def seed() -> None:
             for email, name, scope, token in DEV_API_TOKENS:
                 await api_tokens.create(session, by_email[email], name=name, scope=scope, token=token)
 
-        for name, model, amount, currency, self_service in APPS:
+        created = {}
+        for name, model, amount, currency, request_policy in APPS:
             price = None
             if amount is not None:
                 price = PriceIn(amount=Decimal(amount), currency=currency, billing_period=BillingPeriod.MONTHLY)
-            await apps.create_app(
+            created[name] = await apps.create_app(
                 session,
                 AppCreate(
                     name=name,
                     integration=Integration.MANUAL,
                     pricing_model=model,
                     price=price,
-                    self_service=self_service,
+                    request_policy=request_policy,
                 ),
+            )
+
+        for profile_name, description, auto_approve, members in PROFILES:
+            profile = AccessProfile(name=profile_name, description=description, auto_approve_requests=auto_approve)
+            session.add(profile)
+            await session.flush()
+            session.add_all(
+                AccessProfileApp(profile_id=profile.id, app_id=created[app].id, role=role) for app, role in members
             )
 
         await seed_google_workspace(session)  # only with SEED_GOOGLE_* in .env

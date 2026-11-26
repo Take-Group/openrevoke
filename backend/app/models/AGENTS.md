@@ -4,19 +4,23 @@ SQLAlchemy models. A change needs an Alembic revision in `../../migrations/versi
 
 - `__init__.py`: re-exports every model (`__all__`); import a new model here so the tables get created.
 - `columns.py`: shared column helpers (UUID key, timestamps, enum column, `MONEY` = Numeric(12,2)).
-- `enums.py`: all `StrEnum`s (`PersonStatus`, `Integration`, `ConnectionStatus`, `AccountStatus`, `ActionKind`, `ActionStatus`, `ActionReason`, `UserRole`, `UserStatus`, `UserTokenKind`, `ApiTokenScope`, `AccessRequestChannel`, `SelfServicePolicy`, `AiProvider`, `AiReasoningEffort`, ...), also used by schemas and services.
-- `person.py`: `Person` (`person`): employee or service account (`kind`); parent of `PersonEmail`, `PersonLink`, `Account`.
+- `enums.py`: all `StrEnum`s (`PersonStatus`, `Integration`, `ConnectionStatus`, `AccountStatus`, `ActionKind`, `ActionStatus`, `ActionReason`, `UserRole`, `UserStatus`, `UserTokenKind`, `ApiTokenScope`, `AccessRequestChannel`, `AccessRequestStatus` and `OPEN_REQUEST_STATUSES`, `RequestPolicy`, `ManagerSource`, decision enums, `AiProvider`, `AiReasoningEffort`, ...), also used by schemas and services.
+- `person.py`: `Person` (`person`): employee or service account (`kind`), `manager_id` (self FK, SET NULL; `manager_source` auto or manual), `department`, `job_title`; parent of `PersonEmail`, `PersonLink`, `Account`.
 - `person_email.py`: `PersonEmail` (`person_email`): alias e-mail, FK `person`.
 - `person_link.py`: `PersonLink` (`person_link`): where a person is known from; `source_id` points to `people_source` or `connection` (no FK); unique per source and external id.
 - `people_source.py`: `PeopleSource` (`people_source`): manual and CSV sources without a connector.
-- `app.py`: `App` (`app`): a SaaS tool with its price; has one `Connection`, many `Account`.
+- `app.py`: `App` (`app`): a SaaS tool with its price, `request_policy`, `catalog_key`, `website`, `category`, uploaded `logo` (deferred); has one `Connection`, many `Account`.
 - `app_billing.py`: `AppBilling` (`app_billing`): plan and price the app's own billing reports (one row per app, PK `app_id`); `applies_to_price` makes each read set the app's price.
 - `connection.py`: `Connection` (`connection`): connector, config, encrypted secrets; FK `app` (unique, CASCADE); `is_people_source` flag.
 - `account.py`: `Account` (`account`): a user seat in an app; FK `app` (RESTRICT), `connection`, `person` (both SET NULL); unique (`app_id`, `external_id`).
-- `action.py`: `Action` (`action`): create/delete account or manual task; FK `person`, `app`, `account`.
+- `action.py`: `Action` (`action`): create/delete account or manual task, `created_by`, `approved_by` (+ `approved_by_user_id`, SET NULL); FK `person`, `app`, `account`.
 - `action_screenshot.py`: `ActionScreenshot` (`action_screenshot`): PNG where a click recipe stopped, PK and FK `action` (CASCADE); a retry deletes it.
 - `recipe_fix.py`: `RecipeFix` (`recipe_fix`): local fix of one click recipe step (`recipe_app`, `recipe_action`, `step_id`, `within`/`target` locators with `{{param}}`), `status` proposed/active/rejected (`RecipeFixStatus`), author `ai:<model>`; FK `action` (SET NULL).
-- `access_request.py`: `AccessRequest` (`access_request`): a request for an app account from Slack or the panel (`channel`); FK `person`, `app`, `action`.
+- `access_request.py`: `AccessRequest` (`access_request`): a request for an app account from Slack, the panel or the API (`channel`), with justification, the manager it waits for (`approver_person_id`) and why it skipped them (`fallback_reason`); FK `person`, `app`, `action`.
+- `access_request_decision.py`: `AccessRequestDecision` (`access_request_decision`): append-only, one manager or admin decision on a request (who, via, override, comment); FK `access_request` (CASCADE), `panel_user` (SET NULL).
+- `access_profile.py`: `AccessProfile` (`access_profile`): named set of apps with roles ("Developer"); `auto_approve_requests` skips the manager step.
+- `access_profile_app.py`: `AccessProfileApp` (`access_profile_app`): app and role in a profile; PK (`profile_id`, `app_id`), both CASCADE.
+- `person_access_profile.py`: `PersonAccessProfile` (`person_access_profile`): profile assigned to a person; PK (`person_id`, `profile_id`), both CASCADE.
 - `sync_run.py`: `SyncRun` (`sync_run`): one account sync of a connection; FK `connection`.
 - `scan_run.py`: `ScanRun` (`scan_run`): one discovery scan of an identity provider; FK `connection`.
 - `discovered_app.py`: `DiscoveredApp` (`discovered_app`): third-party app found by a scan; FK `connection`, optional `app`; unique (`connection_id`, `key`).

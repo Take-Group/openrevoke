@@ -17,12 +17,14 @@ import { OptionSelect } from "@/components/common/option-select";
 import { Textarea } from "@/components/ui/textarea";
 import { useDeleteApp, useUpdateApp } from "@/hooks/use-apps";
 import { emptyToNull } from "@/lib/format";
-import type { AppDetail, Integration, SelfServicePolicy } from "@/lib/api/types";
+import type { AppDetail, Integration, RequestPolicy } from "@/lib/api/types";
 
-const SELF_SERVICE_OPTIONS: { value: SelfServicePolicy; label: string }[] = [
-  { value: "approval", label: "An admin approves" },
+const REQUEST_POLICY_OPTIONS: { value: RequestPolicy; label: string }[] = [
+  { value: "manager", label: "The person's manager approves" },
+  { value: "manager_then_admin", label: "The manager, then an admin approve" },
+  { value: "admin", label: "An admin approves" },
   { value: "automatic", label: "Granted automatically" },
-  { value: "off", label: "Not available" },
+  { value: "off", label: "Not available on request" },
 ];
 
 function DeleteApp({ app }: { app: AppDetail }) {
@@ -68,7 +70,7 @@ export function AppSettingsTab({ app }: { app: AppDetail }) {
   const [adminUrl, setAdminUrl] = useState(app.admin_url ?? "");
   const [integration, setIntegration] = useState<Integration>(app.integration);
   const [notes, setNotes] = useState(app.notes ?? "");
-  const [selfService, setSelfService] = useState<SelfServicePolicy>(app.self_service);
+  const [requestPolicy, setRequestPolicy] = useState<RequestPolicy>(app.request_policy);
   const [price, setPrice] = useState<PriceForm>(() => priceFormFrom(app.pricing_model, app.price));
   const update = useUpdateApp(app.id);
 
@@ -80,7 +82,7 @@ export function AppSettingsTab({ app }: { app: AppDetail }) {
       admin_url: emptyToNull(adminUrl),
       integration,
       notes: emptyToNull(notes),
-      self_service: selfService,
+      request_policy: requestPolicy,
       pricing_model: price.pricing_model,
       price: priceFromForm(price),
     });
@@ -126,16 +128,16 @@ export function AppSettingsTab({ app }: { app: AppDetail }) {
           </div>
         </SettingsSection>
         <SettingsSection
-          title="Requests in Slack"
-          description="What the Slack agent does when someone asks for an account here."
+          title="Access requests"
+          description="Who approves when someone asks for an account here, on My access or in Slack."
         >
           <div className="max-w-lg">
             <OptionSelect
-              id="set-self-service"
-              aria-label="Requests in Slack"
-              value={selfService}
-              onChange={(next) => next && setSelfService(next as SelfServicePolicy)}
-              options={SELF_SERVICE_OPTIONS}
+              id="set-request-policy"
+              aria-label="Access requests"
+              value={requestPolicy}
+              onChange={(next) => next && setRequestPolicy(next as RequestPolicy)}
+              options={REQUEST_POLICY_OPTIONS}
             />
             <p className="mt-1.5 text-xs text-muted-foreground">
               Automatic still needs “Allow writes” on the connection; without a connector an admin gets a task.

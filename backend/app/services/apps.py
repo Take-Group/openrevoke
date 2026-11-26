@@ -109,7 +109,7 @@ async def create_app(session: AsyncSession, data: AppCreate) -> AppDetail:
         integration=data.integration,
         pricing_model=data.pricing_model,
         notes=data.notes,
-        self_service=data.self_service,
+        request_policy=data.request_policy,
     )
     _set_price(app, data.price)
     session.add(app)
@@ -138,10 +138,10 @@ async def update_app(session: AsyncSession, app_id: uuid.UUID, data: AppUpdate, 
         app.admin_url = _clean(data.admin_url)
     if "notes" in fields:
         app.notes = data.notes
-    if "self_service" in fields:
-        if data.self_service is None:
-            raise InvalidInputError("self_service cannot be null")
-        app.self_service = data.self_service
+    if "request_policy" in fields:
+        if data.request_policy is None:
+            raise InvalidInputError("request_policy cannot be null")
+        app.request_policy = data.request_policy
     if "pricing_model" in fields or "price" in fields:
         pricing_model = data.pricing_model if "pricing_model" in fields and data.pricing_model else app.pricing_model
         if "price" in fields:
@@ -224,7 +224,7 @@ def _list_item(app: App, connection: Connection | None, stats: SeatStats, conver
         create_mode=write_mode(connection, WriteKind.CREATE_ACCOUNT),
         delete_mode=write_mode(connection, WriteKind.DELETE_ACCOUNT),
         delete_suspends=delete_suspends(connection),
-        self_service=app.self_service,
+        request_policy=app.request_policy,
         created_at=app.created_at,
     )
 
@@ -292,7 +292,7 @@ def _snapshot(app: App) -> dict[str, str | None]:
         "currency": app.currency,
         "billing_period": str(app.billing_period),
         "notes": app.notes,
-        "self_service": str(app.self_service),
+        "request_policy": str(app.request_policy),
     }
 
 

@@ -47,7 +47,8 @@ export type ActionKind = "create_account" | "delete_account" | "manual_task";
 export type WriteKind = "create_account" | "delete_account";
 export type ActionReason = "offboarding" | "onboarding" | "manual" | "self_service";
 /** Requests through the Slack agent: refused, approved by an admin, or approved at once. */
-export type SelfServicePolicy = "off" | "approval" | "automatic";
+/** Who approves when a person asks for an account in the app. */
+export type RequestPolicy = "off" | "automatic" | "manager" | "manager_then_admin" | "admin";
 export type ActionStatus =
   | "pending_approval"
   | "approved"
@@ -299,7 +300,7 @@ export interface AppListItem {
   delete_mode: WriteMode;
   /** The connector suspends instead of deleting (Google Workspace): label "Suspend". */
   delete_suspends: boolean;
-  self_service: SelfServicePolicy;
+  request_policy: RequestPolicy;
   created_at: DateTimeString;
 }
 
@@ -344,7 +345,7 @@ export type AppUpdate = Partial<{
   pricing_model: PricingModel | null;
   price: PriceIn | null;
   notes: string | null;
-  self_service: SelfServicePolicy | null;
+  request_policy: RequestPolicy | null;
   /** true: take the price from the app's billing again. */
   price_from_app: boolean | null;
 }>;

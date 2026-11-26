@@ -2,7 +2,14 @@
 
 import type { ActionStatus, AppRef, DateTimeString, PersonRef, Uuid } from "@/lib/api/types";
 
-export type AccessRequestStatus = "open" | "done" | "failed" | "cancelled";
+export type AccessRequestStatus =
+  | "pending_manager"
+  | "pending_admin"
+  | "approved"
+  | "done"
+  | "failed"
+  | "rejected"
+  | "cancelled";
 
 export interface AccessRequestOut {
   id: Uuid;

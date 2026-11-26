@@ -3,6 +3,7 @@
 from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
+from app.catalog.lookup import app_catalog
 from app.schemas.accounts import AccountOut
 from app.schemas.common import AccountRef, AppRef, MoneyAmount, PersonRef
 from app.services.conversion import NO_CONVERSION, Converter
@@ -26,6 +27,18 @@ def money_list(costs: Iterable[Cost]) -> list[MoneyAmount]:
 
 def app_ref(app: App) -> AppRef:
     return AppRef(app_id=app.id, name=app.name, slug=app.slug)
+
+
+def app_logo_url(app: App) -> str | None:
+    """Uploaded logo first (``logo_content_type`` set; ``logo`` is deferred), then the catalog's.
+
+    The catalog entry comes from ``catalog_key``, or from the app's name for apps added before it.
+    """
+    if app.logo_content_type:
+        return f"/api/apps/{app.id}/logo"
+    catalog = app_catalog()
+    entry = catalog.get(app.catalog_key) if app.catalog_key else catalog.by_name(app.name)
+    return entry.logo_url if entry else None
 
 
 def person_ref(person: Person | None) -> PersonRef | None:

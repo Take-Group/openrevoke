@@ -42,7 +42,7 @@ const columns: DataColumn<AccessRequestOut>[] = [
     id: "status",
     header: "Status",
     cell: ({ row: { original: request } }) => (
-      <StatusBadge status={request.status === "open" ? request.action_status : request.status} />
+      <StatusBadge status={request.status === "pending_admin" || request.status === "approved" ? request.action_status : request.status} />
     ),
   },
   {

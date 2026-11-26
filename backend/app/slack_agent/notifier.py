@@ -8,9 +8,9 @@ from sqlalchemy import or_, select
 
 from app.database import async_session
 from app.models import AccessRequest, Action, App
-from app.models.enums import AccessRequestChannel, AccessRequestStatus
+from app.models.enums import OPEN_REQUEST_STATUSES, AccessRequestChannel
 from app.services import audit
-from app.services.access_requests import close, closing_status
+from app.services.access.requests import close, closing_status
 from app.services.actions import FINISHED_STATUSES
 from app.slack_agent import texts, web_api
 from app.slack_agent.web_api import SlackApiError
@@ -32,7 +32,7 @@ async def notify_finished(rt: SlackRuntime) -> None:
                 .join(App, App.id == AccessRequest.app_id)
                 .outerjoin(Action, Action.id == AccessRequest.action_id)
                 .where(
-                    AccessRequest.status == AccessRequestStatus.OPEN,
+                    AccessRequest.status.in_(OPEN_REQUEST_STATUSES),
                     or_(Action.id.is_(None), Action.status.in_(FINISHED_STATUSES)),
                 )
                 .order_by(AccessRequest.created_at)

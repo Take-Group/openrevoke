@@ -1,9 +1,9 @@
 """Access requests: a person asks for an account in an app, in Slack (the agent) or on the panel.
 
 The request becomes a ``create_account`` action (or a manual task) with reason
-``self_service``. The app's ``self_service`` policy decides what happens next:
-``off`` refuses, ``approval`` leaves the action for an admin, ``automatic``
-approves it at once. A connector write still needs "Allow writes" on the
+``self_service``. The app's ``request_policy`` decides what happens next:
+``off`` refuses, ``automatic`` approves it at once, the other policies leave the
+action for an admin (the manager step comes with ``access_flow``). A connector write still needs "Allow writes" on the
 connection; without it the action waits for an admin like with ``approval``.
 """
 
@@ -22,7 +22,7 @@ from app.models.enums import (
     ActionReason,
     ActionStatus,
     PersonStatus,
-    SelfServicePolicy,
+    RequestPolicy,
 )
 from app.schemas.actions import ActionCreate, WriteKind
 from app.schemas.slack_agent import AccessRequestOut, AccessRequestPage
@@ -79,7 +79,7 @@ async def request_access(
     if person.status == PersonStatus.LEFT:
         raise InvalidInputError("The person has left the company")
     name = app.name  # approve() below expires the session's objects
-    if app.self_service == SelfServicePolicy.OFF:
+    if app.request_policy == RequestPolicy.OFF:
         return RequestResult(Outcome.NOT_AVAILABLE, name)
     if app.id in await apps_with_account(session, person.id, [app.id]):
         return RequestResult(Outcome.ALREADY_HAS_ACCOUNT, name)
@@ -100,6 +100,9 @@ async def request_access(
         slack_user_id=origin.user_id if origin else None,
         slack_channel_id=origin.channel_id if origin else None,
         message=(note or "")[:2000] or None,
+        status=AccessRequestStatus.APPROVED
+        if app.request_policy == RequestPolicy.AUTOMATIC
+        else AccessRequestStatus.PENDING_ADMIN,
     )
     session.add(request)
     await session.flush()
@@ -108,11 +111,11 @@ async def request_access(
         "access_request.created",
         "access_request",
         request.id,
-        {"action_id": str(action.id), "policy": str(app.self_service), "channel": str(request.channel)},
+        {"action_id": str(action.id), "policy": str(app.request_policy), "channel": str(request.channel)},
         app_id=app.id,
         person_id=person.id,
     )
-    if app.self_service != SelfServicePolicy.AUTOMATIC:
+    if app.request_policy != RequestPolicy.AUTOMATIC:
         return RequestResult(Outcome.WAITING_FOR_APPROVAL, name, action.id)
     action_id, kind = action.id, action.kind
     try:

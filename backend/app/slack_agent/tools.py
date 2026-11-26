@@ -12,9 +12,9 @@ from sqlalchemy import func, or_, select
 from app.ai.base import ToolError, ToolSpec
 from app.database import async_session
 from app.models import Account, Action, App, Person
-from app.models.enums import AccountStatus, ActionKind, SelfServicePolicy
+from app.models.enums import AccountStatus, ActionKind, RequestPolicy
 from app.schemas.actions import WriteKind
-from app.services.access_requests import Outcome, SlackOrigin, request_access
+from app.services.access.requests import Outcome, SlackOrigin, request_access
 from app.services.actions import OPEN_STATUSES
 from app.services.errors import DomainError
 
@@ -60,9 +60,11 @@ TOOLS = [
 ]
 
 POLICY_TEXT = {
-    SelfServicePolicy.AUTOMATIC: "granted automatically",
-    SelfServicePolicy.APPROVAL: "needs an admin's approval",
-    SelfServicePolicy.OFF: "not available on request, an admin decides",
+    RequestPolicy.AUTOMATIC: "granted automatically",
+    RequestPolicy.MANAGER: "needs the manager's approval",
+    RequestPolicy.MANAGER_THEN_ADMIN: "needs the manager's and an admin's approval",
+    RequestPolicy.ADMIN: "needs an admin's approval",
+    RequestPolicy.OFF: "not available on request, an admin decides",
 }
 
 OUTCOME_TEXT = {
@@ -109,7 +111,7 @@ class AgentTools:
                 {
                     "app": app.slug,
                     "name": app.name,
-                    "on_request": POLICY_TEXT[app.self_service],
+                    "on_request": POLICY_TEXT[app.request_policy],
                     "you_have_account": app.id in has_account,
                     "request_open": app.id in open_requests,
                 }

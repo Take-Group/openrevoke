@@ -9,7 +9,7 @@ from app.api.deps import SessionDep
 from app.api.params import Limit, Offset
 from app.models.enums import AccessRequestStatus
 from app.schemas.slack_agent import AccessRequestPage
-from app.services import access_requests
+from app.services.access import requests as access_requests
 
 router = APIRouter()
 

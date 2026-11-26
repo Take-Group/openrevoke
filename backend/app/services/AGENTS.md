@@ -6,8 +6,9 @@ Logic between `app/api/`, `app/temporal/` activities and `app/models/`. Services
 - `errors.py`: `DomainError` and subclasses (`NotFoundError`, `ConflictError`, ...).
 - `auth/`: own AGENTS.md. Sign-in, 2FA, sessions, invites.
 - `google_cloud_setup/`: own AGENTS.md. Browser-driven Google Cloud setup.
+- `access/`: own AGENTS.md. Access requests and approvals, managers, access profiles, My access.
 - `audit.py`: `record`, `list_events`; append-only log, also fills app and person of an event.
-- `presenters.py`: model to schema builders (`account_out`, `app_ref`, `person_ref`, `money`), shared by services.
+- `presenters.py`: model to schema builders (`account_out`, `app_ref`, `app_logo_url`, `person_ref`, `money`), shared by services.
 - `apps.py`: app CRUD with seats (`seat_stats`).
 - `accounts.py`: `list_app_accounts`, `create_manual_account`, `update_account`, `set_owner`, `rematch_accounts`.
 - `matching.py`: account to person by e-mail, order manual, primary, alias (`resolve_match`, `match_email`, `EmailIndex`).
@@ -45,8 +46,6 @@ Logic between `app/api/`, `app/temporal/` activities and `app/models/`. Services
 - `action_queries.py`: `list_actions`, `get_action_out`, `get_actions_out` (with `recipe_fixes`), `screenshot`.
 - `recipe_fixes.py`: recipe step fixes: `active_fixes`, `list_fixes`, `approve`, `reject` (reverts too).
 - `recipe_repair.py`: `RecipeRepairService`: AI repair of a recipe step.
-- `access_requests.py`: `request_access`, `list_requests`; an account request becomes an action.
-- `my_access.py`: `person_of`, `overview`, `request`: the signed-in user's access (`/api/me`).
 - `organization.py`: `get`, `update` (organization row; auto-approval needs a domain).
 - `onboarding.py`: `onboard_person` creates `create_account` actions.
 - `offboarding.py`: `offboard_person` marks `left`, creates delete actions.

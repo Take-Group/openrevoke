@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import select
 
 from app.models import AccessRequest, Account, Action, App, Person
-from app.models.enums import AccountStatus, ActionStatus, PersonStatus, SelfServicePolicy
+from app.models.enums import AccountStatus, ActionStatus, PersonStatus, RequestPolicy
 from app.schemas.me import (
     MyAccess,
     MyAccessRequestResult,
@@ -18,7 +18,7 @@ from app.schemas.me import (
     RequestableApp,
     RequestState,
 )
-from app.services.access_requests import request_access
+from app.services.access.requests import request_access
 from app.services.errors import InvalidInputError, NotFoundError
 from app.services.matching import match_email
 from app.services.onboarding import apps_with_open_creation
@@ -109,11 +109,11 @@ async def overview(session: AsyncSession, user: User) -> MyAccess:
 async def _requestable(session: AsyncSession, person: Person, with_account: set[uuid.UUID]) -> list[RequestableApp]:
     if person.status == PersonStatus.LEFT:
         return []
-    apps = list(await session.scalars(select(App).where(App.self_service != SelfServicePolicy.OFF).order_by(App.name)))
+    apps = list(await session.scalars(select(App).where(App.request_policy != RequestPolicy.OFF).order_by(App.name)))
     candidates = [app for app in apps if app.id not in with_account]
     requested = await apps_with_open_creation(session, person.id, [app.id for app in candidates])
     return [
-        RequestableApp(app=app_ref(app), needs_approval=app.self_service != SelfServicePolicy.AUTOMATIC)
+        RequestableApp(app=app_ref(app), needs_approval=app.request_policy != RequestPolicy.AUTOMATIC)
         for app in candidates
         if app.id not in requested
     ]

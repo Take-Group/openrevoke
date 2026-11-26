@@ -3,7 +3,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, Field
 
-from app.models.enums import BillingPeriod, ConnectionStatus, Integration, PricingModel, SelfServicePolicy
+from app.models.enums import BillingPeriod, ConnectionStatus, Integration, PricingModel, RequestPolicy
 from app.schemas.actions import WriteMode
 from app.schemas.common import ApiModel, Currency, Money, MoneyAmount, MoneyInput
 from app.schemas.connections import ConnectionOut
@@ -33,7 +33,7 @@ class AppCreate(BaseModel):
     pricing_model: PricingModel = PricingModel.FREE
     price: PriceIn | None = None
     notes: str | None = None
-    self_service: SelfServicePolicy = SelfServicePolicy.APPROVAL
+    request_policy: RequestPolicy = RequestPolicy.MANAGER
 
 
 class AppUpdate(BaseModel):
@@ -46,8 +46,9 @@ class AppUpdate(BaseModel):
     pricing_model: PricingModel | None = None
     price: PriceIn | None = None
     notes: str | None = None
-    self_service: SelfServicePolicy | None = Field(
-        default=None, description="Requests through the Slack agent: off, approval (an admin approves), automatic"
+    request_policy: RequestPolicy | None = Field(
+        default=None,
+        description="Who approves access requests: off, automatic, manager, manager_then_admin, admin",
     )
     price_from_app: bool | None = Field(
         default=None,
@@ -86,7 +87,7 @@ class AppListItem(ApiModel):
     )
     delete_mode: WriteMode = Field(description="Same for removing an account (offboarding, 'Remove from app')")
     delete_suspends: bool = Field(description='The connector suspends instead of deleting; UI label "Suspend"')
-    self_service: SelfServicePolicy = Field(description="What the Slack agent does when a person asks for an account")
+    request_policy: RequestPolicy = Field(description="Who approves when a person asks for an account")
     created_at: datetime
 
 

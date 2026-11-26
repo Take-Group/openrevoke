@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import ForeignKey, LargeBinary, Text
+from sqlalchemy import ForeignKey, LargeBinary, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -34,6 +34,11 @@ class Action(Base):
     reason: Mapped[ActionReason] = enum_column(ActionReason, "reason", nullable=False)
     batch_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), index=True)
     approved_at: Mapped[datetime | None] = timestamp()
+    approved_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("panel_user.id", ondelete="SET NULL")
+    )
+    approved_by: Mapped[str | None] = mapped_column(String(320))  # actor label, kept when the user is deleted
+    created_by: Mapped[str | None] = mapped_column(String(320))
     started_at: Mapped[datetime | None] = timestamp()
     finished_at: Mapped[datetime | None] = timestamp()
     result: Mapped[dict[str, Any] | None] = mapped_column(JSONB)

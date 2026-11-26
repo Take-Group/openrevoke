@@ -14,7 +14,7 @@ from sqlalchemy import select
 from app.config import settings
 from app.database import async_session
 from app.models import AccessRequest, Action, App, Person, User
-from app.models.enums import AccessRequestStatus, ActionStatus, UserRole
+from app.models.enums import OPEN_REQUEST_STATUSES, ActionStatus, UserRole
 from app.services.action_approval import approve
 from app.services.actions import cancel
 from app.services.auth.actor import current_actor
@@ -41,7 +41,7 @@ async def notify_pending(rt: SlackRuntime) -> None:
                 .join(Person, Person.id == AccessRequest.person_id)
                 .join(App, App.id == AccessRequest.app_id)
                 .where(
-                    AccessRequest.status == AccessRequestStatus.OPEN,
+                    AccessRequest.status.in_(OPEN_REQUEST_STATUSES),
                     AccessRequest.approvers_notified_at.is_(None),
                     Action.status == ActionStatus.PENDING_APPROVAL,
                 )

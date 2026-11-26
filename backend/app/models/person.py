@@ -1,12 +1,13 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import CheckConstraint, DateTime, String, Text, func
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, Text, func
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
 from app.models.columns import created_at_column, enum_column, timestamp, uuid_pk
-from app.models.enums import PersonKind, PersonKindSource, PersonStatus
+from app.models.enums import ManagerSource, PersonKind, PersonKindSource, PersonStatus
 
 
 class Person(Base):
@@ -30,6 +31,15 @@ class Person(Base):
     )
     # Why the rules made it a service account, e.g. "generic address kontakt@"; null for people.
     kind_reason: Mapped[str | None] = mapped_column(String(200))
+    # The person's manager approves their access requests (apps with a manager step).
+    manager_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("person.id", ondelete="SET NULL"), index=True
+    )
+    manager_source: Mapped[ManagerSource] = enum_column(
+        ManagerSource, "manager_source", nullable=False, default=ManagerSource.AUTO
+    )
+    department: Mapped[str | None] = mapped_column(String(200))
+    job_title: Mapped[str | None] = mapped_column(String(200))
     notes: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = created_at_column()
     # Python-side onupdate: the new value is known without a reload (async sessions cannot lazy-load).

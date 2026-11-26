@@ -163,12 +163,21 @@ class ApiTokenScope(StrEnum):
     WRITE = "write"  # everything the owner's role allows
 
 
-class SelfServicePolicy(StrEnum):
-    """What the Slack agent does when a person asks for an account in the app."""
+class RequestPolicy(StrEnum):
+    """Who approves when a person asks for an account in the app (panel, Slack agent, API)."""
 
-    OFF = "off"  # the agent refuses and names the admins
-    APPROVAL = "approval"  # an action waits for an admin's approval
-    AUTOMATIC = "automatic"  # the action is approved at once (connector writes still need "Allow writes")
+    OFF = "off"  # nobody can ask; an admin adds people
+    AUTOMATIC = "automatic"  # approved at once (connector writes still need "Allow writes")
+    MANAGER = "manager"  # the person's manager approves, then the action runs
+    MANAGER_THEN_ADMIN = "manager_then_admin"  # the manager, then an admin approves the action
+    ADMIN = "admin"  # an admin approves the action
+
+
+class ManagerSource(StrEnum):
+    """Who set a person's manager. A manual choice wins: syncs never change it."""
+
+    AUTO = "auto"  # a people source (Google Workspace, CSV import)
+    MANUAL = "manual"  # an admin in the panel
 
 
 class AccessRequestChannel(StrEnum):
@@ -179,10 +188,47 @@ class AccessRequestChannel(StrEnum):
 
 
 class AccessRequestStatus(StrEnum):
-    OPEN = "open"  # the action is not finished yet
+    PENDING_MANAGER = "pending_manager"  # waits for the person's manager
+    PENDING_ADMIN = "pending_admin"  # waits for an admin (policy, or no manager who can decide)
+    APPROVED = "approved"  # approved; the action is on its way
     DONE = "done"
     FAILED = "failed"
-    CANCELLED = "cancelled"  # an admin cancelled or rejected the action
+    REJECTED = "rejected"  # the manager or an admin said no
+    CANCELLED = "cancelled"  # withdrawn, or the action was cancelled
+
+
+# Requests that are not finished: a new request for the same app waits for them.
+OPEN_REQUEST_STATUSES = (
+    AccessRequestStatus.PENDING_MANAGER,
+    AccessRequestStatus.PENDING_ADMIN,
+    AccessRequestStatus.APPROVED,
+)
+
+
+class RequestFallbackReason(StrEnum):
+    """Why a request skipped the manager step and went to an admin."""
+
+    NO_MANAGER = "no_manager"
+    MANAGER_LEFT = "manager_left"
+    MANAGER_NO_ACCESS = "manager_no_access"  # no panel account and no Slack identity
+    MANAGER_IS_REQUESTER = "manager_is_requester"
+
+
+class DecisionStep(StrEnum):
+    MANAGER = "manager"
+    ADMIN = "admin"
+
+
+class DecisionOutcome(StrEnum):
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
+class DecisionVia(StrEnum):
+    PANEL = "panel"
+    SLACK = "slack"
+    API = "api"  # an API token or the MCP server
+    AUTOMATIC = "automatic"  # a policy or an access profile decided
 
 
 class AiProvider(StrEnum):
