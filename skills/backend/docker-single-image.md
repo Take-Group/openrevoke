@@ -22,7 +22,7 @@ and Redis from the official images.
   - `browser`: Chromium on Xvnc (TigerVNC) with noVNC and CDP (a separate container, not
     in `app`; described in `skills/backend/browser.md`)
 
-  PostgreSQL (`postgres:18.6`, has `tzdata`) and Redis (`redis:8.10.3-alpine`)
+  PostgreSQL (`postgres:18.7`, has `tzdata`) and Redis (`redis:8.10.3-alpine`)
   are official images. The time zone is not set
   in the images: `TZ` from `.env` (default UTC), the panel without `NEXT_PUBLIC_TIME_ZONE`.
   Version: `ARG OPEN_REVOKE_VERSION` at the end of the `app` target (the layer cache

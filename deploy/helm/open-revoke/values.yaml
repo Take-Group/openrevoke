@@ -133,7 +133,7 @@ postgresql:
   enabled: true
   image:
     repository: postgres
-    tag: "18.6"
+    tag: "18.7"
     pullPolicy: IfNotPresent
   persistence:
     size: 10Gi

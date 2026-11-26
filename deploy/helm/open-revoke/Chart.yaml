@@ -40,7 +40,7 @@ annotations:
     - name: open-revoke-browser
       image: ghcr.io/take-group/open-revoke-browser:0.1.0
     - name: postgres
-      image: postgres:18.6
+      image: postgres:18.7
     - name: redis
       image: redis:8.10.3-alpine
     - name: temporal-server

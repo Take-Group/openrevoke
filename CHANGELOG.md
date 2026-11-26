@@ -18,6 +18,7 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
 - Releases are immutable, carry SLSA Build Level 3 provenance for the images and every release
   file, and stop on a fixable CRITICAL vulnerability found by Trivy in either image. The release
   notes show how to verify each of them.
+- PostgreSQL 18.7: fixes in the base image's Kerberos libraries (CVE-2026-107364 and others).
 
 ### Added
 
