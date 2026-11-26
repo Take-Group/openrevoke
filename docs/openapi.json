@@ -15408,7 +15408,7 @@
           "model"
         ],
         "title": "AiSettingsUpdate",
-        "description": "``api_key`` null keeps the saved key (only when the provider stays the same)."
+        "description": "``api_key`` null keeps the saved key (only when the provider and the base URL stay the same)."
       },
       "AiTestResult": {
         "properties": {
@@ -15946,7 +15946,8 @@
             "anyOf": [
               {
                 "type": "string",
-                "maxLength": 500
+                "maxLength": 500,
+                "pattern": "^(https?://\\S+)?$"
               },
               {
                 "type": "null"
@@ -15986,13 +15987,15 @@
             "anyOf": [
               {
                 "type": "string",
-                "maxLength": 2000
+                "maxLength": 2000,
+                "pattern": "^(https?://\\S+)?$"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Admin Url"
+            "title": "Admin Url",
+            "description": "The app's admin page, https://..."
           },
           "integration": {
             "$ref": "#/components/schemas/Integration",
@@ -16652,13 +16655,15 @@
             "anyOf": [
               {
                 "type": "string",
-                "maxLength": 2000
+                "maxLength": 2000,
+                "pattern": "^(https?://\\S+)?$"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Admin Url"
+            "title": "Admin Url",
+            "description": "The app's admin page, https://..."
           },
           "integration": {
             "anyOf": [
@@ -16705,7 +16710,8 @@
             "anyOf": [
               {
                 "type": "string",
-                "maxLength": 500
+                "maxLength": 500,
+                "pattern": "^(https?://\\S+)?$"
               },
               {
                 "type": "null"
@@ -17793,7 +17799,7 @@
           "connector_key"
         ],
         "title": "ConnectionUpsert",
-        "description": "Saves the connection. Secret fields (``secret: true`` in the connector's ``config_schema``) may come\nin ``config`` or in ``secrets``; they are split out, encrypted and never returned. An empty or missing\nsecret keeps the stored value. Changing ``connector_key`` drops the stored secrets."
+        "description": "Saves the connection. Secret fields (``secret: true`` in the connector's ``config_schema``) may come\nin ``config`` or in ``secrets``; they are split out, encrypted and never returned. An empty or missing\nsecret keeps the stored value. Changing ``connector_key`` or a URL field (``base_url``, ``api_url``) drops\nthe stored secrets: they are never sent to a new address without being entered again."
       },
       "ConnectorOut": {
         "properties": {

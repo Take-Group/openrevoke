@@ -20,11 +20,12 @@ env_get() {
 env_set() {
     file=$3
     tmp="$file.tmp.$$"
-    awk -v key="$1" -v value="$2" '
+    # umask 077: the copy holds the secrets and replaces .env, so .env stays readable by its owner only.
+    (umask 077 && awk -v key="$1" -v value="$2" '
         !done && ($0 ~ "^" key "=" || $0 ~ "^# " key "=") { print key "=" value; done = 1; next }
         { print }
         END { if (!done) print key "=" value }
-    ' "$file" > "$tmp"
+    ' "$file" > "$tmp")
     mv "$tmp" "$file"
 }
 

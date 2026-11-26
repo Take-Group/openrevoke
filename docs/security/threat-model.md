@@ -59,9 +59,10 @@ deployment is listed in [TELEMETRY.md](../../TELEMETRY.md).
 
 | Threat | Control | Residual risk |
 |---|---|---|
-| S: password guessing | Argon2id; sign-in limits per address (50 / 15 min), per e-mail from one address (10) and per e-mail overall (100); optional TOTP; failed sign-ins in the audit log with the address | 2FA is optional. The address comes from the last `X-Forwarded-For` entry: a proxy that does not set it makes every client one address |
+| S: password guessing | Argon2id; sign-in limits per address (50 / 15 min), per e-mail from one address (10) and wrong passwords per e-mail overall (100); optional TOTP with 10 wrong codes per account and single-use tickets; failed sign-ins in the audit log with the address | 2FA is optional. The address comes from the last `X-Forwarded-For` entry: a proxy that does not set it makes every client one address |
 | S: stolen session cookie | Random 32-byte token, only its SHA-256 stored; `HttpOnly`, `SameSite=Lax`, `Secure` with an https `PUBLIC_URL`; sessions revoked on password change and user removal | A cookie stolen from an admin's machine works until it expires (default 7 days) |
 | T: cross-site request forgery | Unsafe requests with a cookie need the `X-Open-Revoke-Client` header, which a cross-site form cannot set | |
+| T: clickjacking, script links | `X-Frame-Options: SAMEORIGIN` and `frame-ancestors 'self'` on the panel; app links accept only `http(s)`; HSTS in the Caddy profile | |
 | S: DNS rebinding, host header attacks | `ALLOWED_HOSTS` check on `Host` and `X-Forwarded-Host` | |
 | E: member reaching admin functions | Every panel route is admin-only except `/api/me`; API tokens act as their owner, `read` tokens get safe methods only | |
 | S: stolen API token (MCP, scripts) | Only its SHA-256 stored, revocable, `last_used_at` shown | No expiry date yet |
@@ -73,6 +74,7 @@ deployment is listed in [TELEMETRY.md](../../TELEMETRY.md).
 | Threat | Control | Residual risk |
 |---|---|---|
 | I: database dump or backup leaks | Connector secrets, TOTP secrets, AI and Slack keys are Fernet-encrypted; passwords Argon2id; tokens SHA-256 | A dump together with `.env` reveals everything: `open-revoke backup` puts both in one file, keep it like a password |
+| I: an admin session or token used to send a stored token elsewhere | Changing a connector's URL field or the AI base URL needs the secret again; stored secrets are never returned by the API | An admin can still point a new connection with a new secret anywhere |
 | I: key leak | `open-revoke rotate-key` re-encrypts every stored secret with a new key | Rotation does not invalidate the SaaS credentials themselves: rotate those in the SaaS tools too |
 | T, R: rewriting history | A database trigger refuses `UPDATE`, `DELETE` and `TRUNCATE` on `audit_event`; export to CSV or JSON Lines for an outside archive | The table owner can drop the trigger; export regularly to a system admins of Open Revoke cannot change |
 | S, I: other containers on the host reaching Redis or Temporal | No published ports; Kubernetes network policies | Redis and Temporal have no password: anything on the compose network or in the namespace that the policies allow can use them |
@@ -89,7 +91,7 @@ deployment is listed in [TELEMETRY.md](../../TELEMETRY.md).
 
 | Threat | Control | Residual risk |
 |---|---|---|
-| T: an account removed or created by mistake | Write actions need an admin's approval (access requests can be pre-approved per app or by an access profile, never removals); writes switch off when a connection's target changes; a sync that would remove more than 30% of accounts stops | An admin who approves the wrong action |
+| T: an account removed or created by mistake | Write actions need an admin's approval (access requests can be pre-approved per app or by an access profile, never removals, never with a role the requester typed that no profile gives); writes switch off and waiting writes are cancelled when a connection's target changes; a sync that would remove more than 30% of accounts stops | An admin who approves the wrong action |
 | T: wrong person matched by e-mail | Matching by primary e-mail and aliases; manual matches win; every write is verified by reading the account list again | |
 | R: who approved a removal | `action.created_by`, `approved_by` and the audit log | |
 
@@ -97,9 +99,9 @@ deployment is listed in [TELEMETRY.md](../../TELEMETRY.md).
 
 | Threat | Control | Residual risk |
 |---|---|---|
-| T: prompt injection through a SaaS page while the AI repairs a click recipe | A fix for an irreversible step (a removal) waits for an admin's approval; every fix is listed and can be reverted | A fix for a reversible step applies at once |
+| T: prompt injection through a SaaS page while the AI repairs a click recipe | A fix for an irreversible step or any step of a removal waits for an admin's approval; every fix is listed and can be reverted | A fix for a step of an invite applies at once |
 | T: prompt injection through a Slack message to the access-request agent | The model only files a request for the person who wrote; the app's request policy and the manager or admin decide | |
-| T: CSV injection in exports | Cells that start with `=`, `+`, `-`, `@` are prefixed with `'` | |
+| T: CSV injection in exports | Cells that start with `=`, `+`, `-`, `@` (also after spaces or line breaks), a tab or a carriage return are prefixed with `'` | |
 | T: malicious app logo (SVG) | SVG checked on upload, served with `nosniff` and a restrictive CSP | |
 
 ### 6. Supply chain

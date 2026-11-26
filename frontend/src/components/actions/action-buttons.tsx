@@ -67,7 +67,7 @@ export function ActionButtons({ action }: { action: ActionOut }) {
     byHand.isPending ||
     approveFix.isPending ||
     rejectFix.isPending;
-  // An irreversible click the AI wants to change: nothing uses it until an admin approves.
+  // An irreversible click or a removal step the AI wants to change: nothing uses it until an admin approves.
   const proposedFix = action.status === "failed" ? action.recipe_fixes.find((fix) => fix.status === "proposed") : undefined;
   const activeFixes = action.recipe_fixes.filter((fix) => fix.status === "active");
   const inlineError = canApprove(action) ? approve.error : canRetry(action) ? retry.error : null;
@@ -155,8 +155,8 @@ export function ActionButtons({ action }: { action: ActionOut }) {
           <ConfirmDialog
             open={confirmFix}
             onOpenChange={setConfirmFix}
-            title="Use the AI's fix for an irreversible click?"
-            description={`Step “${proposedFix.step_goal || proposedFix.step_id}” cannot be undone. ${proposedFix.note} After you approve, retry the action: it reads ${action.app.name} first and clicks only if the change is not there yet.`}
+            title={proposedFix.irreversible ? "Use the AI's fix for an irreversible click?" : "Use the AI's fix for this removal step?"}
+            description={`Step “${proposedFix.step_goal || proposedFix.step_id}” ${proposedFix.irreversible ? "cannot be undone" : "is part of removing an account: check that it acts on the right person"}. ${proposedFix.note} After you approve, retry the action: it reads ${action.app.name} first and clicks only if the change is not there yet.`}
             confirmLabel="Approve fix"
             pending={approveFix.isPending}
             onConfirm={() => approveFix.mutate(proposedFix.id, { onSuccess: () => setConfirmFix(false) })}

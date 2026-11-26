@@ -204,9 +204,21 @@ class Connector(ABC):
     # writes off and needs a new successful sync. None means every config field.
     target_fields: ClassVar[tuple[str, ...] | None] = None
 
+    # Config fields that name the address the stored secrets are sent to. A change in any of them
+    # makes the admin enter the secrets again, so a token never follows a new URL. None means every
+    # config field whose name ends with "url".
+    endpoint_fields: ClassVar[tuple[str, ...] | None] = None
+
     @classmethod
     def target_of(cls, config: dict) -> dict:
         fields = cls.target_fields if cls.target_fields is not None else tuple(config)
+        return {name: config.get(name) for name in fields}
+
+    @classmethod
+    def endpoint_of(cls, config: dict) -> dict:
+        fields = cls.endpoint_fields
+        if fields is None:
+            fields = tuple(name for name in cls.config_schema.model_fields if name.lower().endswith("url"))
         return {name: config.get(name) for name in fields}
 
     @abstractmethod

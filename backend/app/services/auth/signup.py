@@ -23,6 +23,8 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 SIGNUP_LIMIT = 5
+# Sign-ups from one address per hour: the "already exists" answer must not list the panel's users.
+SIGNUP_IP_LIMIT = 20
 SIGNUP_WINDOW_SECONDS = 60 * 60
 CLOSED = "Sign-up is closed. Ask an admin of your organization for an invite."
 TAKEN = "An account with this e-mail already exists. Sign in, or ask an admin for a password reset link."
@@ -37,12 +39,13 @@ def auto_approves(organization: Organization, email: str) -> bool:
     return organization.registration_auto_approve and email_domain(email) in organization.registration_domains
 
 
-async def sign_up(session: AsyncSession, *, name: str, email: str, password: str) -> User:
+async def sign_up(session: AsyncSession, *, name: str, email: str, password: str, client_ip: str) -> User:
     """Create a ``user`` account: active at once when its domain is auto-approved, otherwise pending."""
     passwords.check_policy(password)
     organization = await session.get(Organization, 1)
     if organization is None or not organization.registration_enabled:
         raise PermissionDeniedError(CLOSED)
+    await rate_limit.enforce("signup-ip", client_ip, limit=SIGNUP_IP_LIMIT, window_seconds=SIGNUP_WINDOW_SECONDS)
     await rate_limit.enforce("signup", email, limit=SIGNUP_LIMIT, window_seconds=SIGNUP_WINDOW_SECONDS)
     if await session.scalar(select(User.id).where(User.email == email)):
         raise ConflictError(TAKEN)

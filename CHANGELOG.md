@@ -13,6 +13,25 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
 
 ## [Unreleased]
 
+### Security
+
+- A saved connector token (SCIM, GitHub Enterprise) or AI key is no longer sent to a changed base URL:
+  changing the URL needs the secret again. Pending and approved writes of a connection are cancelled
+  when its target changes.
+- A role the requester typed (for example `admin`) is never approved automatically by an `automatic`
+  app policy or an access profile: an admin approves it, unless one of the person's access profiles
+  gives that role.
+- An AI fix of any step of a removal click recipe waits for an admin's approval.
+- 2FA: wrong codes count per account over all sign-in attempts; a sign-in ticket works once and only
+  for its own step (a Settings enrollment ticket cannot skip 2FA).
+- The per-account sign-in limit counts only wrong passwords; self sign-up is limited per address too;
+  an e-mail with two `@` is refused; removing or demoting the last admin cannot race.
+- App website and admin links accept only `http(s)` (no `javascript:` links in the panel).
+- The panel sends `X-Frame-Options`, `frame-ancestors`, `nosniff` and `Referrer-Policy`; the Caddy
+  profile adds HSTS.
+- `.env` stays mode 600 when the installer or `open-revoke rotate-key` rewrites it.
+- CSV exports escape formulas after leading spaces or line breaks too.
+
 ## [0.1.0] - 2026-11-26
 
 ### Fixed

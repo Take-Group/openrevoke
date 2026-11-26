@@ -34,6 +34,9 @@ Open statuses (`OPEN_REQUEST_STATUSES`): `pending_manager`, `pending_admin`, `ap
 
 1. `automatic`: decision `step=admin`, `via=automatic`, by "Automatic (app policy)"; the action is
    approved at once (writes off: it waits for an admin, the request is `pending_admin`).
+   A `role` the requester typed that no access profile of theirs gives for the app (connectors map
+   `admin` to the app's admin) is never approved automatically: audit `access_request.escalated`
+   with `reason=role`, the action waits for an admin. The same check gates the profile shortcut in 3.
 2. `admin`: the action waits (`pending_admin`).
 3. `manager`, `manager_then_admin`:
    - an access profile of the person with the app and `auto_approve_requests`, or a manager

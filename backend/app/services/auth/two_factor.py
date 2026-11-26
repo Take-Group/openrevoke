@@ -28,17 +28,19 @@ async def start(user: User) -> tuple[str, totp.Enrollment]:
     if user.totp_secret_encrypted is not None:
         raise InvalidInputError("Two-factor authentication is already on.")
     secret = totp.new_secret()
-    return await tickets.issue(user.id, secret), totp.enrollment(secret, user.email)
+    return await tickets.issue(user.id, secret, purpose=tickets.SETTINGS), totp.enrollment(secret, user.email)
 
 
 async def enable(session: AsyncSession, user: User, *, ticket: str, code: str) -> User:
-    pending = await tickets.load(ticket)
+    pending = await tickets.load(ticket, tickets.SETTINGS)
     if pending.user_id != user.id or pending.enroll_secret is None:
         raise AuthenticationError(tickets.EXPIRED)
+    if user.totp_secret_encrypted is not None:
+        raise InvalidInputError("Two-factor authentication is already on.")
     step = totp.matching_step(pending.enroll_secret, code, after_step=None)
     if step is None:
         raise AuthenticationError(WRONG_CODE)
-    await tickets.discard(ticket)
+    await tickets.use(ticket)
     user.totp_secret_encrypted = encrypt_value(pending.enroll_secret)
     user.totp_last_step = step
     await audit.record(session, "user.totp_enabled", "user", user.id)

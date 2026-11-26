@@ -7,7 +7,8 @@ It tests locators on the live page (``try_locator``) and picks one
 (``use_locator``); the runner's probe checks every pick, so a fix always
 matches exactly one visible element. The fix is stored with ``{{param}}``
 placeholders: an ordinary step as ``active`` (used now and by later runs), an
-irreversible click as ``proposed`` (an admin approves it, then retries).
+irreversible click or any step of a removal as ``proposed`` (an admin approves
+it, then retries): text on a SaaS page could steer the model to another row.
 """
 
 from typing import TYPE_CHECKING, Any
@@ -93,6 +94,11 @@ TOOLS = [
 ]
 
 
+def needs_review(request: RepairRequest) -> bool:
+    """An admin approves the fix before any run uses it: irreversible clicks and every step of a removal."""
+    return request.step.irreversible or request.recipe_action == "delete_account"
+
+
 class RecipeRepairService:
     """``RecipeSupport`` for the writes of one action (``action_id`` links the fixes to it)."""
 
@@ -139,11 +145,11 @@ class RecipeRepairService:
             return Repair(None, False, f"AI repair found no fitting element: {reason or 'no answer'}")
         alternative, result, reason = chosen[-1]
         fix = await self._store(request, alternative, result, reason, author=f"ai:{row.model}")
-        if request.step.irreversible:
+        if needs_review(request):
             return Repair(
                 alternative,
                 False,
-                f"AI proposes {alternative.describe()} for this irreversible click. "
+                f"AI proposes {alternative.describe()} for this step of a removal. "
                 "Review the fix on the action, approve it, then retry",
             )
         return Repair(alternative, True, fix.note)
@@ -156,7 +162,7 @@ class RecipeRepairService:
         note = f"Instead of the recipe's locators, {alternative.describe()} (text: “{shown}”)."
         if reason:
             note = f"{note} {reason}"
-        status = RecipeFixStatus.PROPOSED if request.step.irreversible else RecipeFixStatus.ACTIVE
+        status = RecipeFixStatus.PROPOSED if needs_review(request) else RecipeFixStatus.ACTIVE
         async with async_session() as session:
             fix = RecipeFix(
                 recipe_app=request.recipe_app,

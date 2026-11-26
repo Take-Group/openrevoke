@@ -70,7 +70,8 @@ action's `email`, `external_id`, `role`.
    (exactly one visible element; an `expect` must still contain its text and
    be smaller than 2000 characters). At most 3 repairs per run.
 3. An ordinary step: the fix is stored `active` (with `{{param}}` in place of
-   the e-mail) and the run goes on. An irreversible click: stored `proposed`,
+   the e-mail) and the run goes on. An irreversible click or any step of a `delete_account` recipe (page
+   text could steer the model to another row): stored `proposed`,
    the run stops; the admin approves it ("Review fix" on the action) and
    presses "Retry". An `expect` that finds its element without the person's
    name is never repaired: that is the safety stop.

@@ -98,8 +98,8 @@ step.
 - An `irreversible` step (confirmation of a deletion) needs an earlier
   `expect` step whose `text` contains `{{email}}` or `{{external_id}}`.
   A recipe without it is rejected at load.
-- An irreversible step is never repaired automatically. An admin approves
-  the new element.
+- An irreversible step, and any step of a removal, is never repaired
+  automatically. An admin approves the new element.
 - A recipe runs in a **separate tab**, closed after the run. It does not
   disturb the panel tab that the `fetch()` read uses, or the admin. Cookies
   are shared, so the admin session works.
@@ -115,8 +115,8 @@ step.
 2. **Repair by AI** (built: `services/recipe_repair.py`). The model from the AI settings gets the `goal`
    of the step, the accessibility tree of the page and a screenshot, and
    proposes a new candidate. The engine fixes a navigation step and an
-   `expect` step by itself and goes on. An irreversible click waits for the
-   admin's approval: "instead of X I will click Y".
+   `expect` step by itself and goes on. An irreversible click, and any step
+   of a removal, waits for the admin's approval: "instead of X I will click Y".
 3. **Local fix.** The repair saves the new candidate for the step `id`
    on this installation, with the author (AI or admin) and the date. It can
    be undone.

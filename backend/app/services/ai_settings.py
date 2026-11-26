@@ -70,7 +70,8 @@ async def save(session: AsyncSession, data: AiSettingsUpdate) -> AiSettingsOut:
         raise InvalidInputError("A custom provider needs the base URL of its OpenAI-compatible API")
     row = await get_row(session)
     new_key = data.api_key.get_secret_value().strip() if data.api_key is not None else None
-    same_provider = row is not None and row.provider == data.provider
+    # The saved key goes only to the address it was entered for: a new base URL needs the key again.
+    same_provider = row is not None and row.provider == data.provider and row.base_url == base_url
     if new_key:
         key_encrypted: bytes | None = encrypt_value(new_key)
     elif data.api_key is None and same_provider:
@@ -107,12 +108,13 @@ async def save(session: AsyncSession, data: AiSettingsUpdate) -> AiSettingsOut:
 async def list_models(session: AsyncSession, data: AiModelsRequest) -> AiModelList:
     row = await get_row(session)
     api_key = data.api_key.get_secret_value().strip() if data.api_key else ""
-    if not api_key and row is not None and row.provider == data.provider:
+    base_url = _clean_url(data.base_url)
+    # The saved key is sent only to the address it was saved with, never to a URL typed in the form.
+    if not api_key and row is not None and row.provider == data.provider and row.base_url == base_url:
         api_key = _key(row)
     info = provider_info(data.provider)
     if info.needs_api_key and not api_key:
         raise InvalidInputError(f"Enter the {info.label} API key to load its models")
-    base_url = _clean_url(data.base_url)
     if info.needs_base_url and not base_url:
         raise InvalidInputError("Enter the base URL first")
     model = build_model(data.provider, api_key=api_key, model="-", base_url=base_url)

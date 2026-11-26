@@ -10,10 +10,10 @@ from sqlalchemy import exists, select
 from app.connectors.base import Capability, Connector, ConnectorError, NeedsLogin
 from app.connectors.http import build_http_client
 from app.connectors.registry import UnknownConnectorError, all_connectors, get_connector
-from app.models import App, Connection, SyncRun
-from app.models.enums import ConnectionStatus, Integration, SyncRunStatus
+from app.models import Action, App, Connection, SyncRun
+from app.models.enums import ActionKind, ActionStatus, ConnectionStatus, Integration, SyncRunStatus
 from app.schemas.connections import ConnectionCheckResult, ConnectionUpsert, ConnectorOut
-from app.services import audit
+from app.services import actions, audit
 from app.services.connector_runtime import HttpFactory, format_validation_error, open_context
 from app.services.errors import InvalidInputError, NotFoundError
 from app.services.secret_box import SecretsUnreadableError, decrypt_secrets, encrypt_secrets
@@ -80,6 +80,14 @@ async def upsert_connection(session: AsyncSession, app_id: uuid.UUID, data: Conn
         except SecretsUnreadableError:
             stored = {}  # the form must send them again; validation below says which are missing
     config, secrets = split_form(connector, data, stored)
+    if (
+        stored
+        and connection is not None
+        and connector.endpoint_of(connection.config or {}) != connector.endpoint_of(config)
+    ):
+        # A stored token never follows a changed URL: the form must send the secrets again.
+        stored = {}
+        config, secrets = split_form(connector, data, stored)
 
     # A new organisation, domain or workspace is a new target: the old sync says nothing about it.
     same_target = (
@@ -111,6 +119,8 @@ async def upsert_connection(session: AsyncSession, app_id: uuid.UUID, data: Conn
         connection.status = ConnectionStatus.NEVER_SYNCED
         connection.last_error = None
         connection.last_synced_at = None
+        if target_changed:
+            await cancel_waiting_writes(session, app.id)
     changed_secrets = sorted(key for key in set(secrets) | set(stored) if secrets.get(key) != stored.get(key))
     connection.connector_key = connector.key
     connection.config = config
@@ -135,6 +145,19 @@ async def upsert_connection(session: AsyncSession, app_id: uuid.UUID, data: Conn
     )
     await session.refresh(connection)  # loads server defaults (created_at) for the response
     return connection
+
+
+async def cancel_waiting_writes(session: AsyncSession, app_id: uuid.UUID) -> None:
+    """Writes approved or waiting for the old target must not run against the new one."""
+    waiting = await session.scalars(
+        select(Action.id).where(
+            Action.app_id == app_id,
+            Action.kind != ActionKind.MANUAL_TASK,
+            Action.status.in_([ActionStatus.PENDING_APPROVAL, ActionStatus.APPROVED]),
+        )
+    )
+    for action_id in list(waiting):
+        await actions.cancel(session, action_id)
 
 
 def split_form(

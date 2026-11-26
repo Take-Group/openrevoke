@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import select
 
-from app.models import AccessRequest, Action, App, Person
+from app.models import AccessProfileApp, AccessRequest, Action, App, Person, PersonAccessProfile
 from app.models.enums import (
     AccessRequestStatus,
     ActionKind,
@@ -61,6 +61,9 @@ FALLBACK_NOTE = {
 }
 
 
+CHOSEN_ROLE_NOTE = "An admin approves it: no access profile of yours gives this role in this app."
+
+
 @dataclass(frozen=True)
 class Decider:
     """Who decides: the actor for the record, the person they are, and whether they may act as an admin."""
@@ -75,6 +78,10 @@ async def route(
 ) -> RequestResult:
     """Send a new, flushed request to its first step. May commit (an approved write starts its workflow)."""
     if app.request_policy == RequestPolicy.AUTOMATIC:
+        if not await _role_needs_nobody(session, request, person, app):
+            await record_event(session, request, "access_request.escalated", {"reason": "role", "role": request.role})
+            result = await _create_action(session, request, person, app, dispatcher, approver=None)
+            return RequestResult(result.outcome, result.app_name, result.action_id, CHOSEN_ROLE_NOTE)
         await record_decision(
             session, request, step=DecisionStep.ADMIN, outcome=DecisionOutcome.APPROVED, decider=POLICY
         )
@@ -111,11 +118,28 @@ async def _manager_step_met(
 ) -> tuple[str, str] | None:
     """(decider label, comment) when the manager step needs nobody: a profile or the manager asked."""
     profile = await auto_approving_profile(session, person.id, app.id)
-    if profile is not None:
+    if profile is not None and await _role_needs_nobody(session, request, person, app):
         return "Automatic (access profile)", f"Access profile {profile.name}"
     if request.on_behalf:
         return request.requested_by or "The manager", "Requested by the manager"
     return None
+
+
+async def _role_needs_nobody(session: AsyncSession, request: AccessRequest, person: Person, app: App) -> bool:
+    """A role typed by the requester ("admin") is approved by nobody only when a profile gives it.
+
+    Connectors map some roles to the app's admin (GitHub, ChatGPT, Claude), so an automatic
+    policy or an auto-approving profile must not hand out a role the person picked for themselves.
+    """
+    role = (request.role or "").strip().lower()
+    if not role:
+        return True
+    granted = await session.scalars(
+        select(AccessProfileApp.role)
+        .join(PersonAccessProfile, PersonAccessProfile.profile_id == AccessProfileApp.profile_id)
+        .where(PersonAccessProfile.person_id == person.id, AccessProfileApp.app_id == app.id)
+    )
+    return any((value or "").strip().lower() == role for value in granted)
 
 
 async def _manager_who_decides(

@@ -26,7 +26,7 @@ class AiSettingsOut(BaseModel):
 
 
 class AiSettingsUpdate(BaseModel):
-    """``api_key`` null keeps the saved key (only when the provider stays the same)."""
+    """``api_key`` null keeps the saved key (only when the provider and the base URL stay the same)."""
 
     provider: AiProvider
     model: str = Field(min_length=1, max_length=200)

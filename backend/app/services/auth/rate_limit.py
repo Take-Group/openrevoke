@@ -21,6 +21,15 @@ async def hit(scope: str, subject: str, *, limit: int, window_seconds: int) -> b
     return count <= limit
 
 
+async def check(scope: str, subject: str, *, limit: int) -> None:
+    """Refuse when the subject is already over the limit, without counting this attempt."""
+    count = await redis_client.get(_key(scope, subject))
+    if count is not None and int(count) >= limit:
+        ttl = await redis_client.ttl(_key(scope, subject))
+        minutes = max(1, (ttl if ttl > 0 else 60) // 60)
+        raise RateLimitedError(f"Too many attempts. Try again in {minutes} minutes.")
+
+
 async def enforce(scope: str, subject: str, *, limit: int, window_seconds: int) -> None:
     if not await hit(scope, subject, limit=limit, window_seconds=window_seconds):
         minutes = max(1, window_seconds // 60)

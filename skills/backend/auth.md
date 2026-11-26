@@ -42,7 +42,9 @@ Authenticator and any other TOTP app).
   - Account without 2FA: `POST /api/auth/login` gives a session at once
     (`step: done`, cookie). Sign-up from an invite does too.
   - Account with 2FA: the password gives a ticket (Redis, 10 min, 5 attempts), the ticket with a TOTP
-    code (`POST /api/auth/totp`) gives a session.
+    code (`POST /api/auth/totp`) gives a session. A ticket is spent once (an atomic delete) and has a
+    purpose (`sign_in`, `setup`, `settings`): each step accepts only its own, so a Settings enrollment
+    ticket cannot skip 2FA. Wrong codes also count per account over all tickets (10 / 15 min).
   - Only the first run (setup) offers 2FA to the admin
     (`totp_setup`), with "Skip for now" (`POST /api/auth/totp/skip`).
   - Turning it on and off in Settings (`services/auth/two_factor.py`):
@@ -79,7 +81,7 @@ Authenticator and any other TOTP app).
 | `backend/app/services/auth/tickets.py` | second-step ticket in Redis |
 | `backend/app/services/auth/sessions.py` | sessions: random token in the `open_revoke_session` cookie, only SHA-256 in the database |
 | `backend/app/services/auth/tokens.py` | one-time links (invite, reset), SHA-256 in the database |
-| `backend/app/services/auth/rate_limit.py` | counters in Redis. Sign-in per 15 min: 10 per e-mail from one address, 50 per address, 100 per e-mail from anywhere (a stranger cannot lock an owner out). 5 sign-ups / h, 5 attempts to turn off 2FA / 15 min |
+| `backend/app/services/auth/rate_limit.py` | counters in Redis. Sign-in per 15 min: 10 per e-mail from one address, 50 per address, 100 wrong passwords per e-mail from anywhere (only failures count), 10 wrong 2FA codes per account. 5 sign-ups per e-mail and 20 per address / h, 5 attempts to turn off 2FA / 15 min |
 | `backend/app/api/client_ip.py` | `client_ip`: last `X-Forwarded-For` entry (the proxy's view), else the peer; for rate limits and the audit log |
 | `backend/app/services/auth/sign_in.py` | setup, sign-in, TOTP step, sign-up from an invite; `record_failed_sign_in` writes `user.sign_in_failed` (e-mail, address, `password` or `totp`) in its own transaction |
 | `backend/app/services/auth/two_factor.py` | 2FA in settings: `start`, `enable`, `disable` |

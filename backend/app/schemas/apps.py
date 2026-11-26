@@ -39,7 +39,14 @@ CATEGORIES = (
 Category = Annotated[
     str | None, Field(max_length=50, description=f"Free text, stored lowercase. Suggested: {', '.join(CATEGORIES)}")
 ]
-Website = Annotated[str | None, Field(max_length=500, description="The app's public website, https://...")]
+# Only http(s) links: the panel renders both as links, and a javascript: URL would run in an admin's session.
+HTTP_URL_PATTERN = r"^(https?://\S+)?$"
+Website = Annotated[
+    str | None, Field(max_length=500, pattern=HTTP_URL_PATTERN, description="The app's public website, https://...")
+]
+AdminUrl = Annotated[
+    str | None, Field(max_length=2000, pattern=HTTP_URL_PATTERN, description="The app's admin page, https://...")
+]
 CatalogKey = Annotated[
     str | None, Field(max_length=100, description="Slug in the app catalog (GET /api/catalog/search)")
 ]
@@ -58,7 +65,7 @@ class AppCreate(BaseModel):
     slug: str | None = Field(
         default=None, max_length=100, pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$", description="Generated from name if empty"
     )
-    admin_url: str | None = Field(default=None, max_length=2000)
+    admin_url: AdminUrl = None
     integration: Integration = Integration.MANUAL
     pricing_model: PricingModel = PricingModel.FREE
     price: PriceIn | None = None
@@ -71,7 +78,7 @@ class AppUpdate(BaseModel):
 
     name: str | None = Field(default=None, min_length=1, max_length=200)
     slug: str | None = Field(default=None, max_length=100, pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$")
-    admin_url: str | None = Field(default=None, max_length=2000)
+    admin_url: AdminUrl = None
     integration: Integration | None = None
     pricing_model: PricingModel | None = None
     price: PriceIn | None = None

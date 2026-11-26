@@ -27,7 +27,8 @@ class ConnectionOut(ApiModel):
 class ConnectionUpsert(BaseModel):
     """Saves the connection. Secret fields (``secret: true`` in the connector's ``config_schema``) may come
     in ``config`` or in ``secrets``; they are split out, encrypted and never returned. An empty or missing
-    secret keeps the stored value. Changing ``connector_key`` drops the stored secrets."""
+    secret keeps the stored value. Changing ``connector_key`` or a URL field (``base_url``, ``api_url``) drops
+    the stored secrets: they are never sent to a new address without being entered again."""
 
     connector_key: str = Field(min_length=1, max_length=100)
     config: dict[str, Any] = Field(default_factory=dict, description="Form values; secret fields allowed")

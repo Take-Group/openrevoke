@@ -83,3 +83,8 @@ def test_update_check_uses_semver_precedence(newer: str, older: str) -> None:
 
     assert is_newer(newer, older)
     assert not is_newer(older, newer)
+
+
+@pytest.mark.parametrize("value", [" =1+1", "\n+cmd", "  @SUM(A1)"])
+def test_csv_cells_see_through_leading_blanks(value: str) -> None:
+    assert safe_cell(value).startswith("'")

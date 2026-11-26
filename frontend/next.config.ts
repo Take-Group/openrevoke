@@ -15,6 +15,21 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["*.localhost", "web"],
   // Bottom left would cover the signed-in user in the sidebar footer.
   devIndicators: { position: "bottom-right" },
+  // Clickjacking and sniffing guards for the panel's pages (the proxied API sets its own). The live view
+  // of the shared browser is framed by the panel itself, so frames stay allowed on the same origin.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+        ],
+      },
+    ];
+  },
   async rewrites() {
     return [
       {

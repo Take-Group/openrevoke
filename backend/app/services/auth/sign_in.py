@@ -31,12 +31,14 @@ WRONG_CREDENTIALS = "Wrong e-mail or password."
 WRONG_CODE = "Wrong code. Check the time on your phone and try the newest code."
 # Any number: one advisory lock for the first-run setup, so two browsers cannot both create an admin.
 SETUP_LOCK_ID = 7_412_001
-# Sign-in attempts per 15 minutes: one e-mail from one address, one address for any e-mail, one
-# e-mail from anywhere. The per-account limit is high, so a stranger who knows an e-mail cannot
-# lock its owner out with a few wrong passwords.
+# Sign-in attempts per 15 minutes: one e-mail from one address, one address for any e-mail, and
+# wrong passwords for one e-mail from anywhere. The per-account limit counts only failures and is
+# high, so a stranger who knows an e-mail cannot lock its owner out with a few wrong passwords.
 LOGIN_LIMIT = 10
 LOGIN_IP_LIMIT = 50
 LOGIN_ACCOUNT_LIMIT = 100
+# Wrong 2FA codes for one account per 15 minutes, over all its sign-in tickets.
+TOTP_ACCOUNT_LIMIT = 10
 LOGIN_WINDOW_SECONDS = 15 * 60
 
 
@@ -97,7 +99,10 @@ async def setup(
     await setup_link.discard()
     # The only place that offers 2FA: the first admin may turn it on now or skip it.
     secret = totp.new_secret()
-    return PendingStep(ticket=await tickets.issue(user.id, secret), enrollment=totp.enrollment(secret, user.email))
+    return PendingStep(
+        ticket=await tickets.issue(user.id, secret, purpose=tickets.SETUP),
+        enrollment=totp.enrollment(secret, user.email),
+    )
 
 
 async def login(
@@ -106,9 +111,10 @@ async def login(
     window = LOGIN_WINDOW_SECONDS
     await rate_limit.enforce("login-ip", client_ip, limit=LOGIN_IP_LIMIT, window_seconds=window)
     await rate_limit.enforce("login", _login_subject(email, client_ip), limit=LOGIN_LIMIT, window_seconds=window)
-    await rate_limit.enforce("login-account", email, limit=LOGIN_ACCOUNT_LIMIT, window_seconds=window)
+    await rate_limit.check("login-account", email, limit=LOGIN_ACCOUNT_LIMIT)
     user = await session.scalar(select(User).where(User.email == email))
     if not passwords.verify_password(user.password_hash if user else None, password) or user is None:
+        await rate_limit.hit("login-account", email, limit=LOGIN_ACCOUNT_LIMIT, window_seconds=window)
         await record_failed_sign_in(email, user.id if user else None, client_ip, "password")
         raise AuthenticationError(WRONG_CREDENTIALS)
     if blocker := signup.sign_in_blocker(user):
@@ -136,7 +142,7 @@ async def complete(
     session: AsyncSession, *, ticket: str, code: str, user_agent: str | None, client_ip: str | None = None
 ) -> SignedIn:
     """Check the TOTP code of a ticket and open a session."""
-    pending = await tickets.load(ticket)
+    pending = await tickets.load(ticket, tickets.SIGN_IN, tickets.SETUP)
     user = await session.get(User, pending.user_id)
     if user is None:
         await tickets.discard(ticket)
@@ -148,11 +154,17 @@ async def complete(
     else:  # 2FA was reset after the ticket was issued
         await tickets.discard(ticket)
         raise AuthenticationError(tickets.EXPIRED)
+    if pending.enroll_secret is not None and user.totp_secret_encrypted is not None:
+        await tickets.discard(ticket)  # 2FA was turned on after this setup ticket: never replace that secret
+        raise AuthenticationError(tickets.EXPIRED)
+    # Wrong codes count per account across tickets: a new ticket per correct password is no new budget.
+    await rate_limit.check("totp", user.email, limit=TOTP_ACCOUNT_LIMIT)
     step = totp.matching_step(secret, code, after_step=user.totp_last_step)
     if step is None:
+        await rate_limit.hit("totp", user.email, limit=TOTP_ACCOUNT_LIMIT, window_seconds=LOGIN_WINDOW_SECONDS)
         await record_failed_sign_in(user.email, user.id, client_ip or "unknown", "totp")
         raise AuthenticationError(WRONG_CODE)
-    await tickets.discard(ticket)
+    await tickets.use(ticket)
     current_actor.set(user.email)
     if pending.enroll_secret is not None:
         user.totp_secret_encrypted = encrypt_value(secret)
@@ -163,14 +175,14 @@ async def complete(
 
 async def skip_enrollment(session: AsyncSession, *, ticket: str, user_agent: str | None) -> SignedIn:
     """Open a session without 2FA. Only for the first-run setup ticket, which offers enrollment."""
-    pending = await tickets.load(ticket)
+    pending = await tickets.load(ticket, tickets.SETUP)
     user = await session.get(User, pending.user_id)
     if user is None:
         await tickets.discard(ticket)
         raise AuthenticationError(tickets.EXPIRED)
     if pending.enroll_secret is None or user.totp_secret_encrypted is not None:
         raise AuthenticationError("Two-factor authentication is on for this account. Enter the code.")
-    await tickets.discard(ticket)
+    await tickets.use(ticket)
     current_actor.set(user.email)
     await audit.record(session, "user.totp_skipped", "user", user.id)
     return await _open_session(session, user, user_agent)
@@ -180,6 +192,7 @@ async def _open_session(
     session: AsyncSession, user: User, user_agent: str | None, client_ip: str | None = None
 ) -> SignedIn:
     await rate_limit.reset("login-account", user.email)
+    await rate_limit.reset("totp", user.email)
     if client_ip:
         await rate_limit.reset("login", _login_subject(user.email, client_ip))
     current_actor.set(user.email)

@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 
 from app.models import User
 from app.models.enums import UserRole, UserStatus
@@ -29,7 +29,8 @@ async def get(session: AsyncSession, user_id: uuid.UUID) -> User:
 
 
 async def _admin_count(session: AsyncSession) -> int:
-    return await session.scalar(select(func.count()).select_from(User).where(User.role == UserRole.ADMIN)) or 0
+    """Admins, with their rows locked: two admins demoting each other at once cannot leave none."""
+    return len(list(await session.scalars(select(User.id).where(User.role == UserRole.ADMIN).with_for_update())))
 
 
 async def approve(session: AsyncSession, user_id: uuid.UUID, *, admin: User) -> User:

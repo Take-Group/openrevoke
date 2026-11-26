@@ -1,7 +1,7 @@
 """Local fixes of click recipe steps: read for a run, listed, approved, rejected (docs/browser-recipes.md).
 
 An AI repair of an ordinary step is stored ``active`` and used at once; a fix
-of an irreversible click is ``proposed`` and no run uses it until an admin
+of an irreversible click or of a removal step is ``proposed`` and no run uses it until an admin
 approves it. Rejecting an active fix reverts it: runs go back to the repo's
 candidates. Rows are never deleted, so the history stays.
 """

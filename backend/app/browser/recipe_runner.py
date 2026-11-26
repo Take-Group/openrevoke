@@ -4,7 +4,7 @@ Deterministic: no language model here. For every step the runner tries the
 local fixes first, then the recipe's ``target`` candidates in order; the first
 that matches exactly one visible element wins. When none does and a
 ``RecipeSupport`` is given, it asks for an AI repair: a repaired ordinary step
-runs on, a repaired irreversible click stops the run until an admin approves
+runs on, a repaired irreversible click or removal step stops the run until an admin approves
 the fix. An ``expect`` whose element lacks the text is never repaired: that is
 the safety check. A failed step comes back with a screenshot of the tab. The
 tab is closed after the run, so the panel tab used by ``fetch()`` and the

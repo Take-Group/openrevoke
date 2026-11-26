@@ -172,12 +172,14 @@ async def register(data: RegisterRequest, request: Request, response: Response, 
 @router.post(
     "/signup", response_model=SignupResult, status_code=status.HTTP_201_CREATED, responses=RATE_LIMITED_RESPONSE
 )
-async def sign_up(data: SignupRequest, session: SessionDep) -> SignupResult:
+async def sign_up(data: SignupRequest, request: Request, session: SessionDep) -> SignupResult:
     """Self sign-up (role user): active at once for an auto-approved domain, otherwise pending for an admin.
 
     403 when the organization turned sign-up off, 409 when the e-mail has an account.
     """
-    user = await signup.sign_up(session, name=data.name, email=data.email, password=data.password)
+    user = await signup.sign_up(
+        session, name=data.name, email=data.email, password=data.password, client_ip=client_ip(request)
+    )
     return SignupResult(status=user.status)
 
 

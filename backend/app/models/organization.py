@@ -28,7 +28,8 @@ class Organization(Base):
     password_manager: Mapped[PasswordManager | None] = enum_column(PasswordManager, "password_manager", nullable=True)
     # Self sign-up on /signup (skills/backend/auth.md). Off: only invites create accounts.
     registration_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
-    # On: a confirmed e-mail in one of ``registration_domains`` gets in at once; everyone else waits for an admin.
+    # On: an e-mail in one of ``registration_domains`` gets in at once, unconfirmed (the panel sends no mail);
+    # everyone else waits for an admin.
     registration_auto_approve: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
     registration_domains: Mapped[list[str]] = mapped_column(
         ARRAY(String(253)), nullable=False, server_default=text("'{}'")

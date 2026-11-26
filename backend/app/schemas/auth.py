@@ -16,7 +16,7 @@ from app.services.timezones import is_known_timezone
 def _normalize_email(value: str) -> str:
     value = value.strip().lower()
     local, _, domain = value.partition("@")
-    if not local or "." not in domain or " " in value:
+    if not local or "." not in domain or "@" in domain or " " in value:
         raise ValueError("Enter a valid e-mail address")
     return value
 
