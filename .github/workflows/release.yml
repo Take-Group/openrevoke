@@ -3,18 +3,20 @@
 #   checks         the CI checks (ci.yml), from scratch: a tag made without release.sh is checked too
 #   prepare        version, pre-release or not, image tags, release notes from CHANGELOG.md,
 #                  previous stable release
-#   build-test     amd64 images loaded into the runner's Docker (not pushed), the release bundle
-#                  (scripts/build-release.sh --skip-images), a fresh install with install.sh and an
-#                  update from the previous release with `open-revoke update`, then rollback; the
-#                  Helm chart packaged and installed on a kind cluster with the same images
+#   build-test     release-test.yml: amd64 images loaded into the runner's Docker (not pushed),
+#                  Trivy scan (a fixable CRITICAL stops the release), the release bundle, a fresh
+#                  install, an update from the previous release and a rollback, the Helm chart on kind
 #   publish        multi-arch images (amd64 and arm64, each on a native runner) with SBOM and
 #                  provenance, pushed by digest: nothing is pushed before the tests pass
 #   tag-and-sign   one multi-arch tag set per image (X.Y.Z, X.Y, latest; a pre-release only X.Y.Z),
 #                  cosign keyless signature of each image
+#   provenance-*   SLSA Build Level 3 provenance (slsa-github-generator) of both images and of every
+#                  release file
 #   chart          the tested Helm chart pushed to oci://ghcr.io/take-group/charts and signed with
 #                  cosign; the Artifact Hub metadata (deploy/helm/artifacthub-repo.yml) next to it
-#   release        cosign signature of SHA256SUMS, GitHub Release with the notes, bundle files and
-#                  the chart's .tgz
+#   release-files  the final release files and SHA256SUMS over them
+#   release        cosign signature of SHA256SUMS, immutable GitHub Release with the notes, bundle,
+#                  chart's .tgz and provenance
 #
 # Plan: docs/product/release/03-wydanie.md in the private workspace; tooling:
 # skills/backend/releases.md. Parts marked "GitHub only" cannot be tried on a laptop: they need
@@ -64,7 +66,9 @@ jobs:
       latest: ${{ steps.previous.outputs.latest }}
       previous: ${{ steps.previous.outputs.previous }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Version from the tag
         id: version
@@ -94,7 +98,7 @@ jobs:
           fi
           cat "$RUNNER_TEMP/notes/notes.md"
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-notes
           path: ${{ runner.temp }}/notes/notes.md
@@ -139,231 +143,19 @@ jobs:
           echo "Previous stable release: ${previous:-none}. Image tags: $tags. Latest: $latest."
 
   build-test:
-    name: Build and test install and update (amd64)
+    name: Build and test
     needs: [checks, prepare]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    uses: ./.github/workflows/release-test.yml
     permissions:
       contents: read
-      # Pulls the images of the previous release for the update test (needed while ghcr.io
-      # packages are private).
+      # Pulls the images of the previous release for the update test.
       packages: read
-    env:
-      VERSION: ${{ needs.prepare.outputs.version }}
-      PREVIOUS: ${{ needs.prepare.outputs.previous }}
-    steps:
-      - uses: actions/checkout@v7
-
-      # Laid out like GitHub Releases (download/vX.Y.Z/, latest/download/VERSION), so install.sh
-      # and `open-revoke update` read it with OPEN_REVOKE_RELEASES_URL=file://...
-      - name: Release directory
-        run: echo "RELEASES=$RUNNER_TEMP/releases" >> "$GITHUB_ENV"
-
-      - uses: docker/setup-buildx-action@v4
-
-      - uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
-
-      # The images under test are loaded into the runner's Docker with the release tags, so
-      # install.sh (`docker compose up --pull missing`) and `open-revoke update` use them instead
-      # of pulling. The publish job builds the same Dockerfile again from the same GitHub Actions
-      # cache, for both platforms.
-      - name: Build app image (amd64, local)
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          target: app
-          platforms: linux/amd64
-          build-args: OPEN_REVOKE_VERSION=${{ env.VERSION }}
-          tags: ${{ env.IMAGE }}:${{ env.VERSION }}
-          load: true
-          push: false
-          provenance: false
-          sbom: false
-          cache-from: type=gha,scope=app-linux-amd64
-          cache-to: type=gha,mode=max,scope=app-linux-amd64
-
-      - name: Build browser image (amd64, local)
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          target: browser
-          # The browser stage runs `apt-get install chromium`. From the cache it would keep the
-          # Chromium of an earlier build, and a Chromium security release would ship the old one.
-          no-cache-filters: browser
-          platforms: linux/amd64
-          tags: ${{ env.BROWSER_IMAGE }}:${{ env.VERSION }}
-          load: true
-          push: false
-          provenance: false
-          sbom: false
-          cache-from: type=gha,scope=browser-linux-amd64
-          cache-to: type=gha,mode=max,scope=browser-linux-amd64
-
-      # The bundle comes from scripts/build-release.sh itself, so the workflow and a local release
-      # cannot drift apart. The script builds images only for one platform and never pushes, so
-      # it runs with --skip-images; the images are the job above and the publish job below.
-      - name: Build the release bundle
-        run: scripts/build-release.sh "$VERSION" --skip-images --out "$RELEASES"
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: release-bundle
-          path: ${{ runner.temp }}/releases/download/v${{ needs.prepare.outputs.version }}/
-          if-no-files-found: error
-
-      - name: Test a fresh install
-        run: |
-          dir="$RUNNER_TEMP/fresh"
-          OPEN_REVOKE_RELEASES_URL="file://$RELEASES" sh "$RELEASES/download/v$VERSION/install.sh" \
-            --yes --version "$VERSION" --dir "$dir" --name or-fresh --port 18420 --no-link \
-            | tee "$RUNNER_TEMP/fresh.log"
-          # install.sh returns only after the app container is healthy and prints the setup link.
-          token=$(grep -Eo '/setup\?token=[A-Za-z0-9_-]+' "$RUNNER_TEMP/fresh.log" | tail -n 1 | cut -d= -f2)
-          [ -n "$token" ] || { echo "::error::install.sh printed no setup link"; exit 1; }
-          panel=http://localhost:18420
-
-          curl -fsS "$panel/api/auth/state" | jq -e '.setup_required == true'
-
-          code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$panel/api/auth/setup/check" \
-            -H 'Content-Type: application/json' -H 'X-Open-Revoke-Client: 1' \
-            -d "{\"token\": \"$token\"}")
-          [ "$code" = 204 ] || { echo "::error::the setup link was refused ($code)"; exit 1; }
-
-          code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$panel/api/auth/setup/check" \
-            -H 'Content-Type: application/json' -H 'X-Open-Revoke-Client: 1' \
-            -d '{"token": "not-the-token-of-this-installation"}')
-          [ "$code" = 403 ] || { echo "::error::a wrong setup token got $code instead of 403"; exit 1; }
-
-          "$dir/open-revoke" version | tee "$RUNNER_TEMP/fresh-version.txt"
-          grep -Eq "^Running: +$VERSION\$" "$RUNNER_TEMP/fresh-version.txt" \
-            || { echo "::error::the running app does not report $VERSION"; exit 1; }
-
-      - name: Logs of the fresh install
-        if: failure()
-        run: (cd "$RUNNER_TEMP/fresh" && docker compose ps && docker compose logs --tail 200) || true
-
-      - name: Remove the fresh install
-        if: always()
-        run: |
-          if [ -x "$RUNNER_TEMP/fresh/open-revoke" ]; then
-            "$RUNNER_TEMP/fresh/open-revoke" uninstall --purge --yes || true
-          fi
-
-      - name: No earlier release to update from
-        if: needs.prepare.outputs.previous == ''
-        run: |
-          echo "::notice::No earlier stable release, or this is a fix for an older line. The update test is skipped."
-
-      # GitHub only: installs the previous release from this repository's GitHub Releases and
-      # pulls its images from ghcr.io.
-      - name: Test the update from the previous release
-        if: needs.prepare.outputs.previous != ''
-        run: |
-          dir="$RUNNER_TEMP/update"
-          panel=http://localhost:18421
-          password="release-check-$(openssl rand -hex 12)"
-          echo "::add-mask::$password"
-
-          curl -fsSL "https://github.com/$GITHUB_REPOSITORY/releases/download/v$PREVIOUS/install.sh" \
-            -o "$RUNNER_TEMP/install-previous.sh"
-          sh "$RUNNER_TEMP/install-previous.sh" --yes --version "$PREVIOUS" --dir "$dir" \
-            --name or-update --port 18421 --no-link --releases "https://github.com/$GITHUB_REPOSITORY/releases" \
-            | tee "$RUNNER_TEMP/previous.log"
-          token=$(grep -Eo '/setup\?token=[A-Za-z0-9_-]+' "$RUNNER_TEMP/previous.log" | tail -n 1 | cut -d= -f2)
-          [ -n "$token" ] || { echo "::error::install.sh of $PREVIOUS printed no setup link"; exit 1; }
-
-          # Data that has to survive the update and the rollback: the organization and its admin.
-          jq -n --arg token "$token" --arg password "$password" '{
-            organization_name: "Release Check", currency: "USD", timezone: "UTC",
-            name: "Release Check", email: "admin@example.com", password: $password, token: $token
-          }' > "$RUNNER_TEMP/setup.json"
-          curl -fsS -o /dev/null -X POST "$panel/api/auth/setup" \
-            -H 'Content-Type: application/json' -H 'X-Open-Revoke-Client: 1' \
-            --data @"$RUNNER_TEMP/setup.json"
-          curl -fsS "$panel/api/auth/state" | jq -e '.setup_required == false and .organization.name == "Release Check"'
-
-          # From here on the installation reads releases from the bundle built above.
-          echo "OPEN_REVOKE_RELEASES_URL=file://$RELEASES" >> "$dir/.env"
-          "$dir/open-revoke" update --to "$VERSION" --yes
-          "$dir/open-revoke" version | tee "$RUNNER_TEMP/updated-version.txt"
-          grep -Eq "^Running: +$VERSION\$" "$RUNNER_TEMP/updated-version.txt" \
-            || { echo "::error::after the update the app does not report $VERSION"; exit 1; }
-          curl -fsS "$panel/api/auth/state" | jq -e '.setup_required == false and .organization.name == "Release Check"'
-
-          # The way back has to work too: files and database from before the update.
-          "$dir/open-revoke" rollback --yes
-          "$dir/open-revoke" version | tee "$RUNNER_TEMP/rollback-version.txt"
-          grep -Eq "^Running: +$PREVIOUS\$" "$RUNNER_TEMP/rollback-version.txt" \
-            || { echo "::error::after the rollback the app does not report $PREVIOUS"; exit 1; }
-          curl -fsS "$panel/api/auth/state" | jq -e '.setup_required == false and .organization.name == "Release Check"'
-
-      - name: Logs of the update test
-        if: failure() && needs.prepare.outputs.previous != ''
-        run: (cd "$RUNNER_TEMP/update" && docker compose ps && docker compose logs --tail 200) || true
-
-      - uses: azure/setup-helm@v4
-
-      # Packaged once: the kind test below installs this file and the chart job pushes the same one.
-      # Chart.yaml gets this version's image tags (Artifact Hub scans them) and the pre-release flag.
-      - name: Package the Helm chart
-        env:
-          PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
-        run: |
-          chart=deploy/helm/open-revoke
-          sed -i -E "s#($IMAGE(-browser)?):[^[:space:]]+#\1:$VERSION#" "$chart/Chart.yaml"
-          yq -i '.annotations."artifacthub.io/prerelease" = strenv(PRERELEASE)' "$chart/Chart.yaml"
-          grep -F "$IMAGE:$VERSION" "$chart/Chart.yaml" && grep -F "$BROWSER_IMAGE:$VERSION" "$chart/Chart.yaml"
-          helm lint --strict "$chart"
-          helm package "$chart" --version "$VERSION" --app-version "$VERSION" --destination "$RUNNER_TEMP/chart"
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: helm-chart
-          path: ${{ runner.temp }}/chart/open-revoke-${{ needs.prepare.outputs.version }}.tgz
-          if-no-files-found: error
-
-      - uses: helm/kind-action@v1
-        with:
-          cluster_name: or-release
-
-      # The images built above, loaded into kind (pull policy IfNotPresent), so nothing is pulled
-      # from ghcr.io for Open Revoke itself. --wait: every pod ready, init containers included
-      # (PostgreSQL, Temporal's schema and namespace, the app's migrations).
-      - name: Test the Helm chart on kind
-        run: |
-          kind load docker-image --name or-release "$IMAGE:$VERSION" "$BROWSER_IMAGE:$VERSION"
-          chart="$RUNNER_TEMP/chart/open-revoke-$VERSION.tgz"
-          helm install or "$chart" --namespace or --create-namespace \
-            --set app.telemetry=false --set app.updateCheck=false --wait --timeout 15m
-          kubectl -n or port-forward svc/or-open-revoke-app 18430:3000 18431:8000 > "$RUNNER_TEMP/port-forward.log" 2>&1 &
-          for _ in $(seq 30); do curl -fsS http://localhost:18431/health > /dev/null 2>&1 && break; sleep 2; done
-
-          curl -fsS http://localhost:18431/health | jq -e --arg v "$VERSION" '.status == "ok" and .version == $v'
-          curl -fsS http://localhost:18430/api/auth/state | jq -e '.setup_required == true'
-          link=$(kubectl -n or exec deploy/or-open-revoke-app -c app -- python -m app.cli setup-link)
-          token=$(echo "$link" | grep -Eo '/setup\?token=[A-Za-z0-9_-]+' | tail -n 1 | cut -d= -f2)
-          [ -n "$token" ] || { echo "::error::setup-link printed no link: $link"; exit 1; }
-          code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST http://localhost:18430/api/auth/setup/check \
-            -H 'Content-Type: application/json' -H 'X-Open-Revoke-Client: 1' -d "{\"token\": \"$token\"}")
-          [ "$code" = 204 ] || { echo "::error::the setup link was refused ($code)"; exit 1; }
-
-          # An upgrade with another value keeps the generated secrets (lookup in templates/secret.yaml).
-          key_before=$(kubectl -n or get secret or-open-revoke -o jsonpath='{.data.OPEN_REVOKE_SECRET_KEY}')
-          helm upgrade or "$chart" --namespace or --reuse-values --set timezone=Europe/Warsaw --wait --timeout 10m
-          key_after=$(kubectl -n or get secret or-open-revoke -o jsonpath='{.data.OPEN_REVOKE_SECRET_KEY}')
-          [ -n "$key_before" ] && [ "$key_before" = "$key_after" ] \
-            || { echo "::error::helm upgrade changed OPEN_REVOKE_SECRET_KEY"; exit 1; }
-
-      - name: State of the kind cluster
-        if: failure()
-        run: |
-          kubectl -n or get pods,pvc,events || true
-          kubectl -n or logs deploy/or-open-revoke-app --all-containers --tail 200 || true
-          kubectl -n or logs deploy/or-open-revoke-temporal --all-containers --tail 100 || true
+      # Trivy reports of the images go to the Security tab.
+      security-events: write
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+      previous: ${{ needs.prepare.outputs.previous }}
+      prerelease: ${{ needs.prepare.outputs.prerelease }}
 
   publish:
     name: Publish ${{ matrix.platform }}
@@ -389,11 +181,13 @@ jobs:
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      - uses: docker/login-action@v4
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -424,7 +218,7 @@ jobs:
       # Pushed by digest only: no tag points at it until tag-and-sign has both platforms.
       - name: Build and push app (${{ matrix.platform }})
         id: app
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           target: app
@@ -439,7 +233,7 @@ jobs:
 
       - name: Build and push browser (${{ matrix.platform }})
         id: browser
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           target: browser
@@ -463,7 +257,7 @@ jobs:
           touch "$RUNNER_TEMP/digests/app/${APP_DIGEST#sha256:}"
           touch "$RUNNER_TEMP/digests/browser/${BROWSER_DIGEST#sha256:}"
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: digests-${{ matrix.slug }}
           path: ${{ runner.temp }}/digests/
@@ -479,33 +273,38 @@ jobs:
       contents: read
       packages: write
       id-token: write
+    outputs:
+      app-digest: ${{ steps.tags.outputs.app-digest }}
+      browser-digest: ${{ steps.tags.outputs.browser-digest }}
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
       TAGS: ${{ needs.prepare.outputs.tags }}
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: digests-*
           path: ${{ runner.temp }}/digests
           merge-multiple: true
 
-      - uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      - uses: docker/login-action@v4
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
-      - uses: sigstore/cosign-installer@v4.1.4
+      - uses: sigstore/cosign-installer@881c63bd87e38389154debd8331404ce7ca8a3ab # v4.1.4
 
       # GitHub only: pushes tags to ghcr.io and signs with the workflow's OIDC identity
       # (keyless, the signature goes to the public Sigstore transparency log).
       - name: Multi-arch tags and signatures
+        id: tags
         run: |
           publish() {
             name=$1
             dir=$2
+            output=$3
             args=()
             for tag in $TAGS; do args+=(--tag "$name:$tag"); done
             sources=()
@@ -521,10 +320,45 @@ jobs:
             docker buildx imagetools inspect "$name@$digest"
             cosign sign --yes "$name@$digest"
             echo "- \`$name@$digest\` ($TAGS)" >> "$GITHUB_STEP_SUMMARY"
+            echo "$output=$digest" >> "$GITHUB_OUTPUT"
           }
           echo "### Images" >> "$GITHUB_STEP_SUMMARY"
-          publish "$IMAGE" "$RUNNER_TEMP/digests/app"
-          publish "$BROWSER_IMAGE" "$RUNNER_TEMP/digests/browser"
+          publish "$IMAGE" "$RUNNER_TEMP/digests/app" app-digest
+          publish "$BROWSER_IMAGE" "$RUNNER_TEMP/digests/browser" browser-digest
+
+  # SLSA Build Level 3 provenance of the multi-arch images, made by the isolated reusable workflow
+  # of slsa-framework/slsa-github-generator and pushed next to the image as a cosign attestation.
+  # The generator checks its own ref, so it is referenced by tag, not by commit SHA (Scorecard and
+  # zizmor know this exception). `with` cannot read `env`, hence the literal image names.
+  provenance-app:
+    name: SLSA provenance (app image)
+    needs: [tag-and-sign]
+    permissions:
+      actions: read
+      id-token: write
+      packages: write
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.1.0 # zizmor: ignore[unpinned-uses]
+    with:
+      image: ghcr.io/take-group/open-revoke
+      digest: ${{ needs.tag-and-sign.outputs.app-digest }}
+      registry-username: ${{ github.actor }}
+    secrets:
+      registry-password: ${{ secrets.GITHUB_TOKEN }}
+
+  provenance-browser:
+    name: SLSA provenance (browser image)
+    needs: [tag-and-sign]
+    permissions:
+      actions: read
+      id-token: write
+      packages: write
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.1.0 # zizmor: ignore[unpinned-uses]
+    with:
+      image: ghcr.io/take-group/open-revoke-browser
+      digest: ${{ needs.tag-and-sign.outputs.browser-digest }}
+      registry-username: ${{ github.actor }}
+    secrets:
+      registry-password: ${{ secrets.GITHUB_TOKEN }}
 
   # Only after the images are tagged: the chart's default image tag is this version.
   chart:
@@ -539,21 +373,23 @@ jobs:
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: helm-chart
           path: ${{ runner.temp }}/chart
 
-      - uses: azure/setup-helm@v4
+      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
 
-      - uses: sigstore/cosign-installer@v4.1.4
+      - uses: sigstore/cosign-installer@881c63bd87e38389154debd8331404ce7ca8a3ab # v4.1.4
 
-      - uses: oras-project/setup-oras@v1
+      - uses: oras-project/setup-oras@22ce207df3b08e061f537244349aac6ae1d214f6 # v1.2.4
 
       # cosign and oras read the Docker credentials; helm keeps its own (below).
-      - uses: docker/login-action@v4
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -588,9 +424,67 @@ jobs:
             --config /dev/null:application/vnd.cncf.artifacthub.config.v1+yaml \
             artifacthub-repo.yml:application/vnd.cncf.artifacthub.repository-metadata.layer.v1.yaml
 
+  # The release files in their final form (bundle, install.sh, VERSION, the chart's .tgz) and
+  # SHA256SUMS over them, whose lines are the subjects of the SLSA provenance below.
+  release-files:
+    name: Release files
+    needs: [prepare, build-test, chart]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      hashes: ${{ steps.hashes.outputs.hashes }}
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-bundle
+          path: ${{ runner.temp }}/bundle
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: helm-chart
+          path: ${{ runner.temp }}/chart
+
+      # The chart as a release file, named apart from the bundle (open-revoke-X.Y.Z.tar.gz), and
+      # listed in SHA256SUMS before the signature. install.sh and `open-revoke update` look up only
+      # the bundle's line.
+      - name: Add the Helm chart to the release files
+        id: hashes
+        working-directory: ${{ runner.temp }}/bundle
+        run: |
+          cp "$RUNNER_TEMP/chart/open-revoke-$VERSION.tgz" "open-revoke-chart-$VERSION.tgz"
+          sha256sum "open-revoke-chart-$VERSION.tgz" >> SHA256SUMS
+          sha256sum --check SHA256SUMS
+          echo "hashes=$(base64 -w0 SHA256SUMS)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-files
+          path: ${{ runner.temp }}/bundle/
+          if-no-files-found: error
+
+  # SLSA Build Level 3 provenance of every file listed in SHA256SUMS, one .intoto.jsonl attached
+  # to the release. Not uploaded by the generator: an immutable release takes no file after it is
+  # published, so the release job attaches it with the others.
+  provenance-files:
+    name: SLSA provenance (release files)
+    needs: [prepare, release-files]
+    permissions:
+      actions: read
+      id-token: write
+      contents: write
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0 # zizmor: ignore[unpinned-uses]
+    with:
+      base64-subjects: ${{ needs.release-files.outputs.hashes }}
+      provenance-name: open-revoke-${{ needs.prepare.outputs.version }}.intoto.jsonl
+      upload-assets: false
+
   release:
     name: GitHub Release
-    needs: [prepare, build-test, tag-and-sign, chart]
+    needs: [prepare, tag-and-sign, provenance-app, provenance-browser, release-files, provenance-files]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -600,32 +494,25 @@ jobs:
       VERSION: ${{ needs.prepare.outputs.version }}
       PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
       LATEST: ${{ needs.prepare.outputs.latest }}
+      APP_DIGEST: ${{ needs.tag-and-sign.outputs.app-digest }}
+      BROWSER_DIGEST: ${{ needs.tag-and-sign.outputs.browser-digest }}
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: release-bundle
+          name: release-files
           path: ${{ runner.temp }}/bundle
 
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ needs.provenance-files.outputs.provenance-name }}
+          path: ${{ runner.temp }}/bundle
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release-notes
           path: ${{ runner.temp }}/notes
 
-      - uses: actions/download-artifact@v8
-        with:
-          name: helm-chart
-          path: ${{ runner.temp }}/chart
-
-      - uses: sigstore/cosign-installer@v4.1.4
-
-      # The chart as a release file, named apart from the bundle (open-revoke-X.Y.Z.tar.gz), and
-      # listed in SHA256SUMS before the signature. install.sh and `open-revoke update` look up only
-      # the bundle's line.
-      - name: Add the Helm chart to the release files
-        working-directory: ${{ runner.temp }}/bundle
-        run: |
-          cp "$RUNNER_TEMP/chart/open-revoke-$VERSION.tgz" "open-revoke-chart-$VERSION.tgz"
-          sha256sum "open-revoke-chart-$VERSION.tgz" >> SHA256SUMS
+      - uses: sigstore/cosign-installer@881c63bd87e38389154debd8331404ce7ca8a3ab # v4.1.4
 
       # GitHub only: keyless signature with the workflow's OIDC identity.
       - name: Check and sign SHA256SUMS
@@ -667,6 +554,25 @@ jobs:
             --certificate-identity "$identity" \\
             --certificate-oidc-issuer https://token.actions.githubusercontent.com
           \`\`\`
+
+          The release is immutable: its files and tag cannot change after publication.
+
+          \`\`\`bash
+          gh release verify v$VERSION --repo $GITHUB_REPOSITORY
+          gh release verify-asset v$VERSION open-revoke-$VERSION.tar.gz --repo $GITHUB_REPOSITORY
+          \`\`\`
+
+          SLSA Build Level 3 provenance, checked with [slsa-verifier](https://github.com/slsa-framework/slsa-verifier):
+
+          \`\`\`bash
+          slsa-verifier verify-artifact open-revoke-$VERSION.tar.gz \\
+            --provenance-path open-revoke-$VERSION.intoto.jsonl \\
+            --source-uri github.com/$GITHUB_REPOSITORY --source-tag v$VERSION
+          slsa-verifier verify-image $IMAGE@$APP_DIGEST \\
+            --source-uri github.com/$GITHUB_REPOSITORY --source-tag v$VERSION
+          slsa-verifier verify-image $BROWSER_IMAGE@$BROWSER_DIGEST \\
+            --source-uri github.com/$GITHUB_REPOSITORY --source-tag v$VERSION
+          \`\`\`
           EOF
 
       # GitHub only. VERSION is attached because install.sh and `open-revoke update` read
@@ -679,4 +585,5 @@ jobs:
           flags=(--verify-tag --title "Open Revoke $VERSION" --notes-file "$RUNNER_TEMP/notes/notes.md" "--latest=$LATEST")
           [ "$PRERELEASE" = true ] && flags+=(--prerelease)
           gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" "${flags[@]}" \
-            "open-revoke-$VERSION.tar.gz" "open-revoke-chart-$VERSION.tgz" install.sh SHA256SUMS SHA256SUMS.sigstore.json VERSION
+            "open-revoke-$VERSION.tar.gz" "open-revoke-chart-$VERSION.tgz" install.sh SHA256SUMS SHA256SUMS.sigstore.json VERSION \
+            "open-revoke-$VERSION.intoto.jsonl"

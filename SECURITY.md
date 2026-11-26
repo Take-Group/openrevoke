@@ -86,5 +86,19 @@ Out of scope:
   internet.
 - **Keep it updated.** The browser image ships Chromium from Debian. Its security patches arrive as
   Open Revoke PATCH releases.
-- **Verify what you download.** Every release lists SHA-256 sums of its files in `SHA256SUMS`, and
-  the release notes show how to check the `cosign` signatures of the images and of `SHA256SUMS`.
+- **Verify what you download.** Every release lists SHA-256 sums of its files in `SHA256SUMS`.
+  The release notes show how to check the `cosign` signatures of the images, the Helm chart and
+  `SHA256SUMS`, the SLSA Build Level 3 provenance of the images and files (`slsa-verifier`), and
+  the GitHub release attestation (`gh release verify`). Releases are immutable: once published,
+  their files and tag cannot change.
+
+## How we build releases
+
+- Releases are built only by GitHub Actions from a `vX.Y.Z` tag, on GitHub-hosted runners. Images
+  are pushed only after the install, update, rollback and Kubernetes tests pass.
+- Both images are scanned with Trivy before they are pushed. A CRITICAL vulnerability with a fixed
+  version stops the release; accepted findings are listed with a reason in `.trivyignore`.
+- Images carry an SBOM and build provenance, are signed with `cosign` (keyless, Sigstore), and get
+  SLSA Build Level 3 provenance from `slsa-framework/slsa-github-generator`.
+- Every workflow action is pinned to a commit SHA. CodeQL, zizmor, dependency review and OpenSSF
+  Scorecard check the code and the workflows; Dependabot proposes dependency updates weekly.

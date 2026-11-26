@@ -1,7 +1,8 @@
 # Skill: releases, installer, updates
 
 What exists today and how to change it. The GitHub release workflow (`.github/workflows/release.yml`:
-multi-arch images, SBOM, signing, install and update tests) runs once the repo is on GitHub.
+multi-arch images, SBOM, signing, SLSA provenance; `release-test.yml`: Trivy scan, install,
+update and Kubernetes tests) runs only on GitHub.
 
 ## What it does
 
@@ -133,6 +134,26 @@ OPEN_REVOKE_RELEASES_URL=file://$PWD/dist/releases \
   to the shell script.
 - **A new bundle file**: add it to `BUNDLE_FILES` in `deploy/lib/update.sh` and the copy
   step in `scripts/build-release.sh`.
+
+## Supply chain
+
+- **Actions are pinned to a commit SHA** with the version in a comment
+  (`uses: actions/checkout@<sha> # v7.0.1`). Dependabot (`github-actions`) updates both. A new
+  action: resolve the SHA of a release tag, never a branch. Exception: the
+  `slsa-github-generator` workflows must be referenced by tag (`@v2.1.0`), they check their own ref.
+- **Trivy** (`release-test.yml`) scans both images before anything is pushed. A CRITICAL with a
+  fixed version fails the release: bump the package or base image, or add the CVE to
+  `.trivyignore` with a reason and a date to check again. HIGH and CRITICAL go to the Security tab.
+  The organization's daily Trivy scan of the repository (lockfiles and base images) is separate.
+- **SLSA provenance**: `provenance-app` and `provenance-browser` attest the multi-arch index
+  digests from `tag-and-sign`; `provenance-files` attests every line of `SHA256SUMS` and the
+  release job attaches `open-revoke-X.Y.Z.intoto.jsonl`.
+- **Immutable releases** are on in the repository settings: the generator must not upload to the
+  release (`upload-assets: false`), and a broken release is fixed by a new version, never by
+  replacing a file. The tag name of a deleted release cannot be used again.
+- **Checks on every push**: `codeql.yml`, `workflow-audit.yml` (zizmor, dependency review on pull
+  requests), `scorecard.yml` (OpenSSF Scorecard, published to scorecard.dev). Lint workflows locally
+  with `actionlint` and `uvx zizmor --offline .github/workflows`.
 
 ## Traps
 

@@ -1,0 +1,7 @@
+# Vulnerabilities the release accepts, read by the Trivy steps of .github/workflows/release.yml.
+# One CVE per line, with a comment above it: why it does not affect Open Revoke or why it cannot
+# be fixed yet, who decided and when, and when to check again. Remove the line once it is fixed.
+#
+# Example:
+# # Chromium in Debian 13: fixed upstream, Debian package not released yet. Check again 2026-12-10.
+# CVE-2026-00000

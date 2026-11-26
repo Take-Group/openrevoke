@@ -37,8 +37,9 @@ Connectors are checked on the test connectors, not yet on real accounts.
 
 - `.agents/`: skills (explore, verify, diagnose, harness).
 - `.claude/`: `skills` symlink to `.agents/skills` for Claude Code.
-- `.github/`: CI (ruff, `alembic check`, panel lint/typecheck/build, Helm, ShellCheck), release on tag `v*` (images, SBOM, cosign, install and update tests, chart on kind and GHCR), weekly Chromium check, Dependabot, templates.
+- `.github/`: CI (ruff, `alembic check`, panel lint/typecheck/build, Helm, ShellCheck), release on tag `v*` (`release.yml`: images, SBOM, cosign, SLSA L3 provenance, chart on GHCR; `release-test.yml`: Trivy, install, update and kind tests), CodeQL, zizmor, Scorecard, weekly Chromium check, Dependabot, templates. Actions pinned to SHA.
 - `.dockerignore`, `.gitignore`: build context and git filters.
+- `.trivyignore`: vulnerabilities a release accepts, each with a reason.
 - `.env.example`: template of the git-ignored `.env`; `install.sh` fills it.
 - `CHANGELOG.md`: release notes; a noticeable change adds a line under `[Unreleased]`.
 - `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`: MIT, no CLA; Contributor Covenant; private vulnerability reports.

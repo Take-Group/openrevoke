@@ -13,6 +13,12 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
 
 ## [Unreleased]
 
+### Security
+
+- Releases are immutable, carry SLSA Build Level 3 provenance for the images and every release
+  file, and stop on a fixable CRITICAL vulnerability found by Trivy in either image. The release
+  notes show how to verify each of them.
+
 ### Added
 
 - Access profiles: named sets of apps with a role in each ("Developer"). Assigning one to a person

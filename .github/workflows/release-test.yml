@@ -1,0 +1,320 @@
+# Build and test of a release, called by release.yml before anything is pushed: amd64 images
+# loaded into the runner's Docker, a Trivy scan of both images, the release bundle
+# (scripts/build-release.sh --skip-images), a fresh install with install.sh, an update from the
+# previous release with `open-revoke update` and a rollback, and the Helm chart installed and
+# upgraded on kind. Its artifacts (release-bundle, helm-chart) belong to the calling run, so the
+# later jobs of release.yml download them.
+name: Release build and test
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: Version without the v, e.g. 0.1.0 or 0.1.0-rc.1
+        type: string
+        required: true
+      previous:
+        description: Previous stable release for the update test, empty for the first release
+        type: string
+        default: ""
+      prerelease:
+        description: "true for a pre-release"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+# Explicit bash: GitHub then adds -o pipefail, so `install.sh | tee` fails when install.sh fails.
+defaults:
+  run:
+    shell: bash
+
+env:
+  IMAGE: ghcr.io/take-group/open-revoke
+  BROWSER_IMAGE: ghcr.io/take-group/open-revoke-browser
+
+jobs:
+  build-test:
+    name: Build and test install and update (amd64)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      # Pulls the images of the previous release for the update test (needed while ghcr.io
+      # packages are private).
+      packages: read
+      # Trivy reports of the images go to the Security tab.
+      security-events: write
+    env:
+      VERSION: ${{ inputs.version }}
+      PREVIOUS: ${{ inputs.previous }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Laid out like GitHub Releases (download/vX.Y.Z/, latest/download/VERSION), so install.sh
+      # and `open-revoke update` read it with OPEN_REVOKE_RELEASES_URL=file://...
+      - name: Release directory
+        run: echo "RELEASES=$RUNNER_TEMP/releases" >> "$GITHUB_ENV"
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      # The images under test are loaded into the runner's Docker with the release tags, so
+      # install.sh (`docker compose up --pull missing`) and `open-revoke update` use them instead
+      # of pulling. The publish job builds the same Dockerfile again from the same GitHub Actions
+      # cache, for both platforms.
+      - name: Build app image (amd64, local)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          target: app
+          platforms: linux/amd64
+          build-args: OPEN_REVOKE_VERSION=${{ env.VERSION }}
+          tags: ${{ env.IMAGE }}:${{ env.VERSION }}
+          load: true
+          push: false
+          provenance: false
+          sbom: false
+          cache-from: type=gha,scope=app-linux-amd64
+          cache-to: type=gha,mode=max,scope=app-linux-amd64
+
+      - name: Build browser image (amd64, local)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          target: browser
+          # The browser stage runs `apt-get install chromium`. From the cache it would keep the
+          # Chromium of an earlier build, and a Chromium security release would ship the old one.
+          no-cache-filters: browser
+          platforms: linux/amd64
+          tags: ${{ env.BROWSER_IMAGE }}:${{ env.VERSION }}
+          load: true
+          push: false
+          provenance: false
+          sbom: false
+          cache-from: type=gha,scope=browser-linux-amd64
+          cache-to: type=gha,mode=max,scope=browser-linux-amd64
+
+      # Vulnerability scan of the images about to be released. A CRITICAL vulnerability that has
+      # a fixed version stops the release: bump the package or the base image. Accepted findings
+      # go to .trivyignore with a reason. HIGH and CRITICAL findings, fixed or not, go to the
+      # Security tab of the repository.
+      - name: Trivy gate (app image)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE }}:${{ env.VERSION }}
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          trivyignores: .trivyignore
+
+      - name: Trivy gate (browser image)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.BROWSER_IMAGE }}:${{ env.VERSION }}
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          trivyignores: .trivyignore
+
+      - name: Trivy report (app image)
+        if: ${{ !cancelled() }}
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE }}:${{ env.VERSION }}
+          severity: HIGH,CRITICAL
+          format: sarif
+          output: trivy-app.sarif
+          trivyignores: .trivyignore
+
+      - name: Trivy report (browser image)
+        if: ${{ !cancelled() }}
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.BROWSER_IMAGE }}:${{ env.VERSION }}
+          severity: HIGH,CRITICAL
+          format: sarif
+          output: trivy-browser.sarif
+          trivyignores: .trivyignore
+
+      - uses: github/codeql-action/upload-sarif@915412ff23e8b7659517e607487dbeae018f2934 # v4.39.5
+        if: ${{ !cancelled() }}
+        with:
+          sarif_file: trivy-app.sarif
+          category: trivy-app-image
+
+      - uses: github/codeql-action/upload-sarif@915412ff23e8b7659517e607487dbeae018f2934 # v4.39.5
+        if: ${{ !cancelled() }}
+        with:
+          sarif_file: trivy-browser.sarif
+          category: trivy-browser-image
+
+      # The bundle comes from scripts/build-release.sh itself, so the workflow and a local release
+      # cannot drift apart. The script builds images only for one platform and never pushes, so
+      # it runs with --skip-images; the images are the job above and the publish job below.
+      - name: Build the release bundle
+        run: scripts/build-release.sh "$VERSION" --skip-images --out "$RELEASES"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-bundle
+          path: ${{ runner.temp }}/releases/download/v${{ inputs.version }}/
+          if-no-files-found: error
+
+      - name: Test a fresh install
+        run: |
+          dir="$RUNNER_TEMP/fresh"
+          OPEN_REVOKE_RELEASES_URL="file://$RELEASES" sh "$RELEASES/download/v$VERSION/install.sh" \
+            --yes --version "$VERSION" --dir "$dir" --name or-fresh --port 18420 --no-link \
+            | tee "$RUNNER_TEMP/fresh.log"
+          # install.sh returns only after the app container is healthy and prints the setup link.
+          token=$(grep -Eo '/setup\?token=[A-Za-z0-9_-]+' "$RUNNER_TEMP/fresh.log" | tail -n 1 | cut -d= -f2)
+          [ -n "$token" ] || { echo "::error::install.sh printed no setup link"; exit 1; }
+          panel=http://localhost:18420
+
+          curl -fsS "$panel/api/auth/state" | jq -e '.setup_required == true'
+
+          code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$panel/api/auth/setup/check" \
+            -H 'Content-Type: application/json' -H 'X-Open-Revoke-Client: 1' \
+            -d "{\"token\": \"$token\"}")
+          [ "$code" = 204 ] || { echo "::error::the setup link was refused ($code)"; exit 1; }
+
+          code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$panel/api/auth/setup/check" \
+            -H 'Content-Type: application/json' -H 'X-Open-Revoke-Client: 1' \
+            -d '{"token": "not-the-token-of-this-installation"}')
+          [ "$code" = 403 ] || { echo "::error::a wrong setup token got $code instead of 403"; exit 1; }
+
+          "$dir/open-revoke" version | tee "$RUNNER_TEMP/fresh-version.txt"
+          grep -Eq "^Running: +$VERSION\$" "$RUNNER_TEMP/fresh-version.txt" \
+            || { echo "::error::the running app does not report $VERSION"; exit 1; }
+
+      - name: Logs of the fresh install
+        if: failure()
+        run: (cd "$RUNNER_TEMP/fresh" && docker compose ps && docker compose logs --tail 200) || true
+
+      - name: Remove the fresh install
+        if: always()
+        run: |
+          if [ -x "$RUNNER_TEMP/fresh/open-revoke" ]; then
+            "$RUNNER_TEMP/fresh/open-revoke" uninstall --purge --yes || true
+          fi
+
+      - name: No earlier release to update from
+        if: inputs.previous == ''
+        run: |
+          echo "::notice::No earlier stable release, or this is a fix for an older line. The update test is skipped."
+
+      # GitHub only: installs the previous release from this repository's GitHub Releases and
+      # pulls its images from ghcr.io.
+      - name: Test the update from the previous release
+        if: inputs.previous != ''
+        run: |
+          dir="$RUNNER_TEMP/update"
+          panel=http://localhost:18421
+          password="release-check-$(openssl rand -hex 12)"
+          echo "::add-mask::$password"
+
+          curl -fsSL "https://github.com/$GITHUB_REPOSITORY/releases/download/v$PREVIOUS/install.sh" \
+            -o "$RUNNER_TEMP/install-previous.sh"
+          sh "$RUNNER_TEMP/install-previous.sh" --yes --version "$PREVIOUS" --dir "$dir" \
+            --name or-update --port 18421 --no-link --releases "https://github.com/$GITHUB_REPOSITORY/releases" \
+            | tee "$RUNNER_TEMP/previous.log"
+          token=$(grep -Eo '/setup\?token=[A-Za-z0-9_-]+' "$RUNNER_TEMP/previous.log" | tail -n 1 | cut -d= -f2)
+          [ -n "$token" ] || { echo "::error::install.sh of $PREVIOUS printed no setup link"; exit 1; }
+
+          # Data that has to survive the update and the rollback: the organization and its admin.
+          jq -n --arg token "$token" --arg password "$password" '{
+            organization_name: "Release Check", currency: "USD", timezone: "UTC",
+            name: "Release Check", email: "admin@example.com", password: $password, token: $token
+          }' > "$RUNNER_TEMP/setup.json"
+          curl -fsS -o /dev/null -X POST "$panel/api/auth/setup" \
+            -H 'Content-Type: application/json' -H 'X-Open-Revoke-Client: 1' \
+            --data @"$RUNNER_TEMP/setup.json"
+          curl -fsS "$panel/api/auth/state" | jq -e '.setup_required == false and .organization.name == "Release Check"'
+
+          # From here on the installation reads releases from the bundle built above.
+          echo "OPEN_REVOKE_RELEASES_URL=file://$RELEASES" >> "$dir/.env"
+          "$dir/open-revoke" update --to "$VERSION" --yes
+          "$dir/open-revoke" version | tee "$RUNNER_TEMP/updated-version.txt"
+          grep -Eq "^Running: +$VERSION\$" "$RUNNER_TEMP/updated-version.txt" \
+            || { echo "::error::after the update the app does not report $VERSION"; exit 1; }
+          curl -fsS "$panel/api/auth/state" | jq -e '.setup_required == false and .organization.name == "Release Check"'
+
+          # The way back has to work too: files and database from before the update.
+          "$dir/open-revoke" rollback --yes
+          "$dir/open-revoke" version | tee "$RUNNER_TEMP/rollback-version.txt"
+          grep -Eq "^Running: +$PREVIOUS\$" "$RUNNER_TEMP/rollback-version.txt" \
+            || { echo "::error::after the rollback the app does not report $PREVIOUS"; exit 1; }
+          curl -fsS "$panel/api/auth/state" | jq -e '.setup_required == false and .organization.name == "Release Check"'
+
+      - name: Logs of the update test
+        if: failure() && inputs.previous != ''
+        run: (cd "$RUNNER_TEMP/update" && docker compose ps && docker compose logs --tail 200) || true
+
+      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+
+      # Packaged once: the kind test below installs this file and the chart job pushes the same one.
+      # Chart.yaml gets this version's image tags (Artifact Hub scans them) and the pre-release flag.
+      - name: Package the Helm chart
+        env:
+          PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          chart=deploy/helm/open-revoke
+          sed -i -E "s#($IMAGE(-browser)?):[^[:space:]]+#\1:$VERSION#" "$chart/Chart.yaml"
+          yq -i '.annotations."artifacthub.io/prerelease" = strenv(PRERELEASE)' "$chart/Chart.yaml"
+          grep -F "$IMAGE:$VERSION" "$chart/Chart.yaml" && grep -F "$BROWSER_IMAGE:$VERSION" "$chart/Chart.yaml"
+          helm lint --strict "$chart"
+          helm package "$chart" --version "$VERSION" --app-version "$VERSION" --destination "$RUNNER_TEMP/chart"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: helm-chart
+          path: ${{ runner.temp }}/chart/open-revoke-${{ inputs.version }}.tgz
+          if-no-files-found: error
+
+      - uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1.14.0
+        with:
+          cluster_name: or-release
+
+      # The images built above, loaded into kind (pull policy IfNotPresent), so nothing is pulled
+      # from ghcr.io for Open Revoke itself. --wait: every pod ready, init containers included
+      # (PostgreSQL, Temporal's schema and namespace, the app's migrations).
+      - name: Test the Helm chart on kind
+        run: |
+          kind load docker-image --name or-release "$IMAGE:$VERSION" "$BROWSER_IMAGE:$VERSION"
+          chart="$RUNNER_TEMP/chart/open-revoke-$VERSION.tgz"
+          helm install or "$chart" --namespace or --create-namespace \
+            --set app.telemetry=false --set app.updateCheck=false --wait --timeout 15m
+          kubectl -n or port-forward svc/or-open-revoke-app 18430:3000 18431:8000 > "$RUNNER_TEMP/port-forward.log" 2>&1 &
+          for _ in $(seq 30); do curl -fsS http://localhost:18431/health > /dev/null 2>&1 && break; sleep 2; done
+
+          curl -fsS http://localhost:18431/health | jq -e --arg v "$VERSION" '.status == "ok" and .version == $v'
+          curl -fsS http://localhost:18430/api/auth/state | jq -e '.setup_required == true'
+          link=$(kubectl -n or exec deploy/or-open-revoke-app -c app -- python -m app.cli setup-link)
+          token=$(echo "$link" | grep -Eo '/setup\?token=[A-Za-z0-9_-]+' | tail -n 1 | cut -d= -f2)
+          [ -n "$token" ] || { echo "::error::setup-link printed no link: $link"; exit 1; }
+          code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST http://localhost:18430/api/auth/setup/check \
+            -H 'Content-Type: application/json' -H 'X-Open-Revoke-Client: 1' -d "{\"token\": \"$token\"}")
+          [ "$code" = 204 ] || { echo "::error::the setup link was refused ($code)"; exit 1; }
+
+          # An upgrade with another value keeps the generated secrets (lookup in templates/secret.yaml).
+          key_before=$(kubectl -n or get secret or-open-revoke -o jsonpath='{.data.OPEN_REVOKE_SECRET_KEY}')
+          helm upgrade or "$chart" --namespace or --reuse-values --set timezone=Europe/Warsaw --wait --timeout 10m
+          key_after=$(kubectl -n or get secret or-open-revoke -o jsonpath='{.data.OPEN_REVOKE_SECRET_KEY}')
+          [ -n "$key_before" ] && [ "$key_before" = "$key_after" ] \
+            || { echo "::error::helm upgrade changed OPEN_REVOKE_SECRET_KEY"; exit 1; }
+
+      - name: State of the kind cluster
+        if: failure()
+        run: |
+          kubectl -n or get pods,pvc,events || true
+          kubectl -n or logs deploy/or-open-revoke-app --all-containers --tail 200 || true
+          kubectl -n or logs deploy/or-open-revoke-temporal --all-containers --tail 100 || true
