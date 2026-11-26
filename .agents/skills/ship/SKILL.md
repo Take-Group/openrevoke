@@ -28,7 +28,9 @@ find something.
    | only docs, `AGENTS.md`, skills, comments, translations, typo, version bump | no |
    | diff over 200 KB (over $10) | ask Bartek first, or split the pull request |
 
-   To review: `gh pr comment <n> --body "@macroscope-app review"`.
+   To review: `gh pr comment <n> --body "@macroscope-app review this PR"` (exactly this; a bare
+   "@macroscope-app review" is read as a question and starts no review). The review is the check
+   run "Macroscope - Correctness Check"; an "Approvability Check" marked skipped is expected.
 4. Wait for the result. CI and the review are check runs: `gh pr checks <n> --watch`. Read the
    comments: `gh api repos/Take-Group/openrevoke/pulls/<n>/comments` and `gh pr view <n> --comments`.
 5. Judge every finding: reproduce it or read the code. A real bug: fix it in a new commit on the
