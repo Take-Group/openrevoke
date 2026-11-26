@@ -6,6 +6,11 @@
 # the API and the live view of the shared browser goes through the API behind
 # the panel session, so the browser container publishes nothing.
 #
+# Two networks: `default` (app, browser, caddy) and the internal `data` network (app,
+# PostgreSQL, Redis, Temporal) without a route out. The browser opens any SaaS panel, so it
+# reaches only the app: not the database, Redis or Temporal. Temporal's open source server has
+# no password; the `data` network is what keeps everything but the app away from it.
+#
 # Installed with install.sh, this file comes from a release bundle with the version
 # filled in, and the host command `open-revoke` runs it. By hand:
 #
@@ -42,6 +47,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set it in .env, see .env.example}
       POSTGRES_DB: open_revoke
+    networks: [data]
     volumes:
       - pgdata:/var/lib/postgresql
     healthcheck:
@@ -53,8 +59,14 @@ services:
   redis:
     image: redis:8.10.3-alpine
     <<: *no-escalation
+    # The password is a startup argument: Redis replaces its process title, so `ps` does not show
+    # it. Empty (an .env from before 0.2) runs without one; `open-revoke update` generates it.
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-}"]
     environment:
       <<: *timezone
+      # redis-cli of the health check reads it.
+      REDISCLI_AUTH: ${REDIS_PASSWORD:-}
+    networks: [data]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -74,6 +86,7 @@ services:
       SQL_PASSWORD: ${POSTGRES_PASSWORD}
     entrypoint: ["/bin/sh"]
     command: ["/scripts/setup-postgres.sh"]
+    networks: [data]
     volumes:
       - ./backend/temporal/scripts:/scripts:ro
     depends_on:
@@ -92,6 +105,7 @@ services:
       POSTGRES_SEEDS: postgres
       BIND_ON_IP: 0.0.0.0
       DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development-sql.yaml
+    networks: [data]
     volumes:
       - ./backend/temporal/dynamicconfig:/etc/temporal/config/dynamicconfig:ro
     depends_on:
@@ -114,6 +128,7 @@ services:
       DEFAULT_NAMESPACE_RETENTION: 24h
     entrypoint: ["/bin/sh"]
     command: ["/scripts/create-namespace.sh"]
+    networks: [data]
     volumes:
       - ./backend/temporal/scripts:/scripts:ro
     depends_on:
@@ -127,7 +142,7 @@ services:
     environment:
       <<: *timezone
       DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/open_revoke
-      REDIS_URL: redis://redis:6379/0
+      REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
       TEMPORAL_HOST: temporal:7233
       TEMPORAL_TASK_QUEUE: open-revoke
       OPEN_REVOKE_SECRET_KEY: ${OPEN_REVOKE_SECRET_KEY:?set it in .env, see .env.example}
@@ -163,6 +178,7 @@ services:
       default:
         aliases:
           - open-revoke-app
+      data: {}
     depends_on:
       browser:
         condition: service_started
@@ -224,6 +240,12 @@ services:
     depends_on:
       app:
         condition: service_healthy
+
+networks:
+  default:
+  # No route out and no published ports: only the containers on it reach each other.
+  data:
+    internal: true
 
 volumes:
   pgdata:

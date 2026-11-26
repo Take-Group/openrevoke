@@ -96,6 +96,8 @@ cmd_doctor() {
     step "Configuration"
     [ -n "$(env_get OPEN_REVOKE_SECRET_KEY)" ] && check ok "OPEN_REVOKE_SECRET_KEY is set" || check fail "OPEN_REVOKE_SECRET_KEY is empty in .env"
     [ -n "$(env_get POSTGRES_PASSWORD)" ] && check ok "POSTGRES_PASSWORD is set" || check fail "POSTGRES_PASSWORD is empty in .env"
+    [ -n "$(env_get REDIS_PASSWORD)" ] && check ok "REDIS_PASSWORD is set" \
+        || check fail "REDIS_PASSWORD is empty in .env: Redis runs without a password (set one with openssl rand -hex 24, then open-revoke restart)"
     host_tz=$(detect_timezone)
     env_tz=$(env_get TZ)
     [ "${env_tz:-UTC}" = "$host_tz" ] && check ok "time zone $host_tz matches the host" \
@@ -172,9 +174,9 @@ case $command in
         [ "${1:-}" = reset-link ] && [ -n "${2:-}" ] || die "usage: open-revoke admin reset-link <email>"
         app_python app.cli reset-link "$2"
         ;;
-    start) compose up -d && wait_healthy 300 && say "Running: $(env_get PUBLIC_URL)" ;;
+    start) generate_missing_secrets && compose up -d && wait_healthy 300 && say "Running: $(env_get PUBLIC_URL)" ;;
     stop) compose stop ;;
-    restart) compose up -d --force-recreate && wait_healthy 300 && say "Running: $(env_get PUBLIC_URL)" ;;
+    restart) generate_missing_secrets && compose up -d --force-recreate && wait_healthy 300 && say "Running: $(env_get PUBLIC_URL)" ;;
     uninstall) cmd_uninstall "$@" ;;
     help | -h | --help) usage ;;
     *)

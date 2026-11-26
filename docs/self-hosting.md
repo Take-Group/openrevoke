@@ -18,6 +18,7 @@ One port: the panel (`app`, port 3000 in the container, published on
 | Panel and API (`/api` goes through the panel) | the published port |
 | Live view of the shared browser | the panel, `/api/browser/live/...`, signed-in admins only |
 | Browser control (CDP) | the compose network only |
+| PostgreSQL, Redis, Temporal | the app only: the internal `data` network, no route out; the browser is not on it |
 
 Open Revoke needs no inbound connection from the internet. Google and Slack send the admin's
 browser back to the panel after sign-in; their servers never call it. The Slack bot keeps an
@@ -33,6 +34,7 @@ secrets and the server's time zone. By hand:
 cp .env.example .env
 openssl rand -base64 32 | tr '+/' '-_'   # put it into .env as OPEN_REVOKE_SECRET_KEY=
 openssl rand -hex 24                     # put it into .env as POSTGRES_PASSWORD=
+openssl rand -hex 24                     # put it into .env as REDIS_PASSWORD=
 ```
 
 Set the address people will type, in `.env`:

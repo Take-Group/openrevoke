@@ -44,8 +44,10 @@ deployment is listed in [TELEMETRY.md](../../TELEMETRY.md).
 
 1. **Internet to panel.** The only published port is the panel (`127.0.0.1:18410` by default,
    behind a reverse proxy). The API and the browser's live view are reached through the panel.
-2. **Panel and API to the data stores.** PostgreSQL, Redis and Temporal publish no port; in
-   Kubernetes, network policies limit them to the pods that use them.
+2. **Panel and API to the data stores.** PostgreSQL, Redis and Temporal publish no port. In
+   Compose they are on the internal `data` network, which only the app container joins (the
+   browser is not on it); in Kubernetes, network policies limit them to the pods that use them.
+   PostgreSQL and Redis need a password.
 3. **App to the browser container.** CDP and noVNC have no authentication. Only the app reaches
    them (compose network; a Kubernetes network policy).
 4. **App and browser to SaaS tools.** Outbound HTTPS with the stored credentials.
@@ -77,7 +79,7 @@ deployment is listed in [TELEMETRY.md](../../TELEMETRY.md).
 | I: an admin session or token used to send a stored token elsewhere | Changing a connector's URL field or the AI base URL needs the secret again; stored secrets are never returned by the API | An admin can still point a new connection with a new secret anywhere |
 | I: key leak | `open-revoke rotate-key` re-encrypts every stored secret with a new key | Rotation does not invalidate the SaaS credentials themselves: rotate those in the SaaS tools too |
 | T, R: rewriting history | A database trigger refuses `UPDATE`, `DELETE` and `TRUNCATE` on `audit_event`; export to CSV or JSON Lines for an outside archive | The table owner can drop the trigger; export regularly to a system admins of Open Revoke cannot change |
-| S, I: other containers on the host reaching Redis or Temporal | No published ports; Kubernetes network policies | Redis and Temporal have no password: anything on the compose network or in the namespace that the policies allow can use them |
+| S, I: other containers on the host reaching Redis or Temporal | No published ports; the internal `data` network in Compose (only the app joins it, not the browser); Kubernetes network policies; a generated Redis password (`REDIS_PASSWORD`) | Temporal's open source server has no password (only mTLS, not set up): anything that joins the `data` network or that the policies allow can start or cancel workflows. A host admin can join the network by hand |
 
 ### 3. App to the browser container
 
@@ -125,4 +127,4 @@ deployment is listed in [TELEMETRY.md](../../TELEMETRY.md).
 ## Known gaps
 
 Planned, not built: single sign-on (OIDC, SAML) for the panel, enforced 2FA for admins, expiring
-API tokens, a Redis password, encryption of the browser profile at rest.
+API tokens, mTLS for Temporal, encryption of the browser profile at rest.

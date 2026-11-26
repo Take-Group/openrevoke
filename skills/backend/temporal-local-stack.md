@@ -30,7 +30,9 @@ and the namespace, and the actual server runs on the supported `temporalio/serve
    supervisor starts the `worker` process in it. In the local dev stack the worker
    is a separate `worker` service (`watchfiles`), restart: `dc restart worker`.
 
-PostgreSQL, Redis and Temporal are reachable only on the Compose network. The Web UI
+PostgreSQL, Redis and Temporal are reachable only on the Compose network (in `compose.yaml` the
+internal `data` network, which only `app` joins: Temporal has no password). Redis needs
+`REDIS_PASSWORD` (dev stack: `open-revoke-dev`). The Web UI
 is not part of the stack.
 
 ## Extending

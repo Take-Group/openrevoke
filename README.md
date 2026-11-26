@@ -107,6 +107,7 @@ Run the commands in this folder (the one with `compose.yaml`):
 cp .env.example .env
 openssl rand -base64 32 | tr '+/' '-_'   # put into .env as OPEN_REVOKE_SECRET_KEY=
 openssl rand -hex 24                     # put into .env as POSTGRES_PASSWORD=
+openssl rand -hex 24                     # put into .env as REDIS_PASSWORD=
 docker compose -f compose.yaml -f compose.build.yaml up -d --build
 docker compose exec app /app/backend/.venv/bin/python -m app.cli setup-link
 ```

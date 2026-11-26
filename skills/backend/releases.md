@@ -21,9 +21,14 @@ multi-arch images, SBOM, signing, SLSA provenance) runs only on GitHub.
   `dist/releases/latest/download/VERSION`: the same paths as GitHub Releases, so the scripts
   read a local directory with `OPEN_REVOKE_RELEASES_URL=file://...`.
 - **Installer** (`deploy/install.sh`): checks Docker and Compose, ports, disk and RAM; downloads
-  and checks the bundle; writes `.env` (generated `OPEN_REVOKE_SECRET_KEY` and
-  `POSTGRES_PASSWORD`, `PUBLIC_URL`, `TZ` from the host, `COMPOSE_PROJECT_NAME`, port);
+  and checks the bundle; writes `.env` (generated `OPEN_REVOKE_SECRET_KEY`,
+  `POSTGRES_PASSWORD` and `REDIS_PASSWORD`, `PUBLIC_URL`, `TZ` from the host, `COMPOSE_PROJECT_NAME`, port);
   links `open-revoke` into PATH; starts; prints the setup link. Never overwrites an install.
+- **Secrets added later** (`generate_missing_secrets` in `deploy/lib/common.sh`): a secret a newer
+  release needs (`REDIS_PASSWORD` since 0.2) is generated once by `update`, `start` and `restart`
+  of the new host command. An update run by an older command leaves it empty; Compose falls back
+  to no password and `doctor` reports it. Add any new secret there, with an empty fallback in
+  `compose.yaml`.
 - **Host command** (`deploy/open-revoke` + `deploy/lib/`): `status`, `version`, `update`,
   `rollback`, `backup`, `restore`, `doctor`, `logs`, `setup-link`, `admin reset-link`, `start`,
   `stop`, `restart`, `uninstall`. Logic that depends on the version runs in the image:
@@ -64,7 +69,7 @@ multi-arch images, SBOM, signing, SLSA provenance) runs only on GitHub.
   `artifacthub.io/images` annotation; `Chart.yaml` in git keeps `0.1.0`. Image tags default to
   `.Chart.AppVersion`.
 - **Secrets.** `templates/secret.yaml` generates `OPEN_REVOKE_SECRET_KEY` (Fernet: `randBytes 32`
-  made URL-safe) and `POSTGRES_PASSWORD` once; on upgrade `lookup` reads the existing Secret.
+  made URL-safe), `POSTGRES_PASSWORD` and `REDIS_PASSWORD` once; on upgrade `lookup` reads the existing Secret.
   Resource policy `keep`: uninstall leaves it next to the PVCs. Or `secrets.existingSecret`.
 - **Temporal.** No hook Jobs: init containers of the Temporal pod wait for PostgreSQL and run
   `setup-postgres.sh` (idempotent) at every start; an init container of the app pod runs

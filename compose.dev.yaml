@@ -35,7 +35,7 @@ x-backend: &backend
   environment: &backend-env
     TZ: ${TZ:-UTC}
     DATABASE_URL: postgresql+asyncpg://postgres:postgres@open-revoke-postgres:5432/open_revoke
-    REDIS_URL: redis://open-revoke-redis:6379/0
+    REDIS_URL: redis://:open-revoke-dev@open-revoke-redis:6379/0
     TEMPORAL_HOST: open-revoke-temporal:7233
     TEMPORAL_TASK_QUEUE: open-revoke
     OPEN_REVOKE_ENABLE_FAKE_CONNECTOR: "true"
@@ -73,8 +73,11 @@ services:
 
   redis:
     image: redis:8.10.3-alpine
+    # A fixed development password, so the app's Redis sign-in runs here as in compose.yaml.
+    command: ["redis-server", "--requirepass", "open-revoke-dev"]
     environment:
       TZ: ${TZ:-UTC}
+      REDISCLI_AUTH: open-revoke-dev
     networks:
       default:
         aliases: [open-revoke-redis]
