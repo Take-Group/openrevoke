@@ -13,6 +13,8 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
 
 ## [Unreleased]
 
+## [0.1.1-rc.2] - 2026-11-26
+
 ### Changed
 
 - Images are renamed to `ghcr.io/take-group/openrevoke` and `ghcr.io/take-group/openrevoke-browser`,
