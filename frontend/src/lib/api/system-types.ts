@@ -3,6 +3,8 @@
 export interface SystemVersion {
   /** Version of this installation; `dev` in the local stack. */
   version: string;
+  /** How it was installed (OPEN_REVOKE_INSTALL_METHOD): `compose` updates with `open-revoke update`, `helm` with `helm upgrade`. */
+  install_method: "compose" | "helm";
   /** The hourly check for a newer release is on (OPEN_REVOKE_UPDATE_CHECK). */
   update_check: boolean;
   latest_version: string | null;

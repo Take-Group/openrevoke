@@ -1,7 +1,8 @@
 # Self-hosting on your own domain
 
 This guide puts Open Revoke on a server under an address like `https://revoke.example.com`.
-For a first look on your own computer, "Get started" in the README is enough.
+For a first look on your own computer, "Get started" in the README is enough. On Kubernetes,
+use the Helm chart instead: [kubernetes.md](kubernetes.md).
 
 Open Revoke holds signed-in admin sessions of your SaaS tools (in the shared browser) and
 connector secrets (in the database). Treat the server like a password manager: few people

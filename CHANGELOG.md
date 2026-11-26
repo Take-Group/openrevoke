@@ -19,6 +19,9 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
   previews and creates one onboarding batch with the profile's roles; removing one suggests the
   accounts to remove. Profile and person pages show missing and extra access, the dashboard warns
   when members miss access, and the Onboard page can tick a profile's apps.
+- Helm chart for Kubernetes (`oci://ghcr.io/take-group/charts/open-revoke`, docs/kubernetes.md):
+  the same services as Docker Compose, generated secrets kept on upgrade, optional ingress and
+  external PostgreSQL; the panel's update notice shows the `helm upgrade` command.
 - Installer (`install.sh`) and the `open-revoke` command on the server: status, update with a
   database backup and automatic rollback, backup, restore, doctor.
 - The panel shows its version, and admins see a notice when a newer stable release is out

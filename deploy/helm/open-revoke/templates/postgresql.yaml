@@ -1,0 +1,96 @@
+{{- /*
+The `postgres` service of compose.yaml: official image, one replica, data in a PVC. Off with
+postgresql.enabled=false for a database you run yourself (externalDatabase).
+*/ -}}
+{{- if .Values.postgresql.enabled }}
+{{- $name := include "open-revoke.component" (dict "root" . "component" "postgresql") }}
+{{- $selector := dict "root" . "component" "postgresql" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "open-revoke.componentLabels" $selector | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "open-revoke.selectorLabels" $selector | nindent 4 }}
+  ports:
+    - name: postgresql
+      port: 5432
+      targetPort: postgresql
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "open-revoke.componentLabels" $selector | nindent 4 }}
+spec:
+  replicas: 1
+  serviceName: {{ $name }}
+  selector:
+    matchLabels:
+      {{- include "open-revoke.selectorLabels" $selector | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "open-revoke.selectorLabels" $selector | nindent 8 }}
+    spec:
+      {{- include "open-revoke.podDefaults" . | nindent 6 }}
+      {{- include "open-revoke.scheduling" .Values.postgresql | nindent 6 }}
+      securityContext:
+        # The image's postgres user and group.
+        fsGroup: 999
+        fsGroupChangePolicy: OnRootMismatch
+      containers:
+        - name: postgresql
+          image: {{ include "open-revoke.image" (dict "root" . "image" .Values.postgresql.image) }}
+          imagePullPolicy: {{ .Values.postgresql.image.pullPolicy }}
+          args: ["-c", "timezone={{ .Values.timezone }}", "-c", "log_timezone={{ .Values.timezone }}"]
+          ports:
+            - name: postgresql
+              containerPort: 5432
+          env:
+            - name: TZ
+              value: {{ .Values.timezone | quote }}
+            - name: POSTGRES_USER
+              value: postgres
+            {{- include "open-revoke.db.passwordEnv" . | nindent 12 }}
+            - name: POSTGRES_DB
+              value: open_revoke
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres", "-d", "open_revoke"]
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres", "-d", "open_revoke"]
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          {{- with .Values.postgresql.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            # PostgreSQL 18 keeps its data in a versioned directory under this path (as compose.yaml).
+            - name: data
+              mountPath: /var/lib/postgresql
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "open-revoke.selectorLabels" $selector | nindent 10 }}
+      spec:
+        accessModes:
+          {{- toYaml .Values.postgresql.persistence.accessModes | nindent 10 }}
+        {{- with .Values.postgresql.persistence.storageClass }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.postgresql.persistence.size }}
+{{- end }}

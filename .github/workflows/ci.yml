@@ -115,6 +115,43 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: "1"
 
+  helm:
+    name: Helm chart (lint, kubeconform)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: deploy/helm/open-revoke
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: azure/setup-helm@v4
+
+      # Helm reads no file outside the chart, so the chart keeps a copy of the Temporal scripts and
+      # dynamic config that compose.yaml mounts. The copy must not drift from the original.
+      - name: Temporal files match backend/temporal
+        run: |
+          diff -r ../../../backend/temporal/scripts files/temporal/scripts
+          diff -r ../../../backend/temporal/dynamicconfig files/temporal/dynamicconfig
+
+      - name: Lint
+        run: helm lint --strict .
+
+      # The chart rendered with the defaults, with an ingress and with an external database, checked
+      # against the Kubernetes API schemas (kubeconform, strict: no unknown fields).
+      - name: Rendered manifests are valid Kubernetes objects
+        run: |
+          kubeconform() {
+            docker run --rm -i ghcr.io/yannh/kubeconform:v0.8.0 -strict -summary -kubernetes-version 1.31.0 -
+          }
+          helm template ci . | kubeconform
+          helm template ci . --set ingress.enabled=true --set ingress.host=revoke.example.com \
+            --set ingress.className=nginx --set ingress.tls.enabled=true --set ingress.tls.secretName=revoke-tls \
+            | kubeconform
+          helm template ci . --set postgresql.enabled=false --set externalDatabase.host=db.example.com \
+            --set externalDatabase.password=ci-password --set externalDatabase.tls=true \
+            | kubeconform
+
   shellcheck:
     name: ShellCheck
     runs-on: ubuntu-24.04

@@ -1,0 +1,142 @@
+{{- /*
+The `temporal` service of compose.yaml on the same PostgreSQL. Its init containers do what
+`temporal-schema-setup` does there: wait for PostgreSQL, then create or update the schemas of
+the `temporal` and `temporal_visibility` databases (idempotent). They run at every start of the
+pod, so a new Temporal version updates its schema before it starts.
+
+Why init containers and not Jobs as Helm hooks: `helm install --wait` waits for the resources
+before it runs post-install hooks, and Temporal never gets ready without its schema; GitOps tools
+(Argo CD) map pre-upgrade hooks to a phase before PostgreSQL exists.
+
+The scripts are a copy of backend/temporal/scripts in files/ (Helm reads no file outside the
+chart); CI fails when the copy differs.
+*/ -}}
+{{- $name := include "open-revoke.temporalHost" . }}
+{{- $selector := dict "root" . "component" "temporal" }}
+{{- $adminTools := include "open-revoke.image" (dict "root" . "image" .Values.temporal.adminToolsImage) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "open-revoke.componentLabels" $selector | nindent 4 }}
+data:
+  {{- (.Files.Glob "files/temporal/scripts/*.sh").AsConfig | nindent 2 }}
+  {{- (.Files.Glob "files/temporal/dynamicconfig/*.yaml").AsConfig | nindent 2 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "open-revoke.componentLabels" $selector | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "open-revoke.selectorLabels" $selector | nindent 4 }}
+  ports:
+    - name: grpc
+      port: 7233
+      targetPort: grpc
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "open-revoke.componentLabels" $selector | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "open-revoke.selectorLabels" $selector | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "open-revoke.selectorLabels" $selector | nindent 8 }}
+      annotations:
+        checksum/config: {{ (.Files.Glob "files/temporal/**").AsConfig | sha256sum | trunc 16 }}
+    spec:
+      {{- include "open-revoke.podDefaults" . | nindent 6 }}
+      {{- include "open-revoke.scheduling" .Values.temporal | nindent 6 }}
+      initContainers:
+        - name: wait-for-postgresql
+          image: {{ $adminTools }}
+          imagePullPolicy: {{ .Values.temporal.adminToolsImage.pullPolicy }}
+          command:
+            - /bin/sh
+            - -c
+            - until nc -z -w 3 "$POSTGRES_SEEDS" "$DB_PORT"; do echo "Waiting for PostgreSQL..."; sleep 2; done
+          env:
+            - name: POSTGRES_SEEDS
+              value: {{ include "open-revoke.db.host" . | quote }}
+            - name: DB_PORT
+              value: {{ include "open-revoke.db.port" . | quote }}
+        - name: schema-setup
+          image: {{ $adminTools }}
+          imagePullPolicy: {{ .Values.temporal.adminToolsImage.pullPolicy }}
+          command: ["/bin/sh", "/scripts/setup-postgres.sh"]
+          env:
+            {{- include "open-revoke.temporalDbEnv" . | nindent 12 }}
+            - name: SQL_PASSWORD
+              value: $(POSTGRES_PWD)
+            {{- if and (not .Values.postgresql.enabled) .Values.externalDatabase.tls }}
+            - name: SQL_TLS
+              value: "true"
+            - name: SQL_TLS_DISABLE_HOST_VERIFICATION
+              value: "true"
+            {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /scripts
+              readOnly: true
+      containers:
+        - name: temporal
+          image: {{ include "open-revoke.image" (dict "root" . "image" .Values.temporal.image) }}
+          imagePullPolicy: {{ .Values.temporal.image.pullPolicy }}
+          ports:
+            - name: grpc
+              containerPort: 7233
+          env:
+            {{- include "open-revoke.temporalDbEnv" . | nindent 12 }}
+            # The image's entrypoint announces the pod IP when it binds to 0.0.0.0.
+            - name: BIND_ON_IP
+              value: 0.0.0.0
+            - name: DYNAMIC_CONFIG_FILE_PATH
+              value: /etc/temporal/config/dynamicconfig/development-sql.yaml
+            {{- if and (not .Values.postgresql.enabled) .Values.externalDatabase.tls }}
+            - name: SQL_TLS_ENABLED
+              value: "true"
+            {{- end }}
+          readinessProbe:
+            tcpSocket:
+              port: grpc
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            tcpSocket:
+              port: grpc
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 6
+          {{- with .Values.temporal.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: dynamicconfig
+              mountPath: /etc/temporal/config/dynamicconfig
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: {{ $name }}
+        - name: dynamicconfig
+          configMap:
+            name: {{ $name }}
+            items:
+              - key: development-sql.yaml
+                path: development-sql.yaml

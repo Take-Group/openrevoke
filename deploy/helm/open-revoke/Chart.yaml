@@ -1,0 +1,49 @@
+# Helm chart of Open Revoke: the same images and services as compose.yaml (docs/kubernetes.md).
+# The chart has the product's version: the release workflow packages it with
+# `helm package --version X.Y.Z --app-version X.Y.Z` and writes the image tags of the
+# artifacthub.io/images annotation, so the numbers below only matter for a chart used from git.
+apiVersion: v2
+name: open-revoke
+description: >-
+  Self-hosted panel for a company's SaaS tools: who has an account where, what each tool costs,
+  and offboarding that removes a leaver's accounts, also through a browser in apps without an API.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.27.0-0"
+home: https://openrevoke.com
+icon: https://raw.githubusercontent.com/Take-Group/openrevoke/main/frontend/src/app/icon.svg
+sources:
+  - https://github.com/Take-Group/openrevoke
+keywords:
+  - saas-management
+  - offboarding
+  - access-management
+  - self-hosted
+maintainers:
+  - name: Open Revoke
+    url: https://github.com/Take-Group/openrevoke
+annotations:
+  artifacthub.io/license: MIT
+  artifacthub.io/category: security
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/links: |
+    - name: Documentation
+      url: https://github.com/Take-Group/openrevoke/blob/main/docs/kubernetes.md
+    - name: Changelog
+      url: https://github.com/Take-Group/openrevoke/blob/main/CHANGELOG.md
+    - name: Support
+      url: https://github.com/Take-Group/openrevoke/issues
+  artifacthub.io/images: |
+    - name: open-revoke
+      image: ghcr.io/take-group/open-revoke:0.1.0
+    - name: open-revoke-browser
+      image: ghcr.io/take-group/open-revoke-browser:0.1.0
+    - name: postgres
+      image: postgres:18.6
+    - name: redis
+      image: redis:8.10.3-alpine
+    - name: temporal-server
+      image: temporalio/server:1.32.2
+    - name: temporal-admin-tools
+      image: temporalio/admin-tools:1.32.2

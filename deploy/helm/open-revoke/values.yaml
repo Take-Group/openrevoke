@@ -1,0 +1,207 @@
+# Values of the Open Revoke chart. Guide: docs/kubernetes.md. Each service mirrors one in
+# compose.yaml; the env var a value sets is named next to it.
+
+# -- Overrides of the resource names (default: <release>-open-revoke, or <release> when the
+# release name already contains "open-revoke").
+nameOverride: ""
+fullnameOverride: ""
+
+# -- Time zone of the server (TZ): logs and container clocks. Dates in the panel use the
+# organization's zone from the setup.
+timezone: UTC
+
+# -- The address people open the panel at (PUBLIC_URL). Invite, reset and setup links, Google
+# sign-in, the secure cookie flag and the host names the API answers to follow it. Empty: built
+# from ingress.host (https when ingress.tls is set), else http://localhost:18410, the address of
+# `kubectl port-forward svc/<release>-app 18410:3000`.
+publicUrl: ""
+
+imagePullSecrets: []
+
+# -- Secrets of the installation, in one Secret with the keys OPEN_REVOKE_SECRET_KEY and
+# POSTGRES_PASSWORD. Empty values are generated at install and kept on upgrade. The Secret is
+# kept on `helm uninstall` (resource policy "keep"): the database and the connector secrets
+# need it.
+secrets:
+  # -- Name of a Secret you manage with the two keys above; the chart then creates none.
+  existingSecret: ""
+  # -- Fernet key that encrypts connector secrets (OPEN_REVOKE_SECRET_KEY). Moving from a
+  # Docker Compose install: put the key from its .env here. Generate one with
+  # `openssl rand -base64 32 | tr '+/' '-_'`. Losing it makes stored connector secrets unreadable.
+  secretKey: ""
+  # -- Password of the bundled PostgreSQL. It is set when the database is created; changing it
+  # later does not change the database's password. With an external database use
+  # externalDatabase.password.
+  postgresPassword: ""
+
+# The container with the API, the Temporal worker and the panel (service `app` in compose.yaml).
+# One replica: the API, the worker and its schedules run in it.
+app:
+  image:
+    repository: ghcr.io/take-group/open-revoke
+    # -- Default: the chart's appVersion. Never `latest`: every version may migrate the database.
+    tag: ""
+    pullPolicy: IfNotPresent
+  # -- Hourly check of GitHub for a newer stable release (OPEN_REVOKE_UPDATE_CHECK); false for
+  # clusters without internet access.
+  updateCheck: true
+  updateUrl: https://api.github.com/repos/Take-Group/openrevoke/releases/latest
+  # -- One anonymous event when the first admin finishes the setup (OPEN_REVOKE_TELEMETRY,
+  # TELEMETRY.md); false turns it off.
+  telemetry: true
+  telemetryUrl: https://openrevoke.com/api/v1/telemetry
+  # -- Development only: the "fake" connector with test data (OPEN_REVOKE_ENABLE_FAKE_CONNECTOR).
+  enableFakeConnector: false
+  # -- Development only: one-click form fill on the sign-in pages (OPEN_REVOKE_DEV_PREFILL).
+  # Anyone who opens the panel sees the test password.
+  devPrefill: false
+  # -- Write actions: seconds between verification reads (ACTION_VERIFY_DELAY_SECONDS).
+  actionVerifyDelaySeconds: 30
+  # -- Temporal task queue of the worker (TEMPORAL_TASK_QUEUE).
+  temporalTaskQueue: open-revoke
+  # -- Base of the "Connect with Google" redirect URI (GOOGLE_OAUTH_REDIRECT_BASE). Empty:
+  # the public URL.
+  googleOauthRedirectBase: ""
+  # -- More host names the API answers to (ALLOWED_HOSTS). The chart already allows localhost,
+  # the app Service's names and the host of the public URL.
+  allowedHosts: []
+  # -- More environment variables, as a list of EnvVar objects.
+  extraEnv: []
+  resources:
+    requests:
+      cpu: 250m
+      memory: 768Mi
+    limits:
+      memory: 2Gi
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Service of the app: the panel for people (and the ingress), the API for the browser pod.
+service:
+  type: ClusterIP
+  # -- Port of the panel. The API proxies through it under /api.
+  port: 3000
+  annotations: {}
+
+# The panel from outside the cluster (the `caddy` service in compose.yaml). Only the panel port:
+# the API is behind it under /api and the live view of the browser goes through the API.
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  # -- Host name of the panel, e.g. revoke.example.com. Sets the public URL unless publicUrl is set.
+  host: ""
+  # -- TLS Secret for the host, e.g. from cert-manager (add its annotation above). Set: the
+  # public URL is https.
+  tls:
+    enabled: false
+    secretName: ""
+
+# Shared Chromium for browser connectors (service `browser` in compose.yaml). The profile in the
+# PVC holds signed-in admin sessions of SaaS panels: whoever reads it has those sessions.
+browser:
+  image:
+    repository: ghcr.io/take-group/open-revoke-browser
+    # -- Default: the chart's appVersion.
+    tag: ""
+    pullPolicy: IfNotPresent
+  persistence:
+    # -- PVC `profile` of the StatefulSet, mounted on /profile.
+    size: 5Gi
+    storageClass: ""
+    accessModes: ["ReadWriteOnce"]
+  # -- Size of /dev/shm (emptyDir in memory), shm_size in compose.yaml.
+  shmSize: 1Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 768Mi
+    limits:
+      memory: 3Gi
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Bundled PostgreSQL (official image, service `postgres` in compose.yaml). Holds the app's
+# database and Temporal's two databases (temporal, temporal_visibility).
+postgresql:
+  # -- false: use externalDatabase (RDS, Cloud SQL, CloudNativePG, ...).
+  enabled: true
+  image:
+    repository: postgres
+    tag: "18.6"
+    pullPolicy: IfNotPresent
+  persistence:
+    size: 10Gi
+    storageClass: ""
+    accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# PostgreSQL you run yourself, used when postgresql.enabled is false. The user must be able to
+# create the databases `temporal` and `temporal_visibility` (Temporal's schema setup), and the
+# app's database must exist.
+externalDatabase:
+  host: ""
+  port: 5432
+  user: postgres
+  # -- The app's database.
+  database: open_revoke
+  # -- Goes into the app's DATABASE_URL as it is: use letters, digits, "-" and "_" or
+  # percent-encode it. Or leave it empty and set POSTGRES_PASSWORD in secrets.existingSecret.
+  password: ""
+  # -- Encrypted connection without certificate checks (the app's `ssl=require`, Temporal's
+  # SQL TLS without host verification), e.g. for RDS with rds.force_ssl.
+  tls: false
+
+# Redis (official image, service `redis` in compose.yaml), no persistence, as in compose.yaml:
+# short-lived state only (setup link, rate limits, locks, OAuth state, cached update check).
+redis:
+  image:
+    repository: redis
+    tag: 8.10.3-alpine
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Temporal server on the same PostgreSQL (service `temporal` in compose.yaml). Its init
+# containers wait for PostgreSQL and create or update Temporal's schema at every start
+# (temporal-schema-setup); the app's init container creates the namespace
+# (temporal-create-namespace).
+temporal:
+  image:
+    repository: temporalio/server
+    tag: 1.32.2
+    pullPolicy: IfNotPresent
+  adminToolsImage:
+    repository: temporalio/admin-tools
+    tag: 1.32.2
+    pullPolicy: IfNotPresent
+  namespace: default
+  namespaceRetention: 24h
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Only the app pods may connect to the browser pod (CDP and the live view). Needs a network
+# plugin that enforces NetworkPolicy.
+networkPolicy:
+  enabled: true

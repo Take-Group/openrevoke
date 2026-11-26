@@ -116,7 +116,8 @@ you lose it, you enter those secrets again.
 
 ### Next steps
 
-1. Run it under your own domain with HTTPS: [docs/self-hosting.md](docs/self-hosting.md).
+1. Run it under your own domain with HTTPS: [docs/self-hosting.md](docs/self-hosting.md). On
+   Kubernetes: the Helm chart, [docs/kubernetes.md](docs/kubernetes.md).
 2. Add people: from Google Workspace, a CSV import or by hand.
 3. Connect your apps: [docs/connectors](docs/connectors/README.md).
 4. Connect an AI assistant (below).

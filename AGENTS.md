@@ -37,7 +37,7 @@ Connectors are checked on the test connectors, not yet on real accounts.
 
 - `.agents/`: skills (explore, verify, diagnose, harness).
 - `.claude/`: `skills` symlink to `.agents/skills` for Claude Code.
-- `.github/`: CI (ruff, `alembic check`, panel lint/typecheck/build, ShellCheck), release on tag `v*` (multi-arch images, SBOM, cosign, install and update tests), weekly Chromium check, Dependabot, issue and PR templates.
+- `.github/`: CI (ruff, `alembic check`, panel lint/typecheck/build, Helm lint and kubeconform, ShellCheck), release on tag `v*` (multi-arch images, SBOM, cosign, install and update tests, Helm chart on kind, chart pushed to GHCR), weekly Chromium check, Dependabot, issue and PR templates.
 - `.dockerignore`, `.gitignore`: build context and git filters.
 - `.env.example`: template of the git-ignored `.env`; `install.sh` fills it.
 - `CHANGELOG.md`: release notes; a noticeable change adds a line under `[Unreleased]`.
@@ -52,7 +52,7 @@ Connectors are checked on the test connectors, not yet on real accounts.
 - `compose.dev.yaml`: development stack, hot reload, fictional data, ports 18410-18415 on 127.0.0.1.
 - `backend/`: own AGENTS.md. Python 3.14, FastAPI, SQLAlchemy 2 with Alembic, Temporal, Redis.
 - `frontend/`: own AGENTS.md. Next.js 16 panel, React 19, Tailwind 4, Bun.
-- `deploy/`, no map: release bundle's `install.sh`, host command `open-revoke`, `lib/*.sh` (POSIX sh).
+- `deploy/`, no map: release bundle's `install.sh`, host command `open-revoke`, `lib/*.sh` (POSIX sh); `helm/open-revoke/` Helm chart (docs/kubernetes.md; `files/temporal/` is a copy of `backend/temporal/`, CI diffs it), `helm/artifacthub-repo.yml`.
 - `scripts/`, no map: `release.sh` (changelog, tag), `build-release.sh` (images and bundle). Skill `skills/backend/releases.md`.
 - `docker/`, no map: `entrypoint.sh` (`python -m app.db migrate`, then supervisor), `supervisord.conf`, `caddy/Caddyfile`, `browser/` (own AGENTS.md).
 - `docs/`: own AGENTS.md. Click recipes, self-hosting, `openapi.json`, `connectors/`.
@@ -131,7 +131,7 @@ Backend (`skills/backend/`):
 - [google-cloud-setup.md](skills/backend/google-cloud-setup.md): automatic Google Cloud setup in the shared browser (project, API, consent screen, OAuth client, consent), Discovery "Automatic"
 - [actions.md](skills/backend/actions.md): write actions: lifecycle, `ExecuteActionWorkflow`, read-back verification, temporary password
 - [docker-single-image.md](skills/backend/docker-single-image.md): Dockerfile targets, self-hosting image, `compose.dev.yaml`
-- [releases.md](skills/backend/releases.md): versions, release build, installer, `open-revoke` command, update check, setup link
+- [releases.md](skills/backend/releases.md): versions, release build, installer, `open-revoke` command, update check, setup link, Helm chart
 - [click-recipes.md](skills/backend/click-recipes.md): click recipes for writes in apps without an API: JSON format, runner, `run_recipe`, fake panel to break and test
 - [browser.md](skills/backend/browser.md): `browser` container, CDP, noVNC, live view through the API (admins only), `BrowserSession`, header capture, `app.devtools.capture`, `browser_fake`
 - [new-connector.md](skills/backend/new-connector.md): app connector, secrets, account sync, `SyncConnectionWorkflow`

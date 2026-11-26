@@ -1,0 +1,38 @@
+{{- /*
+The panel from outside the cluster (the `caddy` profile of compose.yaml). Only the panel port:
+the API is behind it under /api, and the live view of the browser goes through the API.
+*/ -}}
+{{- if .Values.ingress.enabled }}
+{{- $host := required "ingress.host is required when ingress.enabled is true" .Values.ingress.host }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "open-revoke.fullname" . }}
+  labels:
+    {{- include "open-revoke.componentLabels" (dict "root" . "component" "app") | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . | quote }}
+  {{- end }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ $host | quote }}
+      secretName: {{ required "ingress.tls.secretName is required when ingress.tls.enabled is true" .Values.ingress.tls.secretName | quote }}
+  {{- end }}
+  rules:
+    - host: {{ $host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "open-revoke.component" (dict "root" . "component" "app") }}
+                port:
+                  name: http
+{{- end }}

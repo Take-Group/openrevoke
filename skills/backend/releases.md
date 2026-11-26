@@ -50,11 +50,58 @@ multi-arch images, SBOM, signing, install and update tests) runs once the repo i
 - **Time zone**: nothing is baked into the images. `TZ` in `.env` (from the host, default UTC)
   goes to every container; the panel uses the browser's zone until it knows the organization's.
 
+## Helm chart
+
+- **Where.** `deploy/helm/open-revoke/` (guide for admins: `docs/kubernetes.md`). Same images,
+  versions and env as `compose.yaml`: `app` Deployment (1 replica, `Recreate`), `browser`
+  StatefulSet (PVC `profile`, `/dev/shm` in memory), PostgreSQL StatefulSet or
+  `externalDatabase`, Redis, Temporal. One `values.yaml` key per `app` env var of compose.yaml;
+  `values.schema.json` refuses unknown keys.
+- **Version.** The chart's version is the product's: `release.yml` runs
+  `helm package --version X.Y.Z --app-version X.Y.Z` and writes the image tags of the
+  `artifacthub.io/images` annotation; `Chart.yaml` in git keeps `0.1.0`. Image tags default to
+  `.Chart.AppVersion`.
+- **Secrets.** `templates/secret.yaml` generates `OPEN_REVOKE_SECRET_KEY` (Fernet: `randBytes 32`
+  made URL-safe) and `POSTGRES_PASSWORD` once; on upgrade `lookup` reads the existing Secret.
+  Resource policy `keep`: uninstall leaves it next to the PVCs. Or `secrets.existingSecret`.
+- **Temporal.** No hook Jobs: init containers of the Temporal pod wait for PostgreSQL and run
+  `setup-postgres.sh` (idempotent) at every start; an init container of the app pod runs
+  `create-namespace.sh`. Hooks would deadlock `helm install --wait` (Helm runs post-install hooks
+  after the wait) and break Argo CD. The scripts are a copy in `files/temporal/`; CI diffs it.
+- **Install method.** The chart sets `OPEN_REVOKE_INSTALL_METHOD=helm`; `GET /api/system/version`
+  returns it as `install_method` and `UpdateNotice` shows `helm upgrade` instead of
+  `open-revoke update`.
+- **Host names.** The API refuses unknown `Host` headers: the probes send `Host: localhost`, and
+  `ALLOWED_HOSTS` lists the app Service's names, which the browser pod uses for the API.
+- **Publishing** (`release.yml`): `build-test` packages the chart and installs it on kind with
+  the images it built; `chart` pushes the same `.tgz` to `oci://ghcr.io/take-group/charts`, signs
+  its digest with cosign and pushes `deploy/helm/artifacthub-repo.yml` with oras as tag
+  `artifacthub.io` (skipped while its `repositoryID` is the placeholder); `release` attaches
+  `open-revoke-chart-X.Y.Z.tgz` and lists it in `SHA256SUMS`. `ci.yml`: `helm lint --strict`,
+  `helm template` through kubeconform (defaults, ingress, external database).
+
+Try it locally (kind, Helm and kubeconform from Homebrew):
+
+```bash
+scripts/build-release.sh 0.0.0-helm --out /tmp/or-releases
+kind create cluster --name or-helm
+kind load docker-image --name or-helm ghcr.io/take-group/open-revoke:0.0.0-helm ghcr.io/take-group/open-revoke-browser:0.0.0-helm
+helm install or deploy/helm/open-revoke -n or --create-namespace --set app.image.tag=0.0.0-helm \
+  --set browser.image.tag=0.0.0-helm --set app.telemetry=false --wait --timeout 15m
+kubectl -n or port-forward svc/or-open-revoke-app 18410:3000
+kind delete cluster --name or-helm
+```
+
+A new env var of the `app` service in `compose.yaml` gets a value in `values.yaml`, the schema
+and `templates/app.yaml`; a new file mounted from `backend/temporal/` gets copied into
+`files/temporal/`.
+
 ## Files
 
 - `CHANGELOG.md`, `scripts/release.sh`, `scripts/build-release.sh`
 - `deploy/install.sh`, `deploy/open-revoke`, `deploy/lib/{common,backup,update}.sh`
 - `compose.yaml` (images, official PostgreSQL and Redis), `compose.build.yaml`, `Dockerfile`
+- `deploy/helm/open-revoke/` (chart), `deploy/helm/artifacthub-repo.yml`, `docs/kubernetes.md`
 - `backend/app/ops.py`, `backend/app/services/{update_check,system_info,maintenance}.py`,
   `backend/app/services/auth/setup_link.py`, `backend/app/api/system.py`,
   `backend/app/temporal/update_check_{workflow,activities,schedule}.py`
