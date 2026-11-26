@@ -154,7 +154,7 @@ jobs:
         with:
           context: .
           target: browser
-          build-args: BROWSER_PACKAGES_KEY=${{ steps.packages.outputs.key }}
+          build-args: BROWSER_PACKAGES_HASH=${{ steps.packages.outputs.key }}
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.labels.outputs.browser }}
           outputs: type=image,name=${{ env.BROWSER_IMAGE }},push-by-digest=true,name-canonical=true,push=true

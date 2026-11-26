@@ -115,7 +115,7 @@ jobs:
         with:
           context: .
           target: browser
-          build-args: BROWSER_PACKAGES_KEY=${{ steps.packages.outputs.key }}
+          build-args: BROWSER_PACKAGES_HASH=${{ steps.packages.outputs.key }}
           platforms: linux/amd64
           tags: ${{ env.BROWSER_IMAGE }}:${{ env.VERSION }}
           load: true
@@ -265,8 +265,16 @@ jobs:
           sh "$RUNNER_TEMP/install-previous.sh" --yes --version "$PREVIOUS" --dir "$dir" \
             --name or-update --port 18421 --no-link --releases "https://github.com/$GITHUB_REPOSITORY/releases" \
             | tee "$RUNNER_TEMP/previous.log"
-          token=$(grep -Eo '/setup\?token=[A-Za-z0-9_-]+' "$RUNNER_TEMP/previous.log" | tail -n 1 | cut -d= -f2)
-          [ -n "$token" ] || { echo "::error::install.sh of $PREVIOUS printed no setup link"; exit 1; }
+          grep -Eq '/setup\?token=' "$RUNNER_TEMP/previous.log" \
+            || { echo "::error::install.sh of $PREVIOUS printed no setup link"; exit 1; }
+
+          # The setup below would send the telemetry event of a real installation (TELEMETRY.md),
+          # so this test installation turns it off first. The restart may change the setup token:
+          # ask for a fresh link.
+          echo "OPEN_REVOKE_TELEMETRY=false" >> "$dir/.env"
+          "$dir/open-revoke" restart
+          token=$("$dir/open-revoke" setup-link | grep -Eo '/setup\?token=[A-Za-z0-9_-]+' | tail -n 1 | cut -d= -f2)
+          [ -n "$token" ] || { echo "::error::setup-link of $PREVIOUS printed no link"; exit 1; }
 
           # Data that has to survive the update and the rollback: the organization and its admin.
           jq -n --arg token "$token" --arg password "$password" '{

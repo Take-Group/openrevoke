@@ -2,7 +2,7 @@
 # Print a key of the Debian packages the browser image would install now: a SHA-256 over the
 # package versions that `apt-get install --simulate` picks for docker/browser/packages.txt and
 # all their dependencies, in the base image of the Dockerfile's browser stage, on this machine's
-# platform. The release workflows pass it as --build-arg BROWSER_PACKAGES_KEY, so the browser
+# platform. The release workflows pass it as --build-arg BROWSER_PACKAGES_HASH, so the browser
 # image's package layer comes from the build cache until Debian ships a newer version of any of
 # those packages (a Chromium security release, a curl fix) and is rebuilt then.
 #

@@ -148,13 +148,13 @@ ENV TZ=UTC \
     DISPLAY=:99 \
     LANG=C.UTF-8
 
-# Debian packages from docker/browser/packages.txt. BROWSER_PACKAGES_KEY is a hash of the package
+# Debian packages from docker/browser/packages.txt. BROWSER_PACKAGES_HASH is a hash of the package
 # versions apt would install now (scripts/browser-packages-key.sh, passed by the release
 # workflows): the same key reuses the cached layer, a new Chromium or any other Debian fix changes
 # the key and rebuilds it. Without the key (a local build) Docker's cache decides as usual.
-ARG BROWSER_PACKAGES_KEY=local
+ARG BROWSER_PACKAGES_HASH=local
 COPY docker/browser/packages.txt /tmp/browser-packages.txt
-RUN echo "Debian packages key: $BROWSER_PACKAGES_KEY" \
+RUN echo "Debian packages key: $BROWSER_PACKAGES_HASH" \
     && apt-get update \
     && xargs -a /tmp/browser-packages.txt apt-get install --yes --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* /tmp/browser-packages.txt
