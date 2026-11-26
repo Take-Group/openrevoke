@@ -21,6 +21,11 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
 
 ### Security
 
+- SLSA Build Level 3 provenance is now made with GitHub artifact attestations from the reusable
+  workflow `release-publish.yml` instead of the unmaintained `slsa-github-generator`. Check it with
+  `gh attestation verify --signer-workflow Take-Group/openrevoke/.github/workflows/release-publish.yml`
+  (commands in the release notes); the images' `cosign` identity is `release-publish.yml` too.
+  Release 0.1.0 keeps its `.intoto.jsonl` for `slsa-verifier`.
 - A saved connector token (SCIM, GitHub Enterprise) or AI key is no longer sent to a changed base URL:
   changing the URL needs the secret again. Pending and approved writes of a connection are cancelled
   when its target changes.
