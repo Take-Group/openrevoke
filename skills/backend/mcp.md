@@ -10,20 +10,23 @@ self-hosting needs no extra port: the panel's Next.js rewrite (`frontend/next.co
 
 Two toolsets:
 
-- **Task tools** (default, admins): a dozen tools named after what an admin asks
-  (`app/mcp/agent/`): `get_overview`, `get_spend_by_app`, `get_app_access`,
-  `list_discovered_apps`, `find_people`, `get_person_access`, `list_leavers_with_access`,
-  `plan_offboarding`, `start_offboarding`, `approve_offboarding`, `get_offboarding_status`,
-  `list_pending_approvals`. Each composes a few API calls and returns compact JSON with names,
-  money as `"12.50 EUR"` and a `next` hint. People and apps are referenced by e-mail, name or id.
-- **API tools** (`?toolset=api`, and every non-admin caller): one tool per API operation, built
-  from the FastAPI routes at the first request.
+- **Task tools** (default, `app/mcp/agent/`): one tool per task, named after what is asked, about
+  40 for an admin (overview and costs, people, offboarding, onboarding and access profiles,
+  actions and manual tasks, accounts, connections, discovery, access requests, audit log) and 4
+  for a member (`get_my_access`, `request_access`, `list_my_approvals`, `decide_my_approval`).
+  Each composes a few API calls and returns compact JSON with names, money as `"12.50 EUR"` and a
+  `next` hint. People and apps are referenced by e-mail, name or id. A write in other apps is a
+  batch of actions that `approve_actions` runs; the instructions tell the assistant the order.
+- **API tools** (`?toolset=api`): one tool per API operation, built from the FastAPI routes at
+  the first request. For what the task tools do not cover; an assistant cannot switch toolsets
+  inside a session, so a task the panel offers belongs in the task tools.
 
 Without a token a client may connect and list the tools (`initialize`, `ping`, `tools/list`,
 notifications): registries and people who have not installed anything see what the server
-offers. Every other request without a token, a tool call above all, gets HTTP 401 before it
-reaches the SDK; a wrong token is always 401. The anonymous view is the admin view with a write
-token.
+offers, every task tool of both audiences. A tool call without a token is answered as a tool
+error (HTTP 200, `isError`) that says how to add a token, and reaches no API: an HTTP 401 there
+makes Claude Code drop the session ("session expired") without showing why. Every other request
+without a token gets 401 before the SDK; a wrong token is always 401.
 
 Every tool, of either set, goes through the API. A tool call is the same HTTP request the panel sends, made in-process
 (`httpx.ASGITransport`) with the caller's token: validation, role and scope checks, error codes
@@ -41,7 +44,7 @@ token works for the REST API. Tokens are managed in Settings, API and MCP (`/set
 | `backend/app/mcp/schema.py` | `SchemaResolver`: inlines `$ref`, drops titles |
 | `backend/app/mcp/dispatch.py` | `ApiDispatcher.call`: builds the request, maps the response (JSON as text, images as image content, `HTTP <code>: <detail>` errors with flat argument names) |
 | `backend/app/mcp/server.py` | `OpenRevokeMcp` (SDK `Server`, both toolsets, list and call handlers, session manager), `McpEndpoint` (anonymous listing, 401 for the rest, `?tags=`, `?toolset=`), tool annotations |
-| `backend/app/mcp/agent/` | task tools: `base.py` (`AgentTool`, `ToolError`), `api.py` (`AgentApi`: in-process API calls, person and app lookup), `views.py` (compact shapes), `people.py`, `apps.py`, `offboarding.py` (one `TOOLS` tuple each), `registry.py` (`AGENT_TOOLS`, `call`) |
+| `backend/app/mcp/agent/` | task tools: `base.py` (`AgentTool` with `audience`, `ToolError`), `api.py` (`AgentApi`: in-process API calls, person, app and discovered app lookup), `views.py` (compact shapes), one module per area with a `TOOLS` tuple, `registry.py` (`MODULES`, `AGENT_TOOLS`, `call`) |
 | `backend/app/mcp/caller.py` | `Caller` (with `Toolset`), `current_caller`, `authenticate`, `anonymous` |
 | `backend/app/mcp/instructions.py` | `INSTRUCTIONS`: what the assistant reads first: domain, approve rules |
 | `backend/app/mcp/address.py` | `MCP_PATH`, `mcp_url()` (from `PUBLIC_URL`) |
@@ -57,22 +60,23 @@ token works for the REST API. Tokens are managed in Settings, API and MCP (`/set
 
 | Caller | Tools |
 |---|---|
-| no token | the admin's list; every call 401 |
-| admin, write token | the task tools; `?toolset=api`: every API tool (about 100) |
+| no token | every task tool; a call is a tool error |
+| admin, write token | the admin's task tools; `?toolset=api`: every API tool (about 100) |
 | admin, read token | read-only task tools; `?toolset=api`: GET tools only |
-| user (not admin) | API tools: `/api/me` and the public catalog and currencies |
+| user (not admin) | the member's task tools; `?toolset=api`: `/api/me`, catalog and currencies |
 | `?toolset=api&tags=people,apps` | only API tools of those OpenAPI tags |
 
 Tool annotations: task tools set `readOnlyHint` and `destructiveHint` themselves
-(`start_offboarding`, `approve_offboarding`); API tools get `readOnlyHint` for GET,
+(`start_offboarding`, `onboard_person`, `approve_actions`, `retry_action`); API tools get `readOnlyHint` for GET,
 `destructiveHint` for DELETE and `policy.DESTRUCTIVE`.
 Clients use them to ask before a call; keep `DESTRUCTIVE` up to date when an endpoint removes
 accounts in other apps.
 
 ## Adding a task tool
 
-A tool answers one question an admin asks, in one call. Add an `AgentTool` to the `TOOLS` of the
-module it belongs to (or a new module listed in `registry.py`). The handler calls the API through
+A tool answers one question an admin (or, `audience="user"`, a member) asks, in one call. Add an
+`AgentTool` to the `TOOLS` of the module it belongs to (or a new module listed in
+`registry.MODULES`). A new panel feature gets its task tool in the same change. The handler calls the API through
 `AgentApi`, never a service, raises `ToolError` with what to call instead, and returns names
 rather than ids where a person reads them. A tool that writes in other apps is `destructive` and
 its description says to ask the user first.
@@ -107,6 +111,5 @@ claude mcp add --transport http open-revoke http://localhost:18410/mcp \
 
 - OAuth sign-in for MCP clients (dynamic client registration, consent page) instead of pasted tokens.
 - Token expiry dates.
-- A clearer refusal for anonymous tool calls: Claude Code shows the 401 as "session expired" and
-  reconnects, without the message about the token.
-- Task tools for onboarding and connecting apps (today: `?toolset=api`).
+- Task tools for CSV imports, logos, Slack agent and AI settings, panel users and invites
+  (today: `?toolset=api` or the panel).

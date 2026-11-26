@@ -4,8 +4,8 @@ Stateless JSON works through any proxy (the panel's Next.js rewrite, Caddy) and 
 sessions. ``McpEndpoint`` checks the API token, then the SDK's session manager runs the request;
 the tool handlers read the caller from ``current_caller``.
 
-Two toolsets: the task tools of ``app/mcp/agent/`` (default) and one tool per API operation
-(``?toolset=api``, also every non-admin caller: the task tools need an admin).
+Two toolsets: the task tools of ``app/mcp/agent/`` (default; admins get the company's tools,
+members their own access and approvals) and one tool per API operation (``?toolset=api``).
 """
 
 import json
@@ -36,11 +36,17 @@ if TYPE_CHECKING:
 
     from app.mcp.agent.base import AgentTool
 
-# JSON-RPC methods a caller without a token may send: connect and read the tool list. Anything
-# else (a tool call above all) gets 401.
-ANONYMOUS_METHODS = frozenset({"initialize", "ping", "tools/list"})
+# JSON-RPC methods a caller without a token may send. A tool call is let through only to be refused
+# as a tool error by ``_call_tool`` (it reaches no API): an HTTP 401 there makes clients drop the
+# session ("session expired" in Claude Code) and the user never reads why. Anything else gets 401.
+ANONYMOUS_METHODS = frozenset({"initialize", "ping", "tools/list", "tools/call"})
 MAX_ANONYMOUS_BODY = 64 * 1024
 UNAUTHORIZED = "Send a personal API token: Authorization: Bearer orv_... (Settings, API and MCP)."
+ANONYMOUS_CALL = (
+    "This Open Revoke MCP server needs a personal API token to run tools; listing them works without one. "
+    "Create a token in the panel (Settings, API and MCP) and add the header Authorization: Bearer orv_... "
+    "to this server in your MCP client, then reconnect."
+)
 
 
 class OpenRevokeMcp:
@@ -84,8 +90,8 @@ class OpenRevokeMcp:
     async def _call_tool(self, ctx: Any, params: types.CallToolRequestParams) -> types.CallToolResult:
         caller = _require_caller()
         arguments = dict(params.arguments or {})
-        if caller.anonymous:  # McpEndpoint answers 401 first; this is the second line
-            return _error(UNAUTHORIZED)
+        if caller.anonymous:  # before any lookup: an anonymous call never reaches the API
+            return _error(ANONYMOUS_CALL)
         if _uses_agent_tools(caller):
             tool = AGENT_TOOLS.get(params.name)
             if tool is None or not _agent_visible(tool, caller):
@@ -98,7 +104,7 @@ class OpenRevokeMcp:
 
 
 class McpEndpoint:
-    """ASGI app of ``/mcp``. No token: connect and list tools only, 401 for the rest.
+    """ASGI app of ``/mcp``. No token: connect, list tools, a tool call answered with an error; 401 for the rest.
 
     A wrong token is always 401: only a request without ``Authorization`` is anonymous.
     """
@@ -196,11 +202,14 @@ def _require_caller() -> Caller:
 
 
 def _uses_agent_tools(caller: Caller) -> bool:
-    return caller.toolset == Toolset.AGENT and caller.role == UserRole.ADMIN
+    return caller.toolset == Toolset.AGENT
 
 
 def _agent_visible(tool: AgentTool, caller: Caller) -> bool:
-    return caller.scope != ApiTokenScope.READ or tool.read_only
+    if caller.anonymous:  # the listing shows every tool, an admin's and a member's
+        return True
+    audience = "admin" if caller.role == UserRole.ADMIN else "user"
+    return tool.audience == audience and (caller.scope != ApiTokenScope.READ or tool.read_only)
 
 
 def _visible(spec: ToolSpec, caller: Caller) -> bool:

@@ -6,7 +6,7 @@ still applies, and returns a compact JSON-ready dict instead of a raw API page.
 """
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -14,6 +14,9 @@ if TYPE_CHECKING:
     from app.mcp.agent.api import AgentApi
 
     Handler = Callable[[AgentApi, dict[str, Any]], Awaitable[dict[str, Any]]]
+
+
+type Audience = Literal["admin", "user"]
 
 
 class ToolError(Exception):
@@ -29,6 +32,7 @@ class AgentTool:
     handler: Handler
     read_only: bool = True
     destructive: bool = False
+    audience: Audience = "admin"  # admin: the company's tools; user: a member's own access and approvals
 
 
 def schema(properties: dict[str, Any] | None = None, required: tuple[str, ...] = ()) -> dict[str, Any]:

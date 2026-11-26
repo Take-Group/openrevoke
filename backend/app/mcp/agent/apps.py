@@ -1,9 +1,9 @@
-"""Task tools about apps: the overview, the spend per app, who has access to one app, shadow IT."""
+"""Task tools about apps: the overview, the spend per app, who has access to one app, adding and pricing apps."""
 
 from typing import TYPE_CHECKING, Any
 
 from app.mcp.agent.api import PAGE_LIMIT
-from app.mcp.agent.base import APP_ARG, AgentTool, schema
+from app.mcp.agent.base import APP_ARG, AgentTool, ToolError, schema
 from app.mcp.agent.views import money, name, removal
 
 if TYPE_CHECKING:
@@ -70,22 +70,71 @@ async def get_app_access(api: AgentApi, args: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-async def list_discovered_apps(api: AgentApi, args: dict[str, Any]) -> dict[str, Any]:
-    page = await api.get("/discovery/apps", at_risk=True if args.get("at_risk_only") else None, limit=PAGE_LIMIT)
+async def add_app(api: AgentApi, args: dict[str, Any]) -> dict[str, Any]:
+    body: dict[str, Any] = {"pricing_model": args.get("pricing_model", "per_seat")}
+    if args.get("price") is not None:
+        body["price"] = _price(args)
+    hits = (await api.get("/catalog/search", q=args["name"], limit=5))["items"]
+    known = next((hit for hit in hits if hit["name"].lower() == args["name"].strip().lower()), None)
+    if known and known.get("already_added"):
+        raise ToolError(f"{known['name']} is already in Open Revoke. Use get_app_access or update_app.")
+    if known:
+        body["catalog_key"] = known["slug"]
+    else:
+        body["name"] = args["name"].strip()
+    for key in ("website", "category", "admin_url"):
+        if args.get(key):
+            body[key] = args[key]
+    app = await api.post("/apps", body)
     return {
-        "total": page["total"],
-        "apps": [
-            {
-                "name": item["name"],
-                "status": item["status"],
-                "tracked_as": item["app"]["name"] if item.get("app") else None,
-                "users": item["users"],
-                "users_who_left": item["users_at_risk"],
-                "last_seen_at": item.get("last_seen_at"),
-            }
-            for item in page["items"]
-        ],
+        "app": app["name"],
+        "id": app["id"],
+        "from_catalog": known is not None,
+        "connector_available": bool(known and known.get("connector_key")),
+        "next": "connect_app syncs its accounts (list_connectors for the settings); without a connector, "
+        "add_account keeps them by hand.",
     }
+
+
+async def update_app(api: AgentApi, args: dict[str, Any]) -> dict[str, Any]:
+    app = await api.app(args["app"])
+    body: dict[str, Any] = {
+        key: args[key] for key in ("pricing_model", "admin_url", "category", "notes", "request_policy") if key in args
+    }
+    if args.get("price") is not None:
+        body["price"] = _price(args)
+    if not body:
+        raise ToolError("Nothing to change: pass at least one field.")
+    updated = await api.patch(f"/apps/{app['id']}", body)
+    return {
+        "app": updated["name"],
+        "pricing": updated["pricing_model"],
+        "price": updated.get("price"),
+        "request_policy": updated["request_policy"],
+        "monthly_cost": money(updated.get("monthly_cost_converted") or updated.get("monthly_cost")),
+    }
+
+
+def _price(args: dict[str, Any]) -> dict[str, Any]:
+    if not args.get("currency"):
+        raise ToolError("A price needs its currency (ISO code, e.g. EUR).")
+    return {
+        "amount": str(args["price"]),
+        "currency": args["currency"].upper(),
+        "billing_period": args.get("billing_period", "monthly"),
+    }
+
+
+PRICE_ARGS = {
+    "pricing_model": {
+        "type": "string",
+        "enum": ["per_seat", "flat", "free"],
+        "description": "per_seat: price times active seats; flat: one price for the whole company",
+    },
+    "price": {"type": "string", "description": 'Decimal amount, e.g. "12.50"'},
+    "currency": {"type": "string", "description": "ISO code of the price, e.g. EUR or USD"},
+    "billing_period": {"type": "string", "enum": ["monthly", "yearly"], "default": "monthly"},
+}
 
 
 TOOLS = (
@@ -130,15 +179,48 @@ TOOLS = (
         handler=get_app_access,
     ),
     AgentTool(
-        name="list_discovered_apps",
-        title="Apps found in Google sign-ins",
+        name="add_app",
+        title="Add an app",
         description=(
-            "Third-party apps people signed in to with the company Google account (shadow IT), with the number "
-            "of users and of users who already left. Needs the Google Workspace discovery scan."
+            'Adds a SaaS app the company pays for. A name the catalog knows ("Notion", "Figma") brings its '
+            "website, logo and the connector, if there is one. Optional price."
         ),
         input_schema=schema(
-            {"at_risk_only": {"type": "boolean", "description": "Only apps still used by people who left"}}
+            {
+                "name": {"type": "string"},
+                **PRICE_ARGS,
+                "website": {"type": "string"},
+                "category": {"type": "string"},
+                "admin_url": {"type": "string", "description": "Where the app's admin panel is"},
+            },
+            required=("name",),
         ),
-        handler=list_discovered_apps,
+        handler=add_app,
+        read_only=False,
+    ),
+    AgentTool(
+        name="update_app",
+        title="Change an app's price or settings",
+        description=(
+            "Sets the price and pricing model, the admin panel link, category, notes, or who approves "
+            "access requests for the app (request_policy)."
+        ),
+        input_schema=schema(
+            {
+                "app": APP_ARG,
+                **PRICE_ARGS,
+                "admin_url": {"type": "string"},
+                "category": {"type": "string"},
+                "notes": {"type": "string"},
+                "request_policy": {
+                    "type": "string",
+                    "enum": ["off", "automatic", "manager", "manager_then_admin", "admin"],
+                    "description": "Access requests: off (not requestable), automatic, or who approves",
+                },
+            },
+            required=("app",),
+        ),
+        handler=update_app,
+        read_only=False,
     ),
 )

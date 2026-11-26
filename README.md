@@ -142,10 +142,12 @@ Then ask in plain words: "add Anna to Notion", "offboard Bob", "which apps does 
 assistant acts with your role, a read-only token cannot change anything, every change is in the
 audit log with the token's name, and removing accounts still waits for an approval.
 
-The tools are named after the tasks: `get_overview`, `get_person_access`,
+The tools are named after the tasks, about 40 of them: `get_overview`, `get_person_access`,
 `list_leavers_with_access`, `get_spend_by_app`, `plan_offboarding`, `start_offboarding`,
-`approve_offboarding` and more. Any client can list them without a token; calling one needs it.
-Every panel operation as its own tool: add `?toolset=api` to the address.
+`onboard_person`, `assign_access_profile`, `approve_actions`, `connect_app`,
+`list_unassigned_accounts`, `list_discovered_apps`, `get_audit_log` and more; members get
+`get_my_access` and `request_access`. Any client can list them without a token; calling one needs
+it. Every panel operation as its own tool: add `?toolset=api` to the address.
 
 ## Make it your own
 
