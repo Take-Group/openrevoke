@@ -51,7 +51,7 @@ env:
 jobs:
   checks:
     name: Checks
-    uses: ./.github/workflows/ci.yml
+    uses: ./.github/workflows/ci.yml # zizmor: ignore[self-repository] actionlint does not know $/ yet; a release cannot be tested before a tag
     permissions:
       contents: read
 
@@ -145,7 +145,7 @@ jobs:
   build-test:
     name: Build and test
     needs: [checks, prepare]
-    uses: ./.github/workflows/release-test.yml
+    uses: ./.github/workflows/release-test.yml # zizmor: ignore[self-repository] actionlint does not know $/ yet; a release cannot be tested before a tag
     permissions:
       contents: read
       # Pulls the images of the previous release for the update test.
