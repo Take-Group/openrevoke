@@ -78,7 +78,8 @@ multi-arch images, SBOM, signing, SLSA provenance) runs only on GitHub.
 - **Publishing** (`release.yml`): `build-test` packages the chart and installs it on kind with
   the images it built; `chart` pushes the same `.tgz` to `oci://ghcr.io/take-group/charts`, signs
   its digest with cosign and pushes `deploy/helm/artifacthub-repo.yml` with oras as tag
-  `artifacthub.io` (skipped while its `repositoryID` is the placeholder); `release` attaches
+  `artifacthub.io` (repository `open-revoke` of the Artifact Hub organization `open-revoke`;
+  skipped while `repositoryID` is the all-zero placeholder); `release` attaches
   `open-revoke-chart-X.Y.Z.tgz` and lists it in `SHA256SUMS`. `ci.yml`: `helm lint --strict`,
   `helm template` through kubeconform (defaults, ingress, external database).
 
