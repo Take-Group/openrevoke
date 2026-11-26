@@ -13,6 +13,8 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
 
 ## [Unreleased]
 
+## [0.1.0-rc.1] - 2026-11-26
+
 ### Security
 
 - Releases are immutable, carry SLSA Build Level 3 provenance for the images and every release
