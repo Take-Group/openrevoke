@@ -72,7 +72,8 @@ async def get_app_access(api: AgentApi, args: dict[str, Any]) -> dict[str, Any]:
 
 
 async def add_app(api: AgentApi, args: dict[str, Any]) -> dict[str, Any]:
-    body: dict[str, Any] = {"pricing_model": args.get("pricing_model", "per_seat")}
+    default_model = "free" if args.get("price") is None else "per_seat"  # a paid model needs a price
+    body: dict[str, Any] = {"pricing_model": args.get("pricing_model", default_model)}
     if args.get("price") is not None:
         body["price"] = _price(args)
     hits = (await api.get("/catalog/search", q=args["name"], limit=5))["items"]

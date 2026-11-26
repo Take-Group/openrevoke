@@ -66,8 +66,8 @@ async def add_account(api: AgentApi, args: dict[str, Any]) -> dict[str, Any]:
             body[key] = args[key]
     if args.get("person"):
         body["person_id"] = (await api.person(args["person"]))["id"]
-    if "email" not in body and "username" not in body and "person_id" not in body:
-        raise ToolError("Pass the account's email, username or person.")
+    if "email" not in body and "username" not in body:
+        raise ToolError("Pass the account's email or username (as the app shows it).")
     account = await api.post(f"/apps/{app['id']}/accounts", body)
     return {
         "app": app["name"],

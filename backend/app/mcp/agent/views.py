@@ -5,7 +5,8 @@ from typing import Any
 # How offboarding removes an account in an app, from the app's ``delete_mode``.
 REMOVAL = {
     "automatic": "automatic: Open Revoke removes it through the app's API, SCIM or the signed-in browser",
-    "writes_disabled": "manual task: the app is connected, but writes are off for this connection",
+    "writes_disabled": "blocked: writes are off for this connection; approve_actions refuses it until connect_app "
+    "turns writes on",
     "manual": "manual task: no connector can remove accounts in this app, an admin removes it by hand",
 }
 
@@ -63,6 +64,10 @@ def action_line(action: dict[str, Any]) -> dict[str, Any]:
         line["person"] = name(action["person"])
     if action.get("account"):
         line["account"] = action["account"].get("email") or action["account"].get("external_id")
+    payload = action.get("payload") or {}
+    for key in ("operation", "email", "role"):  # a manual task: what to do by hand, for which account
+        if payload.get(key) is not None:
+            line[key] = payload[key]
     if action.get("error"):
         line["error"] = action["error"]
     return line

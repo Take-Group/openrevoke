@@ -2,6 +2,7 @@
 
 from typing import TYPE_CHECKING, Any
 
+from app.mcp.agent.api import PAGE_LIMIT
 from app.mcp.agent.base import PERSON_ARG, AgentTool, schema
 from app.mcp.agent.views import account_line, action_line, name
 
@@ -9,23 +10,45 @@ if TYPE_CHECKING:
     from app.mcp.agent.api import AgentApi
 
 
+FINISHED = {"done", "failed", "cancelled"}
+
+
+def _removes(action: dict[str, Any]) -> bool:
+    operation = (action.get("payload") or {}).get("operation")
+    return action["kind"] == "delete_account" or (action["kind"] == "manual_task" and operation == "delete_account")
+
+
 async def plan_offboarding(api: AgentApi, args: dict[str, Any]) -> dict[str, Any]:
     person = await api.person(args["person"])
     apps = {app["id"]: app for app in await api.apps()}
-    removals, skipped = [], []
+    open_actions = (await api.get("/actions", person_id=person["id"], limit=PAGE_LIMIT))["items"]
+    busy = {
+        a["account"]["account_id"]
+        for a in open_actions
+        if a.get("account") and a["status"] not in FINISHED and _removes(a)
+    }
+    removals, skipped, in_progress = [], [], []
     for account in person["accounts"]:
         if account["status"] == "removed":
             continue
         line = account_line(account, apps.get(account["app_id"]))
-        (skipped if account["kind"] == "service" else removals).append(line)
+        if account["kind"] == "service":
+            skipped.append(line)
+        elif account["id"] in busy:
+            in_progress.append(line)
+        else:
+            removals.append(line)
     automatic = sum(1 for line in removals if line.get("removal", "").startswith("automatic"))
+    blocked = sum(1 for line in removals if line.get("removal", "").startswith("blocked"))
     return {
         "person": name(person),
         "email": person["primary_email"],
         "status": person["status"],
         "will_remove": removals,
         "skipped_service_accounts": skipped,
-        "summary": f"{automatic} account(s) removed automatically, {len(removals) - automatic} manual task(s).",
+        "skipped_removal_already_open": in_progress,
+        "summary": f"{automatic} removed automatically, {blocked} blocked until writes are on, "
+        f"{len(removals) - automatic - blocked} manual task(s).",
         "next": (
             "Nothing changed yet. start_offboarding marks the person as left and creates these actions; "
             "they still wait for approve_actions."

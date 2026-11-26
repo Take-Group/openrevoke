@@ -29,24 +29,31 @@ async def get_my_access(api: AgentApi, args: dict[str, Any]) -> dict[str, Any]:
 
 
 async def request_access(api: AgentApi, args: dict[str, Any]) -> dict[str, Any]:
-    me = await api.get("/me/access")
-    requestable = [{**item["app"], "id": item["app"]["app_id"]} for item in me["requestable_apps"]]
-    if not requestable:
-        raise ToolError("No app can be requested here; ask an admin.")
-    app = match_app(requestable, args["app"], hint="get_my_access")
-    body: dict[str, Any] = {"app_id": app["id"], "justification": args["justification"], "role": args.get("role")}
+    person_id, who, options = None, "you", None
     if args.get("for_person"):
         team = (await api.get("/me/team"))["reports"]
         wanted = args["for_person"].strip().lower()
-        member = next(
-            (m["person"] for m in team if wanted in (m["person"]["primary_email"].lower(), name(m["person"]).lower())),
-            None,
-        )
-        if member is None:
+        matches = [m for m in team if wanted in (m["person"]["primary_email"].lower(), name(m["person"]).lower())]
+        if not matches:
             raise ToolError("That person is not one of your reports.")
-        body["person_id"] = member["person_id"]
+        if len(matches) > 1:
+            raise ToolError("Several of your reports match that name; give the person's e-mail.")
+        person_id, who, options = (
+            matches[0]["person"]["person_id"],
+            name(matches[0]["person"]),
+            matches[0]["requestable_apps"],
+        )
+    if options is None:
+        options = (await api.get("/me/access"))["requestable_apps"]
+    requestable = [{**item["app"], "id": item["app"]["app_id"]} for item in options]
+    if not requestable:
+        raise ToolError(f"No app can be requested for {who}; ask an admin.")
+    app = match_app(requestable, args["app"], hint="get_my_access")
+    body: dict[str, Any] = {"app_id": app["id"], "justification": args["justification"], "role": args.get("role")}
+    if person_id:
+        body["person_id"] = person_id
     result = await api.post("/me/access-requests", body)
-    return {"app": result["app_name"], "outcome": result["outcome"], "note": result.get("note")}
+    return {"app": result["app_name"], "for": who, "outcome": result["outcome"], "note": result.get("note")}
 
 
 async def list_my_approvals(api: AgentApi, args: dict[str, Any]) -> dict[str, Any]:

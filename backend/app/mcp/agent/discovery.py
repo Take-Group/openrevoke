@@ -29,7 +29,7 @@ async def list_discovered_apps(api: AgentApi, args: dict[str, Any]) -> dict[str,
                 "status": item["status"],
                 "tracked_as": item["app"]["name"] if item.get("app") else None,
                 "users": item["users"],
-                "users_who_left": item["users_at_risk"],
+                "users_at_risk": item["users_at_risk"],  # left, suspended or deleted in the directory
                 "last_seen_at": item.get("last_seen_at"),
             }
             for item in page["items"]
@@ -60,7 +60,7 @@ async def get_discovered_app_users(api: AgentApi, args: dict[str, Any]) -> dict[
 
 async def track_discovered_app(api: AgentApi, args: dict[str, Any]) -> dict[str, Any]:
     item = await api.discovered_app(args["app"])
-    result = await api.post(f"/discovery/apps/{item['id']}/track")
+    result = await api.post(f"/discovery/apps/{item['id']}/track", {"create_accounts": True})
     return {
         "name": result["name"],
         "tracked_as": result["app"]["name"] if result.get("app") else None,
@@ -90,11 +90,14 @@ TOOLS = (
         title="Apps found in Google sign-ins",
         description=(
             "Third-party apps people signed in to with the company Google account (shadow IT), with the number "
-            "of users and of users who already left. Needs the Google Workspace discovery scan."
+            "of users and of users at risk (left, or suspended or deleted in Google). Needs the discovery scan."
         ),
         input_schema=schema(
             {
-                "at_risk_only": {"type": "boolean", "description": "Only apps still used by people who left"},
+                "at_risk_only": {
+                    "type": "boolean",
+                    "description": "Only apps with users at risk (left, suspended, deleted)",
+                },
                 "status": {"type": "string", "enum": ["new", "tracked", "ignored"]},
             }
         ),
