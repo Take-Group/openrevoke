@@ -27,7 +27,8 @@ from urllib.parse import parse_qs, unquote, urlparse, urlsplit
 CATALOG = Path(__file__).resolve().parent.parent / "app" / "catalog" / "apps.json"
 CLIENT_ID = re.compile(r"\d{6,}-[a-z0-9]{20,40}\.apps\.googleusercontent\.com")
 CONTINUE_TO = re.compile(r"(?:to continue to|continue to)\s+(.+)", re.I)
-GOOGLE_BUTTON = re.compile(r"(?:(?:sign ?in|log ?in|continue|sign ?up).{0,12}google)|(?:^google$)", re.I)
+GOOGLE_BUTTON = re.compile(r"(sign ?in|log ?in|continue|sign ?up).{0,12}google", re.I)
+GOOGLE_ONLY = re.compile(r"^google$", re.I)
 PARALLEL = 6
 PAGE_TIMEOUT = 20_000
 
@@ -80,7 +81,8 @@ async def _probe_url(context, url: str) -> dict:
             return result
         await page.wait_for_timeout(2500)
         if not seen:
-            buttons = page.locator("button, a, [role=button], div[role=link]").filter(has_text=GOOGLE_BUTTON)
+            clickable = page.locator("button, a, [role=button], div[role=link]")
+            buttons = clickable.filter(has_text=GOOGLE_BUTTON).or_(clickable.filter(has_text=GOOGLE_ONLY))
             if await buttons.count():
                 try:
                     await buttons.first.click(timeout=4000)
