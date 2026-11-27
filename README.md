@@ -7,11 +7,11 @@
   </a>
 </h1>
 
-<h3 align="center">Who has an account where, what it costs, and offboarding that removes it.</h3>
+<h3 align="center">Every app in your company, in one place.</h3>
 
 <p align="center">
-  Self-hosted SaaS access management. Offboarding removes a leaver's accounts through the app's
-  API, SCIM, or a logged-in browser session for apps without an API.
+  See who has which account and what it costs. Give new hires their accounts in one step, and take
+  every one back when they leave. Open source SaaS management on your own server.
 </p>
 
 <p align="center">
