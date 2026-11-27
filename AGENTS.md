@@ -37,7 +37,7 @@ Connectors are checked on the test connectors, not yet on real accounts.
 
 - `.agents/`: skills (explore, verify, diagnose, harness).
 - `.claude/`: `skills` symlink to `.agents/skills` for Claude Code.
-- `.github/`: CI (ruff, `alembic check`, panel lint/typecheck/build, Helm, ShellCheck), release on tag `v*` (`release.yml`: images, SBOM, cosign, SLSA L3 provenance, chart on GHCR; `release-test.yml`: Trivy, install, update and kind tests), CodeQL, zizmor, Scorecard, weekly Chromium check, Dependabot, templates. Actions pinned to SHA.
+- `.github/`: own AGENTS.md in `workflows/`. CI (ruff, `alembic check`, panel, Helm, ShellCheck), release on tag `v*` (images, SBOM, cosign, SLSA L3, chart; Trivy, install, update and kind tests), CodeQL, zizmor, Scorecard, Dependabot. Actions pinned to SHA.
 - `.dockerignore`, `.gitignore`: build context and git filters.
 - `.trivyignore`: vulnerabilities a release accepts, each with a reason.
 - `.env.example`: template of the git-ignored `.env`; `install.sh` fills it.
@@ -53,7 +53,7 @@ Connectors are checked on the test connectors, not yet on real accounts.
 - `compose.dev.yaml`: development stack, hot reload, fictional data, ports 18410-18415 on 127.0.0.1.
 - `backend/`: own AGENTS.md. Python 3.14, FastAPI, SQLAlchemy 2 with Alembic, Temporal, Redis.
 - `frontend/`: own AGENTS.md. Next.js 16 panel, React 19, Tailwind 4, Bun.
-- `deploy/`, no map: release bundle's `install.sh`, host command `open-revoke`, `lib/*.sh` (POSIX sh); `helm/open-revoke/` Helm chart (own AGENTS.md), `helm/artifacthub-repo.yml` (Artifact Hub metadata).
+- `deploy/`, no map: bundle `install.sh`, host command `open-revoke`, `lib/*.sh` (POSIX sh); `helm/openrevoke/` chart (own AGENTS.md), `helm/artifacthub-repo.yml`.
 - `scripts/`, no map: `release.sh` (changelog, tag), `build-release.sh` (images and bundle), `newest-version.sh` (SemVer order, also in `release.yml`), `browser-packages-key.sh` (cache key of the browser image's Debian packages, release workflows). Skill `skills/backend/releases.md`.
 - `docker/`, no map: `entrypoint.sh` (`python -m app.db migrate`, then supervisor), `supervisord.conf`, `caddy/Caddyfile`, `browser/` (own AGENTS.md).
 - `docs/`: own AGENTS.md. Click recipes, self-hosting, `openapi.json`, `connectors/`.

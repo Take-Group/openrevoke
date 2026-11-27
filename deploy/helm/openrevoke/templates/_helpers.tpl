@@ -1,14 +1,19 @@
 {{/* Names, labels and the values several templates share. */}}
 
+{{/* Base of resource names and selector labels: "open-revoke", not .Chart.Name. The chart was
+published as open-revoke until 0.2.0; a fixed base keeps the Deployments' immutable selectors and the
+PVC names of existing releases when they upgrade to the chart named openrevoke. */}}
+{{- define "open-revoke.baseName" -}}open-revoke{{- end }}
+
 {{- define "open-revoke.name" -}}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- default (include "open-revoke.baseName" .) .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{- define "open-revoke.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- $name := default .Chart.Name .Values.nameOverride }}
+{{- $name := default (include "open-revoke.baseName" .) .Values.nameOverride }}
 {{- if contains $name .Release.Name }}
 {{- .Release.Name | trunc 63 | trimSuffix "-" }}
 {{- else }}

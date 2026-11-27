@@ -42,9 +42,9 @@ concurrency:
 env:
   IMAGE: ghcr.io/take-group/openrevoke
   BROWSER_IMAGE: ghcr.io/take-group/openrevoke-browser
-  # Helm chart (deploy/helm/open-revoke, docs/kubernetes.md): oci://ghcr.io/take-group/charts/open-revoke
+  # Helm chart (deploy/helm/openrevoke, docs/kubernetes.md): oci://ghcr.io/take-group/charts/openrevoke
   CHART_REGISTRY: ghcr.io/take-group/charts
-  CHART: ghcr.io/take-group/charts/open-revoke
+  CHART: ghcr.io/take-group/charts/openrevoke
 
 jobs:
   checks:
@@ -217,7 +217,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           echo "$GH_TOKEN" | helm registry login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
-          helm push "$RUNNER_TEMP/chart/open-revoke-$VERSION.tgz" "oci://$CHART_REGISTRY" 2>&1 | tee "$RUNNER_TEMP/helm-push.log"
+          helm push "$RUNNER_TEMP/chart/openrevoke-$VERSION.tgz" "oci://$CHART_REGISTRY" 2>&1 | tee "$RUNNER_TEMP/helm-push.log"
           digest=$(sed -n 's/^Digest: *//p' "$RUNNER_TEMP/helm-push.log" | tail -n 1)
           echo "$digest" | grep -Eq '^sha256:[0-9a-f]{64}$' || { echo "::error::helm push printed no digest"; exit 1; }
           cosign sign --yes "$CHART@$digest"

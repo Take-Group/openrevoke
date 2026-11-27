@@ -5,9 +5,9 @@ On one server, the installer and the `open-revoke` command (README, "Get started
 you: backups before updates, automatic rollback, `doctor`. Use the chart when your company runs
 its services on Kubernetes.
 
-The chart is published with every release as `oci://ghcr.io/take-group/charts/open-revoke`
+The chart is published with every release as `oci://ghcr.io/take-group/charts/openrevoke`
 (Helm 3.8 or newer), signed with cosign, and attached to the GitHub Release as a `.tgz`. Its
-version is the version of Open Revoke. Source: `deploy/helm/open-revoke/`.
+version is the version of Open Revoke. Source: `deploy/helm/openrevoke/`.
 
 Open Revoke holds signed-in admin sessions of your SaaS tools (the browser's PVC) and connector
 secrets (the database, encrypted with `OPEN_REVOKE_SECRET_KEY`). Treat the namespace like a
@@ -37,7 +37,7 @@ Requirements: Kubernetes 1.27 or newer, a default StorageClass (or `storageClass
 ## Install
 
 ```bash
-helm install open-revoke oci://ghcr.io/take-group/charts/open-revoke \
+helm install open-revoke oci://ghcr.io/take-group/charts/openrevoke \
   --version X.Y.Z --namespace open-revoke --create-namespace
 kubectl -n open-revoke rollout status deploy/open-revoke-app --timeout 10m
 ```
@@ -69,7 +69,7 @@ needs an invite.
 ## Values
 
 Keep your values in a file and pass it to every `helm install` and `helm upgrade`
-(`-f values.yaml`). All of them, with comments: `deploy/helm/open-revoke/values.yaml`;
+(`-f values.yaml`). All of them, with comments: `deploy/helm/openrevoke/values.yaml`;
 `values.schema.json` refuses unknown keys and wrong types.
 
 ```yaml
@@ -163,10 +163,14 @@ Read the release notes first: a `### Breaking` section lists a step to run befor
 Then back up the database and run:
 
 ```bash
-helm upgrade open-revoke oci://ghcr.io/take-group/charts/open-revoke \
+helm upgrade open-revoke oci://ghcr.io/take-group/charts/openrevoke \
   --version X.Y.Z --namespace open-revoke -f values.yaml
 kubectl -n open-revoke rollout status deploy/open-revoke-app --timeout 10m
 ```
+
+Until 0.2.0 the chart was `oci://ghcr.io/take-group/charts/open-revoke`. Upgrade a release
+installed from there with the command above: the chart keeps the resource names, labels and
+volumes of the old one.
 
 Temporal updates its schema when its pod starts; the app migrates the database when it starts.
 The old app pod stops before the new one starts (`Recreate`), so a few minutes without the panel

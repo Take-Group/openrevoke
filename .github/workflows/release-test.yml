@@ -313,7 +313,7 @@ jobs:
         env:
           PRERELEASE: ${{ inputs.prerelease }}
         run: |
-          chart=deploy/helm/open-revoke
+          chart=deploy/helm/openrevoke
           sed -i -E "s#($IMAGE(-browser)?):[^[:space:]]+#\1:$VERSION#" "$chart/Chart.yaml"
           yq -i '.annotations."artifacthub.io/prerelease" = strenv(PRERELEASE)' "$chart/Chart.yaml"
           grep -F "$IMAGE:$VERSION" "$chart/Chart.yaml" && grep -F "$BROWSER_IMAGE:$VERSION" "$chart/Chart.yaml"
@@ -323,7 +323,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: helm-chart
-          path: ${{ runner.temp }}/chart/open-revoke-${{ inputs.version }}.tgz
+          path: ${{ runner.temp }}/chart/openrevoke-${{ inputs.version }}.tgz
           if-no-files-found: error
 
       - uses: helm/kind-action@ea822c7bf1874f08e5a491df991c228edffc3376 # v1.15.2
@@ -336,7 +336,7 @@ jobs:
       - name: Test the Helm chart on kind
         run: |
           kind load docker-image --name or-release "$IMAGE:$VERSION" "$BROWSER_IMAGE:$VERSION"
-          chart="$RUNNER_TEMP/chart/open-revoke-$VERSION.tgz"
+          chart="$RUNNER_TEMP/chart/openrevoke-$VERSION.tgz"
           helm install or "$chart" --namespace or --create-namespace \
             --set app.telemetry=false --set app.updateCheck=false --wait --timeout 15m
           kubectl -n or port-forward svc/or-open-revoke-app 18430:3000 18431:8000 > "$RUNNER_TEMP/port-forward.log" 2>&1 &

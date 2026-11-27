@@ -8,7 +8,7 @@ import { Notice } from "@/components/common/notice";
 import { useSystemVersion } from "@/hooks/use-system";
 
 const UPDATE_COMMAND = "open-revoke update";
-const HELM_CHART = "oci://ghcr.io/take-group/charts/open-revoke";
+const HELM_CHART = "oci://ghcr.io/take-group/charts/openrevoke";
 
 /**
  * Admins only: a newer stable release exists (the worker asks GitHub hourly). The update runs on

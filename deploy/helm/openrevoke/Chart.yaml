@@ -3,7 +3,7 @@
 # `helm package --version X.Y.Z --app-version X.Y.Z` and writes the image tags of the
 # artifacthub.io/images annotation, so the numbers below only matter for a chart used from git.
 apiVersion: v2
-name: open-revoke
+name: openrevoke
 description: >-
   Self-hosted panel for a company's SaaS tools: who has an account where, what each tool costs,
   and offboarding that removes a leaver's accounts, also through a browser in apps without an API.

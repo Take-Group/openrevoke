@@ -59,7 +59,7 @@ multi-arch images, SBOM, signing, SLSA provenance) runs only on GitHub.
 
 ## Helm chart
 
-- **Where.** `deploy/helm/open-revoke/` (guide for admins: `docs/kubernetes.md`). Same images,
+- **Where.** `deploy/helm/openrevoke/` (guide for admins: `docs/kubernetes.md`). Same images,
   versions and env as `compose.yaml`: `app` Deployment (1 replica, `Recreate`), `browser`
   StatefulSet (PVC `profile`, `/dev/shm` in memory), PostgreSQL StatefulSet or
   `externalDatabase`, Redis, Temporal. One `values.yaml` key per `app` env var of compose.yaml;
@@ -94,7 +94,7 @@ Try it locally (kind, Helm and kubeconform from Homebrew):
 scripts/build-release.sh 0.0.0-helm --out /tmp/or-releases
 kind create cluster --name or-helm
 kind load docker-image --name or-helm ghcr.io/take-group/openrevoke:0.0.0-helm ghcr.io/take-group/openrevoke-browser:0.0.0-helm
-helm install or deploy/helm/open-revoke -n or --create-namespace --set app.image.tag=0.0.0-helm \
+helm install or deploy/helm/openrevoke -n or --create-namespace --set app.image.tag=0.0.0-helm \
   --set browser.image.tag=0.0.0-helm --set app.telemetry=false --wait --timeout 15m
 kubectl -n or port-forward svc/or-open-revoke-app 18410:3000
 kind delete cluster --name or-helm
@@ -109,7 +109,7 @@ and `templates/app.yaml`; a new file mounted from `backend/temporal/` gets copie
 - `CHANGELOG.md`, `scripts/release.sh`, `scripts/build-release.sh`
 - `deploy/install.sh`, `deploy/open-revoke`, `deploy/lib/{common,backup,update}.sh`
 - `compose.yaml` (images, official PostgreSQL and Redis), `compose.build.yaml`, `Dockerfile`
-- `deploy/helm/open-revoke/` (chart), `deploy/helm/artifacthub-repo.yml`, `docs/kubernetes.md`
+- `deploy/helm/openrevoke/` (chart), `deploy/helm/artifacthub-repo.yml`, `docs/kubernetes.md`
 - `backend/app/ops.py`, `backend/app/services/{update_check,system_info,maintenance}.py`,
   `backend/app/services/auth/setup_link.py`, `backend/app/api/system.py`,
   `backend/app/temporal/update_check_{workflow,activities,schedule}.py`

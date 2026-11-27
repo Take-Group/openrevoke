@@ -1,10 +1,10 @@
-# Artifact Hub metadata of the Helm chart oci://ghcr.io/take-group/charts/open-revoke.
-# release.yml pushes this file with oras as ghcr.io/take-group/charts/open-revoke:artifacthub.io
+# Artifact Hub metadata of the Helm chart oci://ghcr.io/take-group/charts/openrevoke.
+# release.yml pushes this file with oras as ghcr.io/take-group/charts/openrevoke:artifacthub.io
 # (https://artifacthub.io/docs/topics/repositories/helm-charts/), and skips the push while
 # repositoryID is the all-zero placeholder.
 #
 # repositoryID: a maintainer registers the repository in Artifact Hub (Control Panel, Add
-# repository, kind "Helm charts", URL oci://ghcr.io/take-group/charts/open-revoke) and copies the
+# repository, kind "Helm charts", URL oci://ghcr.io/take-group/charts/openrevoke) and copies the
 # ID Artifact Hub shows into this field. Artifact Hub then marks the publisher as verified.
 # Registered under the Artifact Hub organization open-revoke, repository open-revoke.
 repositoryID: 63c4dfa6-02d7-4263-bbbd-50a0894bce95
