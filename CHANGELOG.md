@@ -13,6 +13,14 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
 
 ## [Unreleased]
 
+### Breaking
+
+- The Helm chart moved to `oci://ghcr.io/take-group/charts/openrevoke` (it was
+  `charts/open-revoke`), the same name as the images. Upgrade an existing release from the new
+  address: `helm upgrade open-revoke oci://ghcr.io/take-group/charts/openrevoke --version X.Y.Z
+  -f values.yaml`. Resource names, labels and volumes stay the same. The old address gets no new
+  versions.
+
 ## [0.2.0] - 2026-11-27
 
 ### Breaking

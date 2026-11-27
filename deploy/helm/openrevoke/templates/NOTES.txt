@@ -25,6 +25,6 @@ The first start migrates the database and sets up Temporal: give it a few minute
 
   kubectl -n {{ .Release.Namespace }} get secret {{ include "open-revoke.secretName" . }} -o yaml
 
-Updates: helm upgrade {{ .Release.Name }} oci://ghcr.io/take-group/charts/open-revoke --version X.Y.Z
+Updates: helm upgrade {{ .Release.Name }} oci://ghcr.io/take-group/charts/openrevoke --version X.Y.Z
 Back up the database first; there is no automatic rollback. Guide:
 https://github.com/Take-Group/openrevoke/blob/main/docs/kubernetes.md

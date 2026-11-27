@@ -1,4 +1,4 @@
-# open-revoke/deploy/helm/open-revoke/
+# open-revoke/deploy/helm/openrevoke/
 
 Helm chart of the self-hosted product: the same images and services as `compose.yaml`, guide `docs/kubernetes.md`, release in skill `skills/backend/releases.md`. CI runs `helm lint --strict` and `helm template | kubeconform`; the release workflow packages it with the product version and installs and upgrades it on kind.
 

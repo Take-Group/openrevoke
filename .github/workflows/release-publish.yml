@@ -337,7 +337,7 @@ jobs:
       - name: Add the Helm chart to the release files
         working-directory: ${{ runner.temp }}/bundle
         run: |
-          cp "$RUNNER_TEMP/chart/open-revoke-$VERSION.tgz" "open-revoke-chart-$VERSION.tgz"
+          cp "$RUNNER_TEMP/chart/openrevoke-$VERSION.tgz" "open-revoke-chart-$VERSION.tgz"
           sha256sum "open-revoke-chart-$VERSION.tgz" >> SHA256SUMS
           sha256sum --check SHA256SUMS
 

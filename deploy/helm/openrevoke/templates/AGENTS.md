@@ -1,4 +1,4 @@
-# open-revoke/deploy/helm/open-revoke/templates/
+# open-revoke/deploy/helm/openrevoke/templates/
 
 Each manifest starts with a comment naming the `compose.yaml` service it mirrors and why it differs. Resource names come from `open-revoke.component` (`<fullname>-<component>`), labels from `open-revoke.componentLabels`; every pod uses `open-revoke.podDefaults` and `open-revoke.scheduling`.
 
