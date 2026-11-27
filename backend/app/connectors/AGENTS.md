@@ -8,7 +8,8 @@ Support by connector (L = list_accounts, C = create, D = delete, P = list_people
 google_workspace (API, service account or OAuth): L C D(suspends) P S. fake (API): L C D P S. github (API token), scim (SCIM token): L C D. slack (browser session): L C D B. claude, chatgpt, browser_fake (browser session, `fetch()` in a panel tab): L C D.
 
 - `__init__.py`: empty.
-- `base.py`: `Connector`, `ConnectorContext` (`config`, `secrets`, `http`, `browser`), `Capability`, `AuthKind`, `RemoteAccount`, `RemotePerson`, `BillingInfo` (`read_billing`), `CreateAccountRequest`, `CreatedAccount`, `CheckResult`, errors `ConnectorError`, `NeedsLogin`, `IncompleteListError`, `SecretField` (secret config field the API never returns), `secret_field_names`.
+- `base.py`: `Connector`, `ConnectorContext` (`config`, `secrets`, `http`, `browser`), `Capability`, `AuthKind`, `RemoteAccount`, `RemotePerson`, `BillingInfo` (`read_billing`), `CreateAccountRequest`, `CreatedAccount`, `CheckResult`, `SecretField` (secret config field the API never returns), `secret_field_names`.
+- `errors.py`: `ConnectorError`, `NeedsLogin`, `IncompleteListError` (own module, so `browser_api.py` and `recipes/` need not import `base.py`).
 - `registry.py`: `all_connectors()`, `get_connector(key)`, `UnknownConnectorError`; `fake` and `browser_fake` only when `fake_connector_enabled()` (DEBUG or `OPEN_REVOKE_ENABLE_FAKE_CONNECTOR`).
 - `http.py`: `build_http_client` (timeout, user agent, no redirects), `raise_for_app_error`, `json_body`, `check_page_limit` (`MAX_PAGES`); used by API connectors.
 - `browser_api.py`: `BrowserSession` protocol (`open`, `fetch`, `run_recipe`, `captured_header`, `cookies`, `local_storage`, `evaluate`), `BrowserResponse`, `BrowserUnavailableError`, `raise_for_browser_error`, `browser_json`; real implementation is `app/browser/session.py`.

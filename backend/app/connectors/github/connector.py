@@ -10,12 +10,12 @@ from app.connectors.base import (
     CheckResult,
     Connector,
     ConnectorContext,
-    ConnectorError,
     CreateAccountRequest,
     CreatedAccount,
     RemoteAccount,
     SecretField,
 )
+from app.connectors.errors import ConnectorError
 from app.connectors.github import mapping
 from app.connectors.http import check_page_limit, json_body, raise_for_app_error
 from app.models.enums import Integration

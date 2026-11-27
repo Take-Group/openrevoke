@@ -10,7 +10,8 @@ calls the connector and stores the result.
 
 | File | What it does |
 |---|---|
-| `backend/app/connectors/base.py` | `Connector` (ABC), `Capability`, `AuthKind`, `RemoteAccount`, `RemotePerson`, `CreateAccountRequest`, `CreatedAccount`, `CheckResult`, `ConnectorContext`, `SecretField`, exceptions `ConnectorError`, `NeedsLogin`, `IncompleteListError` |
+| `backend/app/connectors/base.py` | `Connector` (ABC), `Capability`, `AuthKind`, `RemoteAccount`, `RemotePerson`, `CreateAccountRequest`, `CreatedAccount`, `CheckResult`, `ConnectorContext`, `SecretField` |
+| `backend/app/connectors/errors.py` | exceptions `ConnectorError`, `NeedsLogin`, `IncompleteListError` |
 | `backend/app/connectors/registry.py` | list of connectors, `get_connector`, `all_connectors`; `fake` only with `DEBUG` or `OPEN_REVOKE_ENABLE_FAKE_CONNECTOR=true` |
 | `backend/app/connectors/http.py` | `build_http_client` (timeout, log without query and headers), `raise_for_app_error` (401 is `NeedsLogin`), `check_page_limit` |
 | `backend/app/connectors/<key>/connector.py` | connector class and `config_schema` model |

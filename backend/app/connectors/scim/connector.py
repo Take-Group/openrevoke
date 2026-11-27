@@ -12,10 +12,10 @@ from app.connectors.base import (
     ConnectorContext,
     CreateAccountRequest,
     CreatedAccount,
-    IncompleteListError,
     RemoteAccount,
     SecretField,
 )
+from app.connectors.errors import IncompleteListError
 from app.connectors.http import check_page_limit, json_body, raise_for_app_error
 from app.connectors.scim import mapping
 from app.models.enums import Integration

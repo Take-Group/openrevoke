@@ -26,8 +26,9 @@ from redis.exceptions import LockError
 from sqlalchemy import select
 
 from app.config import settings
-from app.connectors.base import Capability, ConnectorError
+from app.connectors.base import Capability
 from app.connectors.discovery import AppDiscovery
+from app.connectors.errors import ConnectorError
 from app.connectors.http import build_http_client
 from app.database import async_session
 from app.models import Connection, ScanRun

@@ -10,8 +10,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-from app.connectors.base import ConnectorError
 from app.connectors.discovery import AppGrant
+from app.connectors.errors import ConnectorError
 
 # Google's own clients (devices, Google apps). They are not third-party SaaS. Not a complete list:
 # the admin hides anything else with "Ignore" in the panel.

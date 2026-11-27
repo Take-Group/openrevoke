@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
-from app.connectors.base import ConnectorError, NeedsLogin
+from app.connectors.errors import ConnectorError, NeedsLogin
 from app.connectors.google_workspace import oauth
 from app.connectors.http import json_body
 

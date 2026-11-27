@@ -67,6 +67,6 @@ async def ensure_rates(client: Client) -> None:
             )
         logger.info("exchange_rates_schedule_ready", started_now=not fresh)
     except WorkflowAlreadyStartedError:
-        pass
+        pass  # today's refresh is already running: nothing to start
     except Exception as exc:  # noqa: BLE001 - rates are retried by the schedule; never stop the worker
         logger.warning("exchange_rates_schedule_failed", error=str(exc))

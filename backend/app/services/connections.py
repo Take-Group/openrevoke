@@ -7,7 +7,8 @@ import httpx
 from pydantic import ValidationError
 from sqlalchemy import exists, select
 
-from app.connectors.base import Capability, Connector, ConnectorError, NeedsLogin
+from app.connectors.base import Capability, Connector
+from app.connectors.errors import ConnectorError, NeedsLogin
 from app.connectors.http import build_http_client
 from app.connectors.registry import UnknownConnectorError, all_connectors, get_connector
 from app.models import Action, App, Connection, SyncRun

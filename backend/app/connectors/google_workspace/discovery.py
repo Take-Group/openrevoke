@@ -16,8 +16,8 @@ import asyncio
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
-from app.connectors.base import ConnectorError, NeedsLogin
 from app.connectors.discovery import DirectoryUser
+from app.connectors.errors import ConnectorError, NeedsLogin
 from app.connectors.google_workspace import discovery_mapping, mapping
 from app.connectors.google_workspace.auth import access_token
 from app.connectors.google_workspace.scopes import SCOPE_AUDIT, SCOPE_TOKENS

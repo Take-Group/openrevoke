@@ -20,11 +20,11 @@ from app.connectors.base import (
     ConnectorContext,
     CreateAccountRequest,
     CreatedAccount,
-    IncompleteListError,
     RemoteAccount,
 )
 from app.connectors.browser_api import BrowserResponse, browser_json, raise_for_browser_error
 from app.connectors.chatgpt import mapping
+from app.connectors.errors import IncompleteListError
 from app.connectors.http import check_page_limit
 from app.models.enums import Integration
 

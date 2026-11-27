@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 import httpx
 import structlog
 
-from app.connectors.base import ConnectorError, IncompleteListError, NeedsLogin
+from app.connectors.errors import ConnectorError, IncompleteListError, NeedsLogin
 
 if TYPE_CHECKING:
     from collections.abc import Iterable

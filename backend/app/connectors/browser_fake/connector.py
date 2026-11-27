@@ -21,13 +21,13 @@ from app.connectors.base import (
     CheckResult,
     Connector,
     ConnectorContext,
-    ConnectorError,
     CreateAccountRequest,
     CreatedAccount,
     RemoteAccount,
 )
 from app.connectors.browser_api import browser_json, raise_for_browser_error
 from app.connectors.browser_fake import mapping
+from app.connectors.errors import ConnectorError
 from app.connectors.http import check_page_limit
 from app.models.enums import Integration
 from app.recipes.model import config_params, load_recipe

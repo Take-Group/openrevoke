@@ -32,7 +32,8 @@ from sqlalchemy import delete, select
 
 from app.browser.session import open_browser_session
 from app.config import settings
-from app.connectors.base import CreateAccountRequest, NeedsLogin, RemoteAccount
+from app.connectors.base import CreateAccountRequest, RemoteAccount
+from app.connectors.errors import NeedsLogin
 from app.connectors.http import build_http_client
 from app.database import async_session
 from app.models import Account, Action, ActionScreenshot, App, Connection, Person

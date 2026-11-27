@@ -22,7 +22,8 @@ from typing import TYPE_CHECKING
 import httpx
 import structlog
 
-from app.connectors.base import Capability, ConnectorError, NeedsLogin
+from app.connectors.base import Capability
+from app.connectors.errors import ConnectorError, NeedsLogin
 from app.connectors.http import build_http_client
 from app.database import async_session
 from app.models import Connection, SyncRun

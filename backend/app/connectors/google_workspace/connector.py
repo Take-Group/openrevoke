@@ -11,7 +11,6 @@ from app.connectors.base import (
     CheckResult,
     Connector,
     ConnectorContext,
-    ConnectorError,
     CreateAccountRequest,
     CreatedAccount,
     RemoteAccount,
@@ -19,6 +18,7 @@ from app.connectors.base import (
     SecretField,
 )
 from app.connectors.discovery import AppDiscovery, DiscoveryResult
+from app.connectors.errors import ConnectorError
 from app.connectors.google_workspace import discovery, discovery_mapping, mapping
 from app.connectors.google_workspace.auth import access_token
 from app.connectors.google_workspace.scopes import SCOPE_AUDIT, SCOPE_READ, SCOPE_TOKENS, SCOPE_WRITE

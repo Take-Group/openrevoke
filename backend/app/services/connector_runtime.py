@@ -8,7 +8,8 @@ import httpx
 from pydantic import BaseModel, ValidationError
 
 from app.browser.session import open_browser_session
-from app.connectors.base import AuthKind, Connector, ConnectorContext, ConnectorError
+from app.connectors.base import AuthKind, Connector, ConnectorContext
+from app.connectors.errors import ConnectorError
 from app.connectors.http import build_http_client
 from app.connectors.registry import UnknownConnectorError, get_connector
 from app.services.secret_box import decrypt_secrets

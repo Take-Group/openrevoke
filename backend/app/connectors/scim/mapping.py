@@ -3,7 +3,8 @@
 from dataclasses import dataclass
 from typing import Any
 
-from app.connectors.base import ConnectorError, RemoteAccount
+from app.connectors.base import RemoteAccount
+from app.connectors.errors import ConnectorError
 
 USER_SCHEMA = "urn:ietf:params:scim:schemas:core:2.0:User"
 PATCH_SCHEMA = "urn:ietf:params:scim:api:messages:2.0:PatchOp"

@@ -2,7 +2,8 @@
 
 from typing import Any
 
-from app.connectors.base import ConnectorError, RemoteAccount
+from app.connectors.base import RemoteAccount
+from app.connectors.errors import ConnectorError
 
 INVITATION_PREFIX = "invitation:"
 INVITATION_ROLES = {"direct_member": "member", "admin": "admin"}

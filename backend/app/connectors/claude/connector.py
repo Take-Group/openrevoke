@@ -16,13 +16,13 @@ from app.connectors.base import (
     CheckResult,
     Connector,
     ConnectorContext,
-    ConnectorError,
     CreateAccountRequest,
     CreatedAccount,
     RemoteAccount,
 )
 from app.connectors.browser_api import BrowserResponse, browser_json, raise_for_browser_error
 from app.connectors.claude import mapping
+from app.connectors.errors import ConnectorError
 from app.models.enums import Integration
 
 NAME = mapping.NAME

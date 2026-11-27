@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING
 import structlog
 from playwright.async_api import Error as PlaywrightError
 
-from app.connectors.base import NeedsLogin
+from app.connectors.errors import NeedsLogin
 from app.recipes.model import Locator, RecipeError, RecipeStepError, Step, render_value
 from app.recipes.repair import Alternative, ProbeResult, RepairRequest
 

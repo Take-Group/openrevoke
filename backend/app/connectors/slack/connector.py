@@ -24,13 +24,12 @@ from app.connectors.base import (
     CheckResult,
     Connector,
     ConnectorContext,
-    ConnectorError,
     CreateAccountRequest,
     CreatedAccount,
-    NeedsLogin,
     RemoteAccount,
 )
 from app.connectors.browser_api import BrowserResponse, browser_json, raise_for_browser_error
+from app.connectors.errors import ConnectorError, NeedsLogin
 from app.connectors.http import check_page_limit
 from app.connectors.slack import mapping
 from app.models.enums import Integration

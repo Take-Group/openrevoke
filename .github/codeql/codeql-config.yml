@@ -1,0 +1,14 @@
+# CodeQL config for codeql.yml: the security-and-quality suite minus checks that only flag
+# idioms of this code base. Each exclusion says why.
+name: Open Revoke CodeQL config
+
+paths-ignore:
+  # Alembic revisions: `revision`, `down_revision`, ... are read by Alembic, not by our code
+  # (py/unused-global-variable on every file). Generated and never imported by the app.
+  - backend/migrations/versions
+
+query-filters:
+  # Flags the `...` body of every Protocol and abstract method. Real useless expressions are
+  # caught by ruff (B018, `select` in backend/pyproject.toml), which knows that idiom.
+  - exclude:
+      id: py/ineffectual-statement
