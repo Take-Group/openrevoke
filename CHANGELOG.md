@@ -13,6 +13,8 @@ Every change people notice adds one line under `[Unreleased]` in the same commit
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-27
+
 ### Breaking
 
 - The Helm chart moved to `oci://ghcr.io/take-group/charts/openrevoke` (it was
