@@ -215,7 +215,7 @@ Coding agents start with [AGENTS.md](AGENTS.md).
 ## License
 
 [MIT](LICENSE): use, change and redistribute it, also commercially. The only exception is code in an
-`ee/` directory, under the [Open Revoke Enterprise License](ee/LICENSE); today no `ee/` directory
+`ee/` directory, under the [Open Revoke Enterprise License](ee/LICENSE) ([NOTICE](NOTICE)); today no `ee/` directory
 holds code. The license does not cover the "Open Revoke" name and logo
 ([trademark terms](https://openrevoke.com/terms)) or the third-party app names and logos in the
 catalog ([NOTICE](NOTICE)).

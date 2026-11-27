@@ -1,17 +1,6 @@
-Copyright (c) 2026-present Take Group sp. z o.o.
-
-Portions of this software are licensed as follows:
-
-- All content that resides under any "ee/" directory of this repository, if
-  such directories exist, is licensed under the Open Revoke Enterprise
-  License defined in "ee/LICENSE".
-- All third-party components incorporated into the Open Revoke software are
-  licensed under the original license provided by the owner of the
-  applicable component.
-- Content outside of the above-mentioned directories or restrictions is
-  available under the "MIT" license as defined below.
-
 MIT License
+
+Copyright (c) 2026-present Take Group sp. z o.o.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-The MIT license covers the code. It does not grant rights to the "Open Revoke"
-name or logo, which belong to Take Group sp. z o.o. See the trademark section
-of the terms at https://openrevoke.com/terms.

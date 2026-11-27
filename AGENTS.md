@@ -43,8 +43,8 @@ Connectors are checked on the test connectors, not yet on real accounts.
 - `.env.example`: template of the git-ignored `.env`; `install.sh` fills it.
 - `CHANGELOG.md`: release notes; a noticeable change adds a line under `[Unreleased]`.
 - `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`: MIT, no CLA; Contributor Covenant; private vulnerability reports.
-- `LICENSE`: MIT outside `ee/`; `ee/LICENSE` (commercial, no code yet) for paid features.
-- `NOTICE`: copyright; catalog app names and logos are their owners' trademarks.
+- `LICENSE`: plain MIT text only, so GitHub detects MIT. Exceptions (`ee/`, third-party code) go to `NOTICE`; `ee/LICENSE` (commercial, no code yet) for paid features.
+- `NOTICE`: copyright, the `ee/` exception to MIT, the "Open Revoke" trademark, catalog app names and logos as their owners' trademarks, vendored code.
 - `README.md`: public overview and get started; details in `docs/`.
 - `TELEMETRY.md`: what telemetry sends, how to turn it off.
 - `Dockerfile`: targets `app` (API, worker and panel under supervisor), `backend-dev` (dev stack), `browser`.
