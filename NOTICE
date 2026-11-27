@@ -1,6 +1,23 @@
 Open Revoke
 Copyright (c) 2026-present Take Group sp. z o.o.
 
+License
+
+Everything in this repository is licensed under the MIT license in LICENSE,
+with these exceptions:
+
+- All content under any "ee/" directory of this repository, if such
+  directories exist, is licensed under the Open Revoke Enterprise License in
+  "ee/LICENSE", not under the MIT license.
+- Third-party components incorporated into Open Revoke are licensed under the
+  original license of their owners (see "Vendored code" below).
+
+Trademarks
+
+The MIT license covers the code. It does not grant rights to the "Open Revoke"
+name or logo, which belong to Take Group sp. z o.o. See the trademark section
+of the terms at https://openrevoke.com/terms.
+
 Third-party names and logos
 
 The app catalog (backend/app/catalog/apps.json) and the images in
