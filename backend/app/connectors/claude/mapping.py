@@ -9,7 +9,8 @@ error instead of a partial list.
 
 from typing import Any
 
-from app.connectors.base import ConnectorError, IncompleteListError, RemoteAccount
+from app.connectors.base import RemoteAccount
+from app.connectors.errors import ConnectorError, IncompleteListError
 
 NAME = "Claude"
 INVITE_PREFIX = "invite:"

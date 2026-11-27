@@ -7,7 +7,8 @@
 from datetime import datetime
 from typing import Any
 
-from app.connectors.base import ConnectorError, RemoteAccount, RemotePerson, RemoteStatus
+from app.connectors.base import RemoteAccount, RemotePerson, RemoteStatus
+from app.connectors.errors import ConnectorError
 
 # Google's "Employee ID" field in the Admin console is an externalId of type "organization".
 EMPLOYEE_ID_TYPE = "organization"

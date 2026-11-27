@@ -18,8 +18,8 @@ from playwright.async_api import Error as PlaywrightError
 
 from app.browser.provider import TabInfo, get_browser_provider
 from app.browser.recipe_runner import run_steps
-from app.connectors.base import ConnectorError, NeedsLogin
 from app.connectors.browser_api import BrowserResponse
+from app.connectors.errors import ConnectorError, NeedsLogin
 from app.recipes.model import render_steps
 
 if TYPE_CHECKING:

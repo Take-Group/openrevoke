@@ -6,7 +6,8 @@ browser can log in to it and the connector can read it with ``fetch()``.
 
 from typing import Any
 
-from app.connectors.base import ConnectorError, RemoteAccount
+from app.connectors.base import RemoteAccount
+from app.connectors.errors import ConnectorError
 
 STATES = {"active": "active", "invited": "invited", "deactivated": "suspended"}
 NAMES = ("Ada Testowa", "Borys Przykładowy", "Celina Fikcyjna", "Dawid Wzorcowy")

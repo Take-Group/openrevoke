@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError, model_validator
 
-from app.connectors.base import ConnectorError
+from app.connectors.errors import ConnectorError
 
 if TYPE_CHECKING:
     from pathlib import Path

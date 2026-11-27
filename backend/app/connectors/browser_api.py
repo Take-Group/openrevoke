@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol
 from urllib.parse import urlsplit
 
-from app.connectors.base import ConnectorError, NeedsLogin
+from app.connectors.errors import ConnectorError, NeedsLogin
 
 if TYPE_CHECKING:
     from app.recipes.model import Recipe

@@ -22,6 +22,7 @@ Logic used by `app/api/` and `app/temporal/` activities. Raise `errors` subclass
 - `people_managers.py`: `set_manager` (panel), `creates_cycle`, `manager_map`, `reports_of`, `without_manager_clause`, `needs_manager_clause` (dashboard alert).
 - `people_import.py`: CSV import (`parse_csv`, `import_people` with `dry_run`).
 - `people_import_managers.py`: `resolve_managers` (CSV `manager_email`).
+- `people_import_plan.py`: `RowPlan`, `Directory` of the CSV import (shared by the two above).
 - `people_sources.py`: `get_or_create_source`, `upsert_link`, `source_names`.
 - `people_sync.py`: `apply_people` stores `RemotePerson`s (managers in a second pass), from `sync.run`.
 - `person_kind.py`: `classify`: person or service account.

@@ -10,7 +10,8 @@ from typing import TYPE_CHECKING
 
 import httpx
 
-from app.connectors.base import ConnectorContext, ConnectorError
+from app.connectors.base import ConnectorContext
+from app.connectors.errors import ConnectorError
 from app.connectors.google_workspace import discovery as google_discovery
 from app.connectors.http import build_http_client
 from app.models.enums import Integration

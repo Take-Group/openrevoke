@@ -7,7 +7,8 @@ workspace (docs/connectors/chatgpt.md).
 
 from typing import Any
 
-from app.connectors.base import ConnectorError, IncompleteListError, NeedsLogin, RemoteAccount
+from app.connectors.base import RemoteAccount
+from app.connectors.errors import ConnectorError, IncompleteListError, NeedsLogin
 
 NAME = "ChatGPT"
 INVITE_PREFIX = "invite:"

@@ -66,7 +66,7 @@ def _candidates(client: httpx.Client, base: str, html: str) -> list[tuple[int, s
                 if src and not src.lower().split("?")[0].endswith(".svg"):
                     found.append((_size_of(icon.get("sizes")), urljoin(base, src)))
         except httpx.HTTPError, ValueError, AttributeError:
-            pass
+            pass  # no usable manifest: the other candidates and the favicon remain
     found.append((180, urljoin(base, "/apple-touch-icon.png")))
     return sorted(found, key=lambda item: -item[0])
 
@@ -123,7 +123,6 @@ def _is_light(image: Image.Image) -> bool:
 
 def fetch(client: httpx.Client, app: dict) -> tuple[str, str]:
     website = app["website"]
-    title = "?"
     sources: list[tuple[int, str]] = []
     try:
         page = client.get(website)

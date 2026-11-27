@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 from app.services.people_managers import creates_cycle
 
 if TYPE_CHECKING:
-    from app.services.people_import import Directory, RowPlan
+    from app.services.people_import_plan import Directory, RowPlan
 
 
 def resolve_managers(plans: list[RowPlan], directory: Directory) -> None:

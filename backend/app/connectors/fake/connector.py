@@ -18,15 +18,14 @@ from app.connectors.base import (
     CheckResult,
     Connector,
     ConnectorContext,
-    ConnectorError,
     CreateAccountRequest,
     CreatedAccount,
-    NeedsLogin,
     RemoteAccount,
     RemotePerson,
     SecretField,
 )
 from app.connectors.discovery import AppDiscovery, DiscoveryResult
+from app.connectors.errors import ConnectorError, NeedsLogin
 from app.connectors.fake import mapping, state
 from app.connectors.fake.discovery import fake_discovery
 from app.models.enums import Integration

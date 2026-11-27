@@ -27,7 +27,7 @@ from urllib.parse import parse_qs, unquote, urlparse, urlsplit
 CATALOG = Path(__file__).resolve().parent.parent / "app" / "catalog" / "apps.json"
 CLIENT_ID = re.compile(r"\d{6,}-[a-z0-9]{20,40}\.apps\.googleusercontent\.com")
 CONTINUE_TO = re.compile(r"(?:to continue to|continue to)\s+(.+)", re.I)
-GOOGLE_BUTTON = re.compile(r"(sign ?in|log ?in|continue|sign ?up).{0,12}google|^google$", re.I)
+GOOGLE_BUTTON = re.compile(r"(?:(?:sign ?in|log ?in|continue|sign ?up).{0,12}google)|(?:^google$)", re.I)
 PARALLEL = 6
 PAGE_TIMEOUT = 20_000
 

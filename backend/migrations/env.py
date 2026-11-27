@@ -11,14 +11,14 @@ from typing import TYPE_CHECKING
 
 from alembic import context
 
-import app.models  # noqa: F401  (registers every model on Base.metadata)
-from app.database import Base, engine
+import app.models  # registers every model on Base.metadata
+from app.database import engine
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Connection
 
 config = context.config
-target_metadata = Base.metadata
+target_metadata = app.models.Base.metadata
 
 
 def _run(connection: Connection) -> None:

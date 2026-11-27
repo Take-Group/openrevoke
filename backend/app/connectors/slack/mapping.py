@@ -12,7 +12,8 @@ from decimal import Decimal
 from typing import Any
 from urllib.parse import urlsplit
 
-from app.connectors.base import BillingInfo, ConnectorError, NeedsLogin, RemoteAccount
+from app.connectors.base import BillingInfo, RemoteAccount
+from app.connectors.errors import ConnectorError, NeedsLogin
 
 NAME = "Slack"
 # Web API errors that mean the browser session is gone or not allowed.

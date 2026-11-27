@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from urllib.parse import urlencode
 
-from app.connectors.base import ConnectorError, NeedsLogin
+from app.connectors.errors import ConnectorError, NeedsLogin
 from app.connectors.google_workspace.scopes import SCOPE_AUDIT, SCOPE_READ, SCOPE_TOKENS, SCOPE_WRITE, is_granted
 from app.connectors.http import json_body
 

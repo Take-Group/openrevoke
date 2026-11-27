@@ -21,7 +21,7 @@ from urllib.parse import urlencode
 import httpx
 
 from app.config import settings
-from app.connectors.base import ConnectorError
+from app.connectors.errors import ConnectorError
 from app.connectors.google_workspace import oauth
 from app.connectors.http import build_http_client
 from app.redis import redis_client
